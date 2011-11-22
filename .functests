@@ -1,0 +1,4 @@
+#!/bin/bash
+
+nosetests swiftly/test/functional --exe --with-coverage \
+    --cover-package swiftly --cover-erase
