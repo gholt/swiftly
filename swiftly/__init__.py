@@ -16,10 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-__all__ = ['VERSION', 'Client']
+__all__ = ['VERSION']
 
-
+#: Version str for Swiftly: "minor.major".
 VERSION = '1.0'
-
-
-from swiftly.client import Client

@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-__all__ = ['VERSION', 'CHUNK_SIZE', 'Client', 'LocalMemcache']
+__all__ = ['VERSION', 'CHUNK_SIZE', 'Client']
 
 
 from urllib import quote
@@ -64,7 +64,7 @@ def _quote(value, safe='/:'):
     return quote(value, safe)
 
 
-class LocalMemcache(object):
+class _LocalMemcache(object):
 
     def __init__(self):
         self.cache = {}
@@ -142,21 +142,19 @@ class Client(object):
     :param auth_key: The key to use when authenticating.
     :param proxy: The URL to the proxy to use. Default: None.
     :param snet: Prepends "snet-" to the host name of the storage URL
-                 given once authenticated. This is usually only useful
-                 when working with Rackspace Cloud Files and wanting
-                 to use Rackspace ServiceNet. Default: False.
+        given once authenticated. This is usually only useful when
+        working with Rackspace Cloud Files and wanting to use
+        Rackspace ServiceNet. Default: False.
     :param swift_proxy: Default: None. If set, the
-                        swift.proxy.server.Application given will be used
-                        instead of connecting to an external proxy server. You
-                        can also set it to True and the Swift proxy will be
-                        created with default values.
+        swift.proxy.server.Application given will be used instead of
+        connecting to an external proxy server. You can also set it to
+        True and the Swift proxy will be created with default values.
     :param swift_proxy_storage_path: If swift_proxy is set,
-                                     swift_proxy_storage_path is the path to
-                                     the Swift account to use (example:
-                                     /v1/AUTH_test).
+        swift_proxy_storage_path is the path to the Swift account to
+        use (example: /v1/AUTH_test).
     :param retries: The number of times to retry requests if a server
-                    error ocurrs (5xx response). Default: 4 (for a
-                    total of 5 attempts).
+        error ocurrs (5xx response). Default: 4 (for a total of 5
+        attempts).
     """
 
     def __init__(self, auth_url=None, auth_user=None, auth_key=None,
@@ -174,7 +172,7 @@ class Client(object):
         self.storage_path = None
         self.swift_proxy = swift_proxy
         if swift_proxy is True:
-            self.swift_proxy = SwiftProxy({}, memcache=LocalMemcache())
+            self.swift_proxy = SwiftProxy({}, memcache=_LocalMemcache())
         if swift_proxy:
             self.storage_path = swift_proxy_storage_path
 
@@ -236,7 +234,7 @@ class Client(object):
             if status // 100 == 2:
                 self.storage_url = hdrs['x-storage-url']
                 if self.snet:
-                    parsed = list(urlparse(url))
+                    parsed = list(urlparse(self.storage_url))
                     # Second item in the list is the netloc
                     parsed[1] = 'snet-' + parsed[1]
                     self.storage_url = urlunparse(parsed)
@@ -344,7 +342,7 @@ class Client(object):
                     resp.close()
             else:
                 status = resp.status_int
-                reason = resp.status
+                reason = resp.status.split(' ', 1)[1]
                 hdrs = self._response_headers(resp.headerlist)
                 if stream:
                     value = _IterReader(resp.app_iter)
@@ -377,11 +375,14 @@ class Client(object):
         HEADs the account and returns the results. Useful headers
         returned are:
 
-        x-account-bytes-used: Object storage used for the account, in
-                              bytes.
-        x-account-container-count: The number of containers in the
-                                   account.
-        x-account-object-count: The number of objects in the account.
+        =========================== =================================
+        x-account-bytes-used        Object storage used for the
+                                    account, in bytes.
+        x-account-container-count   The number of containers in the
+                                    account.
+        x-account-object-count      The number of objects in the
+                                    account.
+        =========================== =================================
 
         Also, any user headers beginning with x-account-meta- are
         returned.
@@ -390,12 +391,13 @@ class Client(object):
 
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request('HEAD', '', '', headers)
 
@@ -406,11 +408,14 @@ class Client(object):
         the containers for the account. Some useful headers are also
         returned:
 
-        x-account-bytes-used: Object storage used for the account, in
-                              bytes.
-        x-account-container-count: The number of containers in the
-                                   account.
-        x-account-object-count: The number of objects in the account.
+        =========================== =================================
+        x-account-bytes-used        Object storage used for the
+                                    account, in bytes.
+        x-account-container-count   The number of containers in the
+                                    account.
+        x-account-object-count      The number of objects in the
+                                    account.
+        =========================== =================================
 
         Also, any user headers beginning with x-account-meta- are
         returned.
@@ -424,12 +429,19 @@ class Client(object):
                           indicate how far to progress through
                           container names before "rolling them up".
                           For instance, a delimiter='.' query on an
-                          account with the containers:
-                          one.one one.two two three.one
-                          would return the JSON value of:
-                          [{'subdir': 'one.'},
-                           {'count': 0, 'bytes': 0, 'name': 'two'},
-                           {'subdir': 'three.'}]
+                          account with the containers::
+
+                           one.one
+                           one.two
+                           two
+                           three.one
+
+                          would return the JSON value of::
+
+                           [{'subdir': 'one.'},
+                            {'count': 0, 'bytes': 0, 'name': 'two'},
+                            {'subdir': 'three.'}]
+
                           Using this with prefix can allow you to
                           traverse a psuedo hierarchy.
         :param marker: Only container names after this marker will be
@@ -443,12 +455,13 @@ class Client(object):
                       request. The default and maximum depends on the
                       Swift cluster (usually 10,000).
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         query = '?format=json'
         if prefix:
@@ -471,12 +484,13 @@ class Client(object):
 
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request('POST', '', '', headers)
 
@@ -491,10 +505,12 @@ class Client(object):
         HEADs the container and returns the results. Useful headers
         returned are:
 
-        x-container-bytes-used: Object storage used for the container,
-                                in bytes.
-        x-container-object-count: The number of objects in the
-                                  container.
+        =========================== =================================
+        x-container-bytes-used      Object storage used for the
+                                    container, in bytes.
+        x-container-object-count    The number of objects in the
+                                    container.
+        =========================== =================================
 
         Also, any user headers beginning with x-container-meta- are
         returned.
@@ -504,12 +520,13 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request(
             'HEAD', self._container_path(container), '', headers)
@@ -521,10 +538,12 @@ class Client(object):
         list the objects for the container. Some useful headers are
         also returned:
 
-        x-container-bytes-used: Object storage used for the container,
-                                in bytes.
-        x-container-object-count: The number of objects in the
-                                  container.
+        =========================== =================================
+        x-container-bytes-used      Object storage used for the
+                                    container, in bytes.
+        x-container-object-count    The number of objects in the
+                                    container.
+        =========================== =================================
 
         Also, any user headers beginning with x-container-meta- are
         returned.
@@ -539,12 +558,19 @@ class Client(object):
                           indicate how far to progress through object
                           names before "rolling them up". For
                           instance, a delimiter='/' query on an
-                          container with the objects:
-                          one/one one/two two three/one
-                          would return the JSON value of:
-                          [{'subdir': 'one/'},
-                           {'count': 0, 'bytes': 0, 'name': 'two'},
-                           {'subdir': 'three/'}]
+                          container with the objects::
+
+                           one/one
+                           one/two
+                           two
+                           three/one
+
+                          would return the JSON value of::
+
+                           [{'subdir': 'one/'},
+                            {'count': 0, 'bytes': 0, 'name': 'two'},
+                            {'subdir': 'three/'}]
+
                           Using this with prefix can allow you to
                           traverse a psuedo hierarchy.
         :param marker: Only object names after this marker will be
@@ -558,12 +584,13 @@ class Client(object):
                       request. The default and maximum depends on the
                       Swift cluster (usually 10,000).
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         query = '?format=json'
         if prefix:
@@ -589,12 +616,13 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request(
             'PUT', self._container_path(container), '', headers)
@@ -610,12 +638,13 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request(
             'POST', self._container_path(container), '', headers)
@@ -627,12 +656,13 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request(
             'DELETE', self._container_path(container), '', headers)
@@ -656,12 +686,13 @@ class Client(object):
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request(
             'HEAD', self._object_path(container, obj), '', headers)
@@ -683,12 +714,16 @@ class Client(object):
                        When streaming is on, be certain to fully read
                        the contents before issuing another request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: if *stream* was True, *contents* is a
+                file-like-object of the contents of the HTTP body. If
+                *stream* was False, *contents* is just a simple str of
+                the HTTP body.
         """
         return self._request('GET', self._object_path(container, obj), '',
                              headers, stream=stream)
@@ -715,12 +750,13 @@ class Client(object):
                          server error.
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request(
             'PUT', self._object_path(container, obj), contents, headers)
@@ -740,12 +776,13 @@ class Client(object):
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request(
             'POST', self._object_path(container, obj), '', headers)
@@ -758,12 +795,13 @@ class Client(object):
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
         :returns: A tuple of (status, reason, headers, contents).
-                  status is an int for the HTTP status code.
-                  reason is the str for the HTTP status (ex: "Ok").
-                  headers is a dict with all lowercase keys of the
-                          HTTP headers; if a header has multiple
-                          values, it will be a list.
-                  contents is the str for the HTTP body.
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
         """
         return self._request(
             'DELETE', self._object_path(container, obj), '', headers)

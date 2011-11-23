@@ -1,29 +1,49 @@
-# Swiftly - A client for Swift
+Swiftly
+=======
 
-A work in progress. Currently provides a Client class and a command line tool
-for common Swift functions. Works both with access as an external, end user to
-a Swift cluster and as an internal administrator of a cluster with direct
-access to the rings and to all back end servers.
+    Copyright 2011 Gregory Holt
 
-## Client Class Usage
+    A work in progress. Currently provides a Client class and a command line
+    tool for common Swift functions. Works both with access as an external, end
+    user to a Swift cluster and as an internal administrator of a cluster with
+    direct access to the rings and to all back end servers.
 
-Example as a standard end user:
+Contents
+--------
+
+.. toctree::
+    :maxdepth: 2
+
+    license
+    swiftly
+    swiftly_cli
+    swiftly_client
+
+Overview
+--------
+
+Client Class Usage
+..................
+
+Example as a standard end user::
 
     from swiftly import Client
     client = Client('http://127.0.0.1:8080/auth/v1.0',
                     'test:tester', 'testing')
     print client.head_account()
 
-Example as a administrator direct user:
+Example as a administrator direct user::
 
     from swiftly import Client
     client = Client(swift_proxy=True,
                     swift_proxy_storage_path='/v1/AUTH_test')
     print client.head_account()
 
-## Command Line Tool Usage
 
-Output from *swiftly*:
+Command Line Tool Usage
+.......................
+
+Output from `swiftly`::
 
     Usage: swiftly [options] <command> [command_options] [args]
 
@@ -57,7 +77,7 @@ Output from *swiftly*:
       help [command]        Prints help information for the given [command] or
                             general help if no [command] is given.
 
-Output from *swiftly help get*:
+Output from `swiftly help get`::
 
     Usage: swiftly [main_options] get [options] [path]
 
@@ -69,7 +89,7 @@ Output from *swiftly help get*:
     Options:
       --headers  Output headers as well as the contents.
 
-Output from *swiftly help head*:
+Output from `swiftly help head`::
 
     Usage: swiftly [main_options] head [path]
 
@@ -77,3 +97,11 @@ Output from *swiftly help head*:
 
     Prints the resulting headers from a HEAD request of the [path] given. If no
     [path] is given, a HEAD request on the account is performed.
+
+
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

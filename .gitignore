@@ -1,0 +1,6 @@
+*.py[co]
+*.sw?
+doc/build/*
+.coverage
+swiftly.egg-info
+.DS_Store
