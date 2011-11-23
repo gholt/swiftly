@@ -19,7 +19,7 @@ from uuid import uuid4
 
 from nose import SkipTest
 
-from swiftly import Client
+from swiftly.client import Client
 from swiftly.test.functional import AUTH_URL, AUTH_USER, AUTH_KEY, \
                                     SWIFT_PROXY_STORAGE_PATH
 
