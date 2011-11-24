@@ -19,6 +19,7 @@ limitations under the License.
 __all__ = ['VERSION', 'CHUNK_SIZE', 'Client']
 
 
+from os import umask
 from urllib import quote
 from urlparse import urlparse, urlunparse
 
@@ -145,6 +146,9 @@ class Client(object):
         given once authenticated. This is usually only useful when
         working with Rackspace Cloud Files and wanting to use
         Rackspace ServiceNet. Default: False.
+    :param retries: The number of times to retry requests if a server
+        error ocurrs (5xx response). Default: 4 (for a total of 5
+        attempts).
     :param swift_proxy: Default: None. If set, the
         swift.proxy.server.Application given will be used instead of
         connecting to an external proxy server. You can also set it to
@@ -152,14 +156,14 @@ class Client(object):
     :param swift_proxy_storage_path: If swift_proxy is set,
         swift_proxy_storage_path is the path to the Swift account to
         use (example: /v1/AUTH_test).
-    :param retries: The number of times to retry requests if a server
-        error ocurrs (5xx response). Default: 4 (for a total of 5
-        attempts).
+    :param cache_path: Default: None. If set to a path, the storage URL and
+        auth token are cached in the file for reuse. If there is already cached
+        values in the file, they are used without authenticating first.
     """
 
     def __init__(self, auth_url=None, auth_user=None, auth_key=None,
                  proxy=None, snet=False, retries=4, swift_proxy=None,
-                 swift_proxy_storage_path=None):
+                 swift_proxy_storage_path=None, cache_path=None):
         self.auth_url = auth_url
         self.auth_user = auth_user
         self.auth_key = auth_key
@@ -175,6 +179,18 @@ class Client(object):
             self.swift_proxy = SwiftProxy({}, memcache=_LocalMemcache())
         if swift_proxy:
             self.storage_path = swift_proxy_storage_path
+        self.cache_path = cache_path
+        if self.cache_path:
+            try:
+                data = open(self.cache_path, 'r').read().decode('base64')
+                (auth_url, auth_user, auth_key, self.storage_url,
+                 self.auth_token) = [v for v in data.split('\n')]
+                if auth_url != self.auth_url or auth_user != self.auth_user \
+                        or auth_key != self.auth_key:
+                    self.storage_url = None
+                    self.auth_token = None
+            except Exception:
+                pass
 
     def _connect(self, url=None):
         if not url:
@@ -243,6 +259,12 @@ class Client(object):
                     self.auth_token = hdrs.get('x-storage-token')
                     if not self.auth_token:
                         raise KeyError('x-auth-token or x-storage-token')
+                if self.cache_path:
+                    data = '\n'.join([self.auth_url, self.auth_user,
+                        self.auth_key, self.storage_url, self.auth_token])
+                    old_umask = umask(0077)
+                    open(self.cache_path, 'w').write(data.encode('base64'))
+                    umask(old_umask)
                 return
             sleep(2 ** attempt)
         raise HTTPException('Auth GET failed', status, reason)
@@ -257,8 +279,11 @@ class Client(object):
         tell = getattr(contents, 'tell', None)
         seek = getattr(contents, 'seek', None)
         if tell and seek:
-            orig_pos = tell()
-            reset_func = lambda: seek(orig_pos)
+            try:
+                orig_pos = tell()
+                reset_func = lambda: seek(orig_pos)
+            except Exception:
+                tell = seek = None
         elif not contents:
             reset_func = lambda: None
         status = 0
@@ -402,7 +427,7 @@ class Client(object):
         return self._request('HEAD', '', '', headers)
 
     def get_account(self, headers=None, prefix=None, delimiter=None,
-                    marker=None, limit=None):
+                    marker=None, end_marker=None, limit=None):
         """
         GETs the account and returns the results. This is done to list
         the containers for the account. Some useful headers are also
@@ -451,6 +476,8 @@ class Client(object):
                        query with the marker set to the last name you
                        received. You can continue to issue requests
                        until you receive no more names.
+        :param end_marker: Only container names before this marker will be
+                           returned.
         :param limit: Limits the size of the list returned per
                       request. The default and maximum depends on the
                       Swift cluster (usually 10,000).
@@ -470,6 +497,8 @@ class Client(object):
             query += '&delimiter=' + _quote(delimiter)
         if marker:
             query += '&marker=' + _quote(marker)
+        if end_marker:
+            query += '&end_marker=' + _quote(end_marker)
         if limit:
             query += '&limit=' + _quote(str(limit))
         return self._request('GET', query, '', headers, decode_json=True)
@@ -532,7 +561,8 @@ class Client(object):
             'HEAD', self._container_path(container), '', headers)
 
     def get_container(self, container, headers=None, prefix=None,
-                      delimiter=None, marker=None, limit=None):
+                      delimiter=None, marker=None, end_marker=None,
+                      limit=None):
         """
         GETs the container and returns the results. This is done to
         list the objects for the container. Some useful headers are
@@ -580,6 +610,8 @@ class Client(object):
                        with the marker set to the last name you
                        received. You can continue to issue requests
                        until you receive no more names.
+        :param end_marker: Only object names before this marker will be
+                           returned.
         :param limit: Limits the size of the list returned per
                       request. The default and maximum depends on the
                       Swift cluster (usually 10,000).
@@ -599,6 +631,8 @@ class Client(object):
             query += '&delimiter=' + _quote(delimiter)
         if marker:
             query += '&marker=' + _quote(marker)
+        if end_marker:
+            query += '&end_marker=' + _quote(end_marker)
         if limit:
             query += '&limit=' + _quote(str(limit))
         return self._request('GET', self._container_path(container) + query,
