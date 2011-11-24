@@ -30,32 +30,61 @@ Output from *swiftly*:
     Options:
       -A AUTH_URL, --auth_url=AUTH_URL
                             URL to auth system, example:
-                            http://127.0.0.1:8080/auth/v1.0
+                            http://127.0.0.1:8080/auth/v1.0 You can also set this
+                            with the environment variable SWIFTLY_AUTH_URL.
       -U AUTH_USER, --auth_user=AUTH_USER
-                            User name for auth system, example: test:tester
+                            User name for auth system, example: test:tester You
+                            can also set this with the environment variable
+                            SWIFTLY_AUTH_USER.
       -K AUTH_KEY, --auth_key=AUTH_KEY
-                            Key for auth system, example: testing
+                            Key for auth system, example: testing You can also set
+                            this with the environment variable SWIFTLY_AUTH_KEY.
       -D DIRECT, --direct=DIRECT
                             Uses direct connect method to access Swift. Requires
                             access to rings and backend servers. The value is the
-                            account path, example: /v1/AUTH_test
+                            account path, example: /v1/AUTH_test You can also set
+                            this with the environment variable SWIFTLY_DIRECT.
       -P PROXY, --proxy=PROXY
-                            Uses the given proxy URL.
+                            Uses the given proxy URL. You can also set this with
+                            the environment variable SWIFTLY_PROXY.
       -S, --snet            Prepends the storage URL host name with "snet-".
                             Mostly only useful with Rackspace Cloud Files and
-                            Rackspace ServiceNet.
+                            Rackspace ServiceNet. You can also set this with the
+                            environment variable SWIFTLY_SNET (set to "true" or
+                            "false").
       -R RETRIES, --retries=RETRIES
                             Indicates how many times to retry the request on a
-                            server error. Default: 4.
+                            server error. Default: 4. You can also set this with
+                            the environment variable SWIFTLY_RETRIES.
+      -C, --cache-auth      If set true, the storage URL and auth token are cached
+                            in /tmp/<user>.swiftly for reuse. If there are already
+                            cached values, they are used without authenticating
+                            first. You can also set this with the environment
+                            variable SWIFTLY_CACHE_AUTH (set to "true" or
+                            "false").
     Commands:
-      get [options] [path]  Prints the resulting contents from a GET request of the
-                            [path] given. If no [path] is given, a GET request on
-                            the account is performed.
-      head [path]           Prints the resulting headers from a HEAD request of the
-                            [path] given. If no [path] is given, a HEAD request on
-                            the account is performed.
-      help [command]        Prints help information for the given [command] or
+      auth                  Outputs auth information.
+      get [options] [path]  Outputs the resulting contents from a GET request of
+                            the [path] given. If no [path] is given, a GET request
+                            on the account is performed.
+      head [options] [path] Outputs the resulting headers from a HEAD request of
+                            the [path] given. If no [path] is given, a HEAD request
+                            on the account is performed.
+      help [command]        Outputs help information for the given [command] or
                             general help if no [command] is given.
+      put [options] <path>  Performs a PUT request on the <path> given. If the
+                            <path> is an object, the contents for the object are
+                            read from standard input.
+
+
+Output from *swiftly help auth*:
+
+    Usage: swiftly [main_options] auth
+
+    For help on [main_options] run swiftly with no args.
+
+    Outputs auth information.
+
 
 Output from *swiftly help get*:
 
@@ -63,17 +92,101 @@ Output from *swiftly help get*:
 
     For help on [main_options] run swiftly with no args.
 
-    Prints the resulting contents from a GET request of the [path] given. If no
+    Outputs the resulting contents from a GET request of the [path] given. If no
     [path] is given, a GET request on the account is performed.
 
     Options:
-      --headers  Output headers as well as the contents.
+      --headers             Output headers as well as the contents.
+      -h HEADER:VALUE, --header=HEADER:VALUE
+                            Add a header to the request. This can be used multiple
+                            times for multiple headers. Examples: -hif-
+                            match:6f432df40167a4af05ca593acc6b3e4c -h "If-
+                            Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+      -l LIMIT, --limit=LIMIT
+                            For account and container GETs, this limits the number
+                            of items returned. Without this option, all items are
+                            returned, even if it requires several backend requests
+                            to the gather the information.
+      -d DELIMITER, --delimiter=DELIMITER
+                            For account and container GETs, this sets the
+                            delimiter for the listing retrieved. For example, a
+                            container with the objects "abc/one", "abc/two", "xyz"
+                            and a delimiter of "/" would return "abc/" and "xyz".
+                            Using the same delimiter, but with a prefix of "abc/",
+                            would return "abc/one" and "abc/two".
+      -p PREFIX, --prefix=PREFIX
+                            For account and container GETs, this sets the prefix
+                            for the listing retrieved; the items returned will all
+                            match the PREFIX given.
+      -m MARKER, --marker=MARKER
+                            For account and container GETs, this sets the marker
+                            for the listing retrieved; the items returned will
+                            begin with the item just after the MARKER given (note:
+                            the marker does not have to actually exist).
+      -e MARKER, --end_marker=MARKER
+                            For account and container GETs, this sets the
+                            end_marker for the listing retrieved; the items
+                            returned will stop with the item just before the
+                            MARKER given (note: the marker does not have to
+                            actually exist).
+      -f, --full            For account and container GETs, this will output
+                            additional information about each item. For an account
+                            GET, the items output will be bytes-used, object-
+                            count, and container-name. For a container GET, the
+                            items output will be bytes-used, last-modified-time,
+                            etag, content-type, and object-name.
+      -r, --raw             For account and container GETs, this will return the
+                            raw JSON from the request. This will only do one
+                            request, even if subsequent requests would be needed
+                            to return all items. Use a subsequent call with
+                            --marker set to the last item name returned to get the
+                            next batch of items, if desired.
+      --all-objects         For a container GET, performs a GET for every object
+                            returned by the original container GET. Any headers
+                            set with --header options are also sent for every
+                            object GET.
+      -o PATH, --output=PATH
+                            Indicates where to send the output; default is
+                            standard output. If the PATH ends with a slash "/" and
+                            --all-objects is used, each object will be placed in a
+                            similarly named file inside the PATH given.
+
 
 Output from *swiftly help head*:
 
-    Usage: swiftly [main_options] head [path]
+    Usage: swiftly [main_options] head [options] [path]
 
     For help on [main_options] run swiftly with no args.
 
-    Prints the resulting headers from a HEAD request of the [path] given. If no
+    Outputs the resulting headers from a HEAD request of the [path] given. If no
     [path] is given, a HEAD request on the account is performed.
+
+    Options:
+      -h HEADER:VALUE, --header=HEADER:VALUE
+                            Add a header to the request. This can be used multiple
+                            times for multiple headers. Examples: -hif-
+                            match:6f432df40167a4af05ca593acc6b3e4c -h "If-
+                            Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+
+
+Output from *swiftly help put*:
+
+    Usage: swiftly [main_options] put [options] <path>
+
+    For help on [main_options] run swiftly with no args.
+
+    Performs a PUT request on the <path> given. If the <path> is an object, the
+    contents for the object are read from standard input.
+
+    Options:
+      -h HEADER:VALUE, --header=HEADER:VALUE
+                            Add a header to the request. This can be used multiple
+                            times for multiple headers. Examples: -hx-object-meta-
+                            color:blue -h "Content-Type: text/html"
+      -i PATH, --input=PATH
+                            Indicates where to read the contents from; default is
+                            standard input. If the PATH is a directory, all files
+                            in the directory will be uploaded as similarly named
+                            objects and empty directories will create
+                            text/directory marker objects.
+      -e, --empty           Indicates a zero-byte object should be PUT.
