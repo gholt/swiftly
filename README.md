@@ -224,4 +224,27 @@ Output from *swiftly help put*:
                             in the directory will be uploaded as similarly named
                             objects and empty directories will create
                             text/directory marker objects.
+      -n, --newer           For PUTs with an --input option, first performs a HEAD
+                            on the object and compares the X-Object-Meta-Mtime
+                            header with the modified time of the PATH obtained
+                            from the --input option and then PUTs the object only
+                            if the local time is newer. When the --input PATH is a
+                            directory, this offers an easy way to upload only the
+                            newer files since the last upload (at the expense of
+                            HEAD requests). NOTE THAT THIS WILL NOT UPLOAD CHANGED
+                            FILES THAT DO NOT HAVE A NEWER LOCAL MODIFIED TIME!
+                            NEWER does not mean DIFFERENT.
+      -d, --different       For PUTs with an --input option, first performs a HEAD
+                            on the object and compares the X-Object-Meta-Mtime
+                            header with the modified time of the PATH obtained
+                            from the --input option and then PUTs the object only
+                            if the local time is different. It will also check the
+                            local and remote sizes and PUT if they differ.
+                            ETag/MD5sum checking are not done (an option may be
+                            provided in the future) since this is usually much
+                            more disk intensive. When the --input PATH is a
+                            directory, this offers an easy way to upload only the
+                            differing files since the last upload (at the expense
+                            of HEAD requests). NOTE THAT THIS CAN UPLOAD OLDER
+                            FILES OVER NEWER ONES! DIFFERENT does not mean NEWER.
       -e, --empty           Indicates a zero-byte object should be PUT.

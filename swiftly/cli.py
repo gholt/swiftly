@@ -22,7 +22,7 @@ import sys
 from optparse import Option, OptionParser
 import textwrap
 from os import environ, makedirs, unlink, utime, walk
-from os.path import dirname, exists, getmtime, join as pathjoin, isdir
+from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from time import mktime, strptime
 
 from swiftly import VERSION
@@ -255,6 +255,31 @@ contents for the object are read from standard input.""".strip(),
                  'the directory will be uploaded as similarly named objects '
                  'and empty directories will create text/directory marker '
                  'objects.')
+        self._put_parser.add_option('-n', '--newer', dest='newer',
+            action='store_true',
+            help='For PUTs with an --input option, first performs a HEAD on '
+                 'the object and compares the X-Object-Meta-Mtime header with '
+                 'the modified time of the PATH obtained from the --input '
+                 'option and then PUTs the object only if the local time is '
+                 'newer. When the --input PATH is a directory, this offers an '
+                 'easy way to upload only the newer files since the last '
+                 'upload (at the expense of HEAD requests). NOTE THAT THIS '
+                 'WILL NOT UPLOAD CHANGED FILES THAT DO NOT HAVE A NEWER '
+                 'LOCAL MODIFIED TIME! NEWER does not mean DIFFERENT.')
+        self._put_parser.add_option('-d', '--different', dest='different',
+            action='store_true',
+            help='For PUTs with an --input option, first performs a HEAD on '
+                 'the object and compares the X-Object-Meta-Mtime header with '
+                 'the modified time of the PATH obtained from the --input '
+                 'option and then PUTs the object only if the local time is '
+                 'different. It will also check the local and remote sizes '
+                 'and PUT if they differ. ETag/MD5sum checking are not done '
+                 '(an option may be provided in the future) since this is '
+                 'usually much more disk intensive. When the --input PATH is '
+                 'a directory, this offers an easy way to upload only the '
+                 'differing files since the last upload (at the expense of '
+                 'HEAD requests). NOTE THAT THIS CAN UPLOAD OLDER FILES OVER '
+                 'NEWER ONES! DIFFERENT does not mean NEWER.')
         self._put_parser.add_option('-e', '--empty', dest='empty',
             action='store_true',
             help='Indicates a zero-byte object should be PUT.')
@@ -700,6 +725,10 @@ Issues a DELETE request of the <path> given.""".strip(),
                                 subargs.append(h)
                         subargs.append('-i')
                         subargs.append(pathjoin(dirpath, fname))
+                        if options.newer:
+                            subargs.append('-n')
+                        if options.different:
+                            subargs.append('-d')
                         rv = self._put(main_options, subargs)
                         if rv:
                             self.stderr.write(
@@ -707,17 +736,38 @@ Issues a DELETE request of the <path> given.""".strip(),
                             self.stderr.flush()
                             return rv
             return 0
+        path = args[0].lstrip('/')
         hdrs = {}
         stdin = self.stdin
         if options.empty:
             hdrs['content-length'] = '0'
             stdin = ''
         elif options.input_ and not isdir(options.input_):
-            hdrs['x-object-meta-mtime'] = '%d' % getmtime(options.input_)
+            l_mtime = getmtime(options.input_)
+            if (options.newer or options.different) and \
+                    '/' in path.rstrip('/'):
+                r_mtime = 0
+                r_size = -1
+                status, reason, headers, contents = \
+                    self.client.head_object(*path.split('/', 1))
+                if status // 100 == 2:
+                    try:
+                        r_mtime = int(headers.get('x-object-meta-mtime', 0))
+                    except ValueError:
+                        pass
+                    try:
+                        r_size = int(headers.get('content-length', -1))
+                    except ValueError:
+                        pass
+                if options.newer and l_mtime <= r_mtime:
+                    return 0
+                if options.different and l_mtime == r_mtime and \
+                        getsize(options.input_) == r_size:
+                    return 0
+            hdrs['x-object-meta-mtime'] = '%d' % l_mtime
             stdin = open(options.input_, 'rb')
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
-        path = args[0].lstrip('/')
         if '/' not in path.rstrip('/'):
             status, reason, headers, contents = \
                 self.client.put_container(path.rstrip('/'), headers=hdrs)
