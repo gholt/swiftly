@@ -259,6 +259,34 @@ contents for the object are read from standard input.""".strip(),
             action='store_true',
             help='Indicates a zero-byte object should be PUT.')
 
+        self._post_parser = _OptionParser(version='%prog 1.0', usage="""
+Usage: %prog [main_options] post [options] [path]
+
+For help on [main_options] run %prog with no args.
+
+Issues a POST request of the [path] given. If no [path] is given, a POST
+request on the account is performed.""".strip(),
+            stdout=self.stdout, stderr=self.stderr)
+        self._post_parser.add_option('-h', '--header', dest='header',
+            action='append', metavar='HEADER:VALUE',
+            help='Add a header to the request. This can be used multiple '
+                 'times for multiple headers. Examples: '
+                 '-hx-object-meta-color:blue -h "Content-Type: text/html"')
+
+        self._delete_parser = _OptionParser(version='%prog 1.0', usage="""
+Usage: %prog [main_options] delete [options] <path>
+
+For help on [main_options] run %prog with no args.
+
+Issues a DELETE request of the <path> given.""".strip(),
+            stdout=self.stdout, stderr=self.stderr)
+        self._delete_parser.add_option('-h', '--header', dest='header',
+            action='append', metavar='HEADER:VALUE',
+            help='Add a header to the request. This can be used multiple '
+                 'times for multiple headers. Examples: '
+                 '-hx-some-header:some-value -h "X-Some-Other-Header: Some '
+                 'other value"')
+
         self._main_parser = _OptionParser(version='%prog 1.0',
             usage='Usage: %prog [options] <command> [command_options] [args]',
             stdout=self.stdout, stderr=self.stderr)
@@ -697,6 +725,59 @@ contents for the object are read from standard input.""".strip(),
             c, o = path.split('/', 1)
             status, reason, headers, contents = \
                 self.client.put_object(c, o, stdin, headers=hdrs)
+        if status // 100 != 2:
+            self.stderr.write('%s %s\n' % (status, reason))
+            self.stderr.flush()
+            return 1
+        return 0
+
+    @_client_command
+    def _post(self, main_options, args):
+        options, args = self._post_parser.parse_args(args)
+        if self._post_parser.error_encountered:
+            return 1
+        hdrs = self._command_line_headers(options.header)
+        status, reason, headers, contents = 0, 'Unknown', {}, ''
+        if not args:
+            status, reason, headers, contents = \
+                self.client.post_account(headers=hdrs)
+        elif len(args) == 1:
+            path = args[0].lstrip('/')
+            if '/' not in path.rstrip('/'):
+                status, reason, headers, contents = \
+                    self.client.post_container(path.rstrip('/'), headers=hdrs)
+            else:
+                status, reason, headers, contents = \
+                    self.client.post_object(*path.split('/', 1), headers=hdrs)
+        else:
+            self._post_parser.print_help()
+            return 1
+        if status // 100 != 2:
+            self.stderr.write('%s %s\n' % (status, reason))
+            self.stderr.flush()
+            return 1
+        return 0
+
+    @_client_command
+    def _delete(self, main_options, args):
+        options, args = self._delete_parser.parse_args(args)
+        if self._delete_parser.error_encountered:
+            return 1
+        hdrs = self._command_line_headers(options.header)
+        status, reason, headers, contents = 0, 'Unknown', {}, ''
+        if len(args) == 1:
+            path = args[0].lstrip('/')
+            if '/' not in path.rstrip('/'):
+                status, reason, headers, contents = \
+                    self.client.delete_container(path.rstrip('/'),
+                                                 headers=hdrs)
+            else:
+                status, reason, headers, contents = \
+                    self.client.delete_object(*path.split('/', 1),
+                                              headers=hdrs)
+        else:
+            self._delete_parser.print_help()
+            return 1
         if status // 100 != 2:
             self.stderr.write('%s %s\n' % (status, reason))
             self.stderr.flush()

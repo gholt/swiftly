@@ -64,6 +64,8 @@ Output from *swiftly*:
                             "false").
     Commands:
       auth                  Outputs auth information.
+      delete [options] <path>
+                            Issues a DELETE request of the <path> given.
       get [options] [path]  Outputs the resulting contents from a GET request of
                             the [path] given. If no [path] is given, a GET request
                             on the account is performed.
@@ -72,6 +74,8 @@ Output from *swiftly*:
                             on the account is performed.
       help [command]        Outputs help information for the given [command] or
                             general help if no [command] is given.
+      post [options] [path] Issues a POST request of the [path] given. If no [path]
+                            is given, a POST request on the account is performed.
       put [options] <path>  Performs a PUT request on the <path> given. If the
                             <path> is an object, the contents for the object are
                             read from standard input.
@@ -84,6 +88,21 @@ Output from *swiftly help auth*:
     For help on [main_options] run swiftly with no args.
 
     Outputs auth information.
+
+
+Output from *swiftly help delete*:
+
+    Usage: swiftly [main_options] delete [options] <path>
+
+    For help on [main_options] run swiftly with no args.
+
+    Issues a DELETE request of the <path> given.
+
+    Options:
+      -h HEADER:VALUE, --header=HEADER:VALUE
+                            Add a header to the request. This can be used multiple
+                            times for multiple headers. Examples: -hx-some-header
+                            :some-value -h "X-Some-Other-Header: Some other value"
 
 
 Output from *swiftly help get*:
@@ -167,6 +186,22 @@ Output from *swiftly help head*:
                             times for multiple headers. Examples: -hif-
                             match:6f432df40167a4af05ca593acc6b3e4c -h "If-
                             Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+
+
+Output from *swiftly help post*:
+
+    Usage: swiftly [main_options] post [options] [path]
+
+    For help on [main_options] run swiftly with no args.
+
+    Issues a POST request of the [path] given. If no [path] is given, a POST
+    request on the account is performed.
+
+    Options:
+      -h HEADER:VALUE, --header=HEADER:VALUE
+                            Add a header to the request. This can be used multiple
+                            times for multiple headers. Examples: -hx-object-meta-
+                            color:blue -h "Content-Type: text/html"
 
 
 Output from *swiftly help put*:
