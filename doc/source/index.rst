@@ -180,10 +180,12 @@ Output from `swiftly help get`::
                             to return all items. Use a subsequent call with
                             --marker set to the last item name returned to get the
                             next batch of items, if desired.
-      --all-objects         For a container GET, performs a GET for every object
-                            returned by the original container GET. Any headers
-                            set with --header options are also sent for every
-                            object GET.
+      --all-objects         For an account GET, performs a container GET --all-
+                            objects for every container returned by the original
+                            account GET. For a container GET, performs a GET for
+                            every object returned by that original container GET.
+                            Any headers set with --header options are also sent
+                            for every object GET.
       -o PATH, --output=PATH
                             Indicates where to send the output; default is
                             standard output. If the PATH ends with a slash "/" and

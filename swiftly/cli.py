@@ -225,8 +225,10 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'name returned to get the next batch of items, if desired.')
         self._get_parser.add_option('--all-objects', dest='all_objects',
             action="store_true",
-            help='For a container GET, performs a GET for every object '
-                 'returned by the original container GET. Any headers set '
+            help='For an account GET, performs a container GET --all-objects '
+                 'for every container returned by the original account GET. '
+                 'For a container GET, performs a GET for every object '
+                 'returned by that original container GET. Any headers set '
                  'with --header options are also sent for every object GET.')
         self._get_parser.add_option('-o', '--output', dest='output',
             metavar='PATH',
@@ -582,8 +584,12 @@ Issues a DELETE request of the <path> given.""".strip(),
                                         'directory\n' % dirpath)
                                     self.stderr.flush()
                                     return 1
+                                subargs.append('--all-objects')
                                 subargs.append('-o')
-                                subargs.append(outpath)
+                                if not path:
+                                    subargs.append(outpath + '/')
+                                else:
+                                    subargs.append(outpath)
                             rv = self._get(main_options, subargs)
                             if rv == 404:
                                 self.stderr.write('skipping %s; not found')
