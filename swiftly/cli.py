@@ -313,6 +313,11 @@ Issues a DELETE request of the <path> given.""".strip(),
                  'times for multiple headers. Examples: '
                  '-hx-some-header:some-value -h "X-Some-Other-Header: Some '
                  'other value"')
+        self._delete_parser.add_option('--recursive', dest='recursive',
+            action='store_true',
+            help='Normally a delete for a non-empty container will error with '
+                 'a 409 Conflict; --recursive will first delete all objects '
+                 'in a container and then delete the container itself.')
 
         self._main_parser = _OptionParser(version='%prog 1.0',
             usage='Usage: %prog [options] <command> [command_options] [args]',
@@ -355,8 +360,8 @@ Issues a DELETE request of the <path> given.""".strip(),
                  'environment variable SWIFTLY_RETRIES.')
         self._main_parser.add_option('-C', '--cache-auth', dest='cache_auth',
             action='store_true',
-            default=
-                environ.get('SWIFTLY_CACHE_AUTH', 'false').lower() == 'true',
+            default=(
+                environ.get('SWIFTLY_CACHE_AUTH', 'false').lower() == 'true'),
             help='If set true, the storage URL and auth token are cached in '
                  '/tmp/<user>.swiftly for reuse. If there are already cached '
                  'values, they are used without authenticating first. You can '
@@ -824,9 +829,36 @@ Issues a DELETE request of the <path> given.""".strip(),
         if len(args) == 1:
             path = args[0].lstrip('/')
             if '/' not in path.rstrip('/'):
-                status, reason, headers, contents = \
-                    self.client.delete_container(path.rstrip('/'),
-                                                 headers=hdrs)
+                if options.recursive:
+                    marker = None
+                    while True:
+                        status, reason, headers, contents = \
+                            self.client.get_container(path.rstrip('/'),
+                                headers=hdrs, marker=marker)
+                        if status // 100 != 2:
+                            self.stderr.write('%s %s\n' % (status, reason))
+                            self.stderr.flush()
+                            return 1
+                        if not contents:
+                            status, reason, headers, contents = \
+                                self.client.delete_container(path.rstrip('/'),
+                                                             headers=hdrs)
+                            break
+                        for item in contents:
+                            status, reason, headers, contents = \
+                                self.client.delete_object(path.rstrip('/'),
+                                    item['name'], headers=hdrs)
+                            if status // 100 != 2 and status != 404:
+                                self.stderr.write('%s %s\n' % (status, reason))
+                                self.stderr.write('aborting after error with '
+                                  '%s/%s\n' % (path.rstrip('/'), item['name']))
+                                self.stderr.flush()
+                                return 1
+                        marker = item['name']
+                else:
+                    status, reason, headers, contents = \
+                        self.client.delete_container(path.rstrip('/'),
+                                                     headers=hdrs)
             else:
                 status, reason, headers, contents = \
                     self.client.delete_object(*path.split('/', 1),

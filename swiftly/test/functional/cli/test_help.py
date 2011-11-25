@@ -21,6 +21,7 @@ from swiftly.cli import CLI
 from swiftly.test.functional import AUTH_URL, AUTH_USER, AUTH_KEY, \
                                     SWIFT_PROXY_STORAGE_PATH
 
+
 class TestHelp(unittest.TestCase):
 
     def test_no_args(self):

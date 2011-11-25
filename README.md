@@ -103,6 +103,10 @@ Output from *swiftly help delete*:
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hx-some-header
                             :some-value -h "X-Some-Other-Header: Some other value"
+      --recursive           Normally a delete for a non-empty container will error
+                            with a 409 Conflict; --recursive will first delete all
+                            objects in a container and then delete the container
+                            itself.
 
 
 Output from *swiftly help get*:
