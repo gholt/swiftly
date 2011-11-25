@@ -64,8 +64,8 @@ Output from *swiftly*:
                             "false").
     Commands:
       auth                  Outputs auth information.
-      delete [options] <path>
-                            Issues a DELETE request of the <path> given.
+      delete [options] [path]
+                            Issues a DELETE request of the [path] given.
       get [options] [path]  Outputs the resulting contents from a GET request of
                             the [path] given. If no [path] is given, a GET request
                             on the account is performed.
@@ -92,11 +92,11 @@ Output from *swiftly help auth*:
 
 Output from *swiftly help delete*:
 
-    Usage: swiftly [main_options] delete [options] <path>
+    Usage: swiftly [main_options] delete [options] [path]
 
     For help on [main_options] run swiftly with no args.
 
-    Issues a DELETE request of the <path> given.
+    Issues a DELETE request of the [path] given.
 
     Options:
       -h HEADER:VALUE, --header=HEADER:VALUE
@@ -106,7 +106,21 @@ Output from *swiftly help delete*:
       --recursive           Normally a delete for a non-empty container will error
                             with a 409 Conflict; --recursive will first delete all
                             objects in a container and then delete the container
-                            itself.
+                            itself. For an account delete, all containers and
+                            objects will be deleted (requires the --yes-i-mean-
+                            empty-the-account option).
+      --yes-i-mean-empty-the-account
+                            Required when issuing a delete directly on an account
+                            with the --recursive option. This will delete all
+                            containers and objects in the account without deleting
+                            the account itself, leaving an empty account. THERE IS
+                            NO GOING BACK!
+      --yes-i-mean-delete-the-account
+                            Required when issuing a delete directly on an account.
+                            Some Swift clusters do not support this. Those that do
+                            will mark the account as deleted and immediately begin
+                            removing the objects from the cluster in the
+                            backgound. THERE IS NO GOING BACK!
 
 
 Output from *swiftly help get*:

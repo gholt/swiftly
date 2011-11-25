@@ -301,11 +301,11 @@ request on the account is performed.""".strip(),
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
 
         self._delete_parser = _OptionParser(version='%prog 1.0', usage="""
-Usage: %prog [main_options] delete [options] <path>
+Usage: %prog [main_options] delete [options] [path]
 
 For help on [main_options] run %prog with no args.
 
-Issues a DELETE request of the <path> given.""".strip(),
+Issues a DELETE request of the [path] given.""".strip(),
             stdout=self.stdout, stderr=self.stderr)
         self._delete_parser.add_option('-h', '--header', dest='header',
             action='append', metavar='HEADER:VALUE',
@@ -317,7 +317,22 @@ Issues a DELETE request of the <path> given.""".strip(),
             action='store_true',
             help='Normally a delete for a non-empty container will error with '
                  'a 409 Conflict; --recursive will first delete all objects '
-                 'in a container and then delete the container itself.')
+                 'in a container and then delete the container itself. For an '
+                 'account delete, all containers and objects will be deleted '
+                 '(requires the --yes-i-mean-empty-the-account option).')
+        self._delete_parser.add_option('--yes-i-mean-empty-the-account',
+            dest='yes_empty_account', action='store_true',
+            help='Required when issuing a delete directly on an account with '
+                 'the --recursive option. This will delete all containers and '
+                 'objects in the account without deleting the account itself, '
+                 'leaving an empty account. THERE IS NO GOING BACK!')
+        self._delete_parser.add_option('--yes-i-mean-delete-the-account',
+            dest='yes_delete_account', action='store_true',
+            help='Required when issuing a delete directly on an account. Some '
+                 'Swift clusters do not support this. Those that do will mark '
+                 'the account as deleted and immediately begin removing the '
+                 'objects from the cluster in the backgound. THERE IS NO '
+                 'GOING BACK!')
 
         self._main_parser = _OptionParser(version='%prog 1.0',
             usage='Usage: %prog [options] <command> [command_options] [args]',
@@ -826,7 +841,63 @@ Issues a DELETE request of the <path> given.""".strip(),
             return 1
         hdrs = self._command_line_headers(options.header)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
-        if len(args) == 1:
+        if not args:
+            if options.recursive and not options.yes_empty_account:
+                self.stderr.write("""
+A delete --recursive directly on an account requires the
+--yes-i-mean-empty-the-account option as well.
+
+All containers and objects in the account will be deleted, leaving an empty
+account.
+
+THERE IS NO GOING BACK!""".strip())
+                self.stderr.write('\n')
+                self.stderr.flush()
+                return 1
+            if not options.recursive and not options.yes_delete_account:
+                self.stderr.write("""
+A delete directly on an account requires the --yes-i-mean-delete-the-account
+option as well.
+
+Some Swift clusters do not support this.
+
+Those that do will mark the account as deleted and immediately begin removing
+the objects from the cluster in the backgound.
+
+THERE IS NO GOING BACK!""".strip())
+                self.stderr.write('\n')
+                self.stderr.flush()
+                return 1
+            if options.yes_empty_account:
+                marker = None
+                while True:
+                    status, reason, headers, contents = \
+                        self.client.get_account(headers=hdrs, marker=marker)
+                    if status // 100 != 2:
+                        self.stderr.write('%s %s\n' % (status, reason))
+                        self.stderr.flush()
+                        return 1
+                    if not contents:
+                        break
+                    for item in contents:
+                        subargs = [item['name'], '--recursive']
+                        if options.header:
+                            for h in options.header:
+                                subargs.append('-h')
+                                subargs.append(h)
+                        rv = self._delete(main_options, subargs)
+                        if rv:
+                            self.stderr.write(
+                               'aborting after error with %s\n' % item['name'])
+                            self.stderr.flush()
+                            return 1
+                    marker = item['name']
+                return 0
+            if options.yes_delete_account:
+                status, reason, headers, contents = \
+                    self.client.delete_account(headers=hdrs,
+                      yes_i_mean_delete_the_account=options.yes_delete_account)
+        elif len(args) == 1:
             path = args[0].lstrip('/')
             if '/' not in path.rstrip('/'):
                 if options.recursive:

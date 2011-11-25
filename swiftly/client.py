@@ -523,6 +523,36 @@ class Client(object):
         """
         return self._request('POST', '', '', headers)
 
+    def delete_account(self, headers=None,
+                       yes_i_mean_delete_the_account=False):
+        """
+        DELETEs the account and returns the results. 
+
+        Some Swift clusters do not support this.
+
+        Those that do will mark the account as deleted and immediately begin
+        removing the objects from the cluster in the backgound.
+
+        THERE IS NO GOING BACK!
+
+        :param headers: Additional headers to send with the request.
+        :param yes_i_mean_delete_the_account: Set to True to verify you really
+                                              mean to delete the entire
+                                              account.
+        :returns: A tuple of (status, reason, headers, contents).
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
+        """
+        if not yes_i_mean_delete_the_account:
+            return (0, 'yes_i_mean_delete_the_account was not set to True', {},
+                    '')
+        return self._request('DELETE', '', '', headers)
+
     def _container_path(self, container):
         if container.startswith('/'):
             return _quote(container)
