@@ -18,6 +18,7 @@ Contents
     swiftly
     swiftly_cli
     swiftly_client
+    swiftly_concurrency
 
 Overview
 --------
@@ -48,31 +49,30 @@ Output from `swiftly`::
     Usage: swiftly [options] <command> [command_options] [args]
 
     Options:
-      -A AUTH_URL, --auth_url=AUTH_URL
+      -A URL, --auth-url=URL
                             URL to auth system, example:
                             http://127.0.0.1:8080/auth/v1.0 You can also set this
                             with the environment variable SWIFTLY_AUTH_URL.
-      -U AUTH_USER, --auth_user=AUTH_USER
+      -U USER, --auth-user=USER
                             User name for auth system, example: test:tester You
                             can also set this with the environment variable
                             SWIFTLY_AUTH_USER.
-      -K AUTH_KEY, --auth_key=AUTH_KEY
+      -K KEY, --auth-key=KEY
                             Key for auth system, example: testing You can also set
                             this with the environment variable SWIFTLY_AUTH_KEY.
-      -D DIRECT, --direct=DIRECT
+      -D PATH, --direct=PATH
                             Uses direct connect method to access Swift. Requires
-                            access to rings and backend servers. The value is the
+                            access to rings and backend servers. The PATH is the
                             account path, example: /v1/AUTH_test You can also set
                             this with the environment variable SWIFTLY_DIRECT.
-      -P PROXY, --proxy=PROXY
-                            Uses the given proxy URL. You can also set this with
+      -P URL, --proxy=URL   Uses the given proxy URL. You can also set this with
                             the environment variable SWIFTLY_PROXY.
       -S, --snet            Prepends the storage URL host name with "snet-".
                             Mostly only useful with Rackspace Cloud Files and
                             Rackspace ServiceNet. You can also set this with the
                             environment variable SWIFTLY_SNET (set to "true" or
                             "false").
-      -R RETRIES, --retries=RETRIES
+      -R INTEGER, --retries=INTEGER
                             Indicates how many times to retry the request on a
                             server error. Default: 4. You can also set this with
                             the environment variable SWIFTLY_RETRIES.
@@ -82,6 +82,11 @@ Output from `swiftly`::
                             first. You can also set this with the environment
                             variable SWIFTLY_CACHE_AUTH (set to "true" or
                             "false").
+      --concurrency=INTEGER
+                            Sets the the number of actions that can be done
+                            simultaneously when possible. Default: 10
+      -v, --verbose         Causes output to standard error indicating actions
+                            being taken.
     Commands:
       auth                  Outputs auth information.
       delete [options] [path]
@@ -141,6 +146,8 @@ Output from `swiftly help delete`::
                             will mark the account as deleted and immediately begin
                             removing the objects from the cluster in the
                             backgound. THERE IS NO GOING BACK!
+      --ignore-404          Ignores 404 Not Found responses; the exit code will be
+                            0 instead of 1.
 
 
 Output from `swiftly help get`::
@@ -180,12 +187,11 @@ Output from `swiftly help get`::
                             for the listing retrieved; the items returned will
                             begin with the item just after the MARKER given (note:
                             the marker does not have to actually exist).
-      -e MARKER, --end_marker=MARKER
-                            For account and container GETs, this sets the
-                            end_marker for the listing retrieved; the items
-                            returned will stop with the item just before the
-                            MARKER given (note: the marker does not have to
-                            actually exist).
+      -e MARKER, --end-marker=MARKER
+                            For account and container GETs, this sets the end-
+                            marker for the listing retrieved; the items returned
+                            will stop with the item just before the MARKER given
+                            (note: the marker does not have to actually exist).
       -f, --full            For account and container GETs, this will output
                             additional information about each item. For an account
                             GET, the items output will be bytes-used, object-
@@ -209,6 +215,8 @@ Output from `swiftly help get`::
                             standard output. If the PATH ends with a slash "/" and
                             --all-objects is used, each object will be placed in a
                             similarly named file inside the PATH given.
+      --ignore-404          Ignores 404 Not Found responses. Nothing will be
+                            output, but the exit code will be 0 instead of 1.
 
 
 Output from `swiftly help head`::
@@ -226,6 +234,8 @@ Output from `swiftly help head`::
                             times for multiple headers. Examples: -hif-
                             match:6f432df40167a4af05ca593acc6b3e4c -h "If-
                             Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+      --ignore-404          Ignores 404 Not Found responses. Nothing will be
+                            output, but the exit code will be 0 instead of 1.
 
 
 Output from `swiftly help post`::

@@ -18,15 +18,18 @@ limitations under the License.
 
 __all__ = ['VERSION', 'CLI']
 
-import sys
+from contextlib import contextmanager
 from optparse import Option, OptionParser
-import textwrap
 from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
+from Queue import Empty, Queue
 from time import mktime, strptime
+import sys
+import textwrap
 
 from swiftly import VERSION
 from swiftly.client import Client, CHUNK_SIZE
+from swiftly.concurrency import Concurrency
 
 try:
     from simplejson import json
@@ -130,7 +133,8 @@ class CLI(object):
         self.stderr = stderr
         if not self.stderr:
             self.stderr = sys.stderr
-        self.client = None
+        self.clients = Queue()
+        self.verbose = False
 
         self._help_parser = _OptionParser(version='%prog 1.0', usage="""
 Usage: %prog [main_options] help [command]
@@ -163,6 +167,10 @@ Outputs the resulting headers from a HEAD request of the [path] given. If no
                  'times for multiple headers. Examples: '
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
+        self._head_parser.add_option('--ignore-404', dest='ignore_404',
+            action='store_true',
+            help='Ignores 404 Not Found responses. Nothing will be output, '
+                 'but the exit code will be 0 instead of 1.')
 
         self._get_parser = _OptionParser(version='%prog 1.0', usage="""
 Usage: %prog [main_options] get [options] [path]
@@ -236,6 +244,10 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'output. If the PATH ends with a slash "/" and --all-objects '
                  'is used, each object will be placed in a similarly named '
                  'file inside the PATH given.')
+        self._get_parser.add_option('--ignore-404', dest='ignore_404',
+            action='store_true',
+            help='Ignores 404 Not Found responses. Nothing will be output, '
+                 'but the exit code will be 0 instead of 1.')
 
         self._put_parser = _OptionParser(version='%prog 1.0', usage="""
 Usage: %prog [main_options] put [options] <path>
@@ -333,32 +345,36 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'the account as deleted and immediately begin removing the '
                  'objects from the cluster in the backgound. THERE IS NO '
                  'GOING BACK!')
+        self._delete_parser.add_option('--ignore-404', dest='ignore_404',
+            action='store_true',
+            help='Ignores 404 Not Found responses; the exit code will be 0 '
+                 'instead of 1.')
 
         self._main_parser = _OptionParser(version='%prog 1.0',
             usage='Usage: %prog [options] <command> [command_options] [args]',
             stdout=self.stdout, stderr=self.stderr)
         self._main_parser.add_option('-A', '--auth-url', dest='auth_url',
-            default=environ.get('SWIFTLY_AUTH_URL', ''),
+            default=environ.get('SWIFTLY_AUTH_URL', ''), metavar='URL',
             help='URL to auth system, example: '
                  'http://127.0.0.1:8080/auth/v1.0 You can also set this with '
                  'the environment variable SWIFTLY_AUTH_URL.')
         self._main_parser.add_option('-U', '--auth-user', dest='auth_user',
-            default=environ.get('SWIFTLY_AUTH_USER', ''),
+            default=environ.get('SWIFTLY_AUTH_USER', ''), metavar='USER',
             help='User name for auth system, example: test:tester You can '
                  'also set this with the environment variable '
                  'SWIFTLY_AUTH_USER.')
         self._main_parser.add_option('-K', '--auth-key', dest='auth_key',
-            default=environ.get('SWIFTLY_AUTH_KEY', ''),
+            default=environ.get('SWIFTLY_AUTH_KEY', ''), metavar='KEY',
             help='Key for auth system, example: testing You can also set this '
                  'with the environment variable SWIFTLY_AUTH_KEY.')
         self._main_parser.add_option('-D', '--direct', dest='direct',
-            default=environ.get('SWIFTLY_DIRECT', ''),
+            default=environ.get('SWIFTLY_DIRECT', ''), metavar='PATH',
             help='Uses direct connect method to access Swift. Requires access '
-                 'to rings and backend servers. The value is the account '
+                 'to rings and backend servers. The PATH is the account '
                  'path, example: /v1/AUTH_test You can also set this with the '
                  'environment variable SWIFTLY_DIRECT.')
         self._main_parser.add_option('-P', '--proxy', dest='proxy',
-            default=environ.get('SWIFTLY_PROXY', ''),
+            default=environ.get('SWIFTLY_PROXY', ''), metavar='URL',
             help='Uses the given proxy URL. You can also set this with the '
                  'environment variable SWIFTLY_PROXY.')
         self._main_parser.add_option('-S', '--snet', dest='snet',
@@ -369,7 +385,7 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'ServiceNet. You can also set this with the environment '
                  'variable SWIFTLY_SNET (set to "true" or "false").')
         self._main_parser.add_option('-R', '--retries', dest='retries',
-            default=int(environ.get('SWIFTLY_RETRIES', 4)),
+            default=int(environ.get('SWIFTLY_RETRIES', 4)), metavar='INTEGER',
             help='Indicates how many times to retry the request on a server '
                  'error. Default: 4. You can also set this with the '
                  'environment variable SWIFTLY_RETRIES.')
@@ -382,6 +398,14 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'values, they are used without authenticating first. You can '
                  'also set this with the environment variable '
                  'SWIFTLY_CACHE_AUTH (set to "true" or "false").')
+        self._main_parser.add_option('--concurrency', dest='concurrency',
+            default='10', metavar='INTEGER',
+            help='Sets the the number of actions that can be done '
+                 'simultaneously when possible. Default: 10')
+        self._main_parser.add_option('-v', '--verbose', dest='verbose',
+            action='store_true',
+            help='Causes output to standard error indicating actions being '
+                 'taken.')
         self._main_parser.commands = 'Commands:\n'
         for key in sorted(dir(self)):
             attr = getattr(self, key)
@@ -398,13 +422,14 @@ Issues a DELETE request of the [path] given.""".strip(),
                 self._main_parser.commands += textwrap.fill(' '.join(lines),
                     width=79, initial_indent=initial_indent,
                     subsequent_indent=' ' * 24) + '\n'
+        self._main_options = None
 
     def main(self):
         """
         Process the command line given in the constructor.
         """
         self._main_parser.disable_interspersed_args()
-        options, args = self._main_parser.parse_args(self.args)
+        self._main_options, args = self._main_parser.parse_args(self.args)
         self._main_parser.enable_interspersed_args()
         if self._main_parser.error_encountered:
             return 1
@@ -416,24 +441,58 @@ Issues a DELETE request of the [path] given.""".strip(),
             self._main_parser.print_help()
             return 1
         if not getattr(func, '__is_client_command__', False):
-            return func(options, args[1:])
-        self.client = None
-        if options.direct:
-            self.client = Client(swift_proxy=True,
-                swift_proxy_storage_path=options.direct,
-                retries=int(options.retries))
-        elif all([options.auth_url, options.auth_user, options.auth_key]):
-            cache_path = None
-            if options.cache_auth:
-                cache_path = '/tmp/%s.swiftly' % environ.get('USER', 'user')
-            self.client = Client(auth_url=options.auth_url,
-                auth_user=options.auth_user, auth_key=options.auth_key,
-                proxy=options.proxy, snet=options.snet,
-                retries=int(options.retries), cache_path=cache_path)
-        else:
+            return func(args[1:])
+        client = self._get_client()
+        if not client:
             self._main_parser.print_help()
             return 1
-        return func(options, args[1:])
+        self._put_client(client)
+        return func(args[1:])
+
+    def _verbose(self, msg):
+        if self._main_options.verbose:
+            self.stderr.write(msg)
+            self.stderr.flush()
+
+    def _get_client(self):
+        client = None
+        try:
+            client = self.clients.get(block=False)
+        except Empty:
+            pass
+        if not client:
+            if self._main_options.direct:
+                self._verbose('Connecting direct client.\n')
+                client = Client(swift_proxy=True,
+                    swift_proxy_storage_path=self._main_options.direct,
+                    retries=int(self._main_options.retries))
+            elif all([self._main_options.auth_url,
+                      self._main_options.auth_user,
+                      self._main_options.auth_key]):
+                self._verbose('Connecting client.\n')
+                cache_path = None
+                if self._main_options.cache_auth:
+                    cache_path = \
+                        '/tmp/%s.swiftly' % environ.get('USER', 'user')
+                client = Client(auth_url=self._main_options.auth_url,
+                    auth_user=self._main_options.auth_user,
+                    auth_key=self._main_options.auth_key,
+                    proxy=self._main_options.proxy,
+                    snet=self._main_options.snet,
+                    retries=int(self._main_options.retries),
+                    cache_path=cache_path)
+        return client
+
+    def _put_client(self, client):
+        self.clients.put(client)
+
+    @contextmanager
+    def _with_client(self):
+        client = self._get_client()
+        if not client:
+            raise Exception('No client!')
+        yield client
+        self._put_client(client)
 
     def _command_line_headers(self, options_list):
         headers = {}
@@ -459,7 +518,7 @@ Issues a DELETE request of the [path] given.""".strip(),
             stdout.flush()
 
     @_command
-    def _help(self, main_options, args):
+    def _help(self, args):
         options, args = self._help_parser.parse_args(args)
         if self._help_parser.error_encountered:
             return 1
@@ -474,35 +533,38 @@ Issues a DELETE request of the [path] given.""".strip(),
         return 1
 
     @_client_command
-    def _auth(self, main_options, args):
+    def _auth(self, args):
         options, args = self._auth_parser.parse_args(args)
         if self._auth_parser.error_encountered:
             return 1
         if args:
             self._auth_parser.print_help()
             return 1
-        if main_options.direct:
-            self.stdout.write('Direct Storage Path: ')
-            self.stdout.write(self.client.storage_path)
+        if self._main_options.direct:
+            with self._with_client() as client:
+                self.stdout.write('Direct Storage Path: ')
+                self.stdout.write(client.storage_path)
+                self.stdout.write('\n')
+                self.stdout.flush()
+            return 0
+        with self._with_client() as client:
+            self._verbose('HEADing the account.\n')
+            status, reason, headers, contents = client.head_account()
+            if status // 100 != 2:
+                self.stderr.write('%s %s\n' % (status, reason))
+                self.stderr.flush()
+                return 1
+            self.stdout.write('Storage URL: ')
+            self.stdout.write(client.storage_url)
+            self.stdout.write('\n')
+            self.stdout.write('Auth Token:  ')
+            self.stdout.write(client.auth_token)
             self.stdout.write('\n')
             self.stdout.flush()
-            return 0
-        status, reason, headers, contents = self.client.head_account()
-        if status // 100 != 2:
-            self.stderr.write('%s %s\n' % (status, reason))
-            self.stderr.flush()
-            return 1
-        self.stdout.write('Storage URL: ')
-        self.stdout.write(self.client.storage_url)
-        self.stdout.write('\n')
-        self.stdout.write('Auth Token:  ')
-        self.stdout.write(self.client.auth_token)
-        self.stdout.write('\n')
-        self.stdout.flush()
         return 0
 
     @_client_command
-    def _head(self, main_options, args):
+    def _head(self, args):
         options, args = self._head_parser.parse_args(args)
         if self._head_parser.error_encountered:
             return 1
@@ -510,31 +572,45 @@ Issues a DELETE request of the [path] given.""".strip(),
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         mute = []
         if not args:
-            status, reason, headers, contents = \
-                self.client.head_account(headers=hdrs)
+            with self._with_client() as client:
+                self._verbose('HEADing the account.\n')
+                status, reason, headers, contents = \
+                    client.head_account(headers=hdrs)
             mute.extend(MUTED_ACCOUNT_HEADERS)
         elif len(args) == 1:
             path = args[0].lstrip('/')
-            if '/' not in path.rstrip('/'):
-                status, reason, headers, contents = \
-                    self.client.head_container(path.rstrip('/'), headers=hdrs)
-                mute.extend(MUTED_CONTAINER_HEADERS)
-            else:
-                status, reason, headers, contents = \
-                    self.client.head_object(*path.split('/', 1), headers=hdrs)
-                mute.extend(MUTED_OBJECT_HEADERS)
+            with self._with_client() as client:
+                self._verbose('HEADing %s.\n' % path)
+                if '/' not in path.rstrip('/'):
+                    status, reason, headers, contents = \
+                        client.head_container(path.rstrip('/'), headers=hdrs)
+                    mute.extend(MUTED_CONTAINER_HEADERS)
+                else:
+                    status, reason, headers, contents = \
+                        client.head_object(*path.split('/', 1), headers=hdrs)
+                    mute.extend(MUTED_OBJECT_HEADERS)
         else:
             self._head_parser.print_help()
             return 1
         if status // 100 != 2:
+            if status == 404 and options.ignore_404:
+                return 0
             self.stderr.write('%s %s\n' % (status, reason))
             self.stderr.flush()
             return 1
         self._output_headers(headers, mute)
         return 0
 
+    def _get_recursive_helper(self, args, stdout=None):
+        rv = self._get(args, stdout=stdout)
+        if rv:
+            self.stderr.write('aborting after error with %s\n' % args[0])
+            self.stderr.flush()
+            return rv
+        return 0
+
     @_client_command
-    def _get(self, main_options, args):
+    def _get(self, args, stdout=None):
         options, args = self._get_parser.parse_args(args)
         if self._get_parser.error_encountered:
             return 1
@@ -542,7 +618,8 @@ Issues a DELETE request of the [path] given.""".strip(),
             self._get_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
-        stdout = self.stdout
+        if not stdout:
+            stdout = self.stdout
         if options.output:
             if options.output.endswith('/'):
                 if not exists(options.output):
@@ -555,25 +632,37 @@ Issues a DELETE request of the [path] given.""".strip(),
             path = args[0].lstrip('/')
         if not path or '/' not in path.rstrip('/'):
             path = path.rstrip('/')
-            func = self.client.get_account
-            mute = MUTED_ACCOUNT_HEADERS
-            if path:
-                func = self.client.get_container
+            if not path:
+                mute = MUTED_ACCOUNT_HEADERS
+            else:
                 mute = MUTED_CONTAINER_HEADERS
             limit = options.limit or 10000
             delimiter = options.delimiter
             prefix = options.prefix
             marker = options.marker
             end_marker = options.end_marker
-            if path:
-                status, reason, headers, contents = func(
-                    path, headers=hdrs, limit=limit, delimiter=delimiter,
-                    prefix=prefix, marker=marker, end_marker=end_marker)
-            else:
-                status, reason, headers, contents = func(
-                    headers=hdrs, limit=limit, marker=marker,
-                    end_marker=end_marker)
+            with self._with_client() as client:
+                if not path:
+                    if not marker:
+                        self._verbose('Retrieving account listing.\n')
+                    else:
+                        self._verbose('Retrieving account listing starting '
+                                      'after %s.\n' % marker)
+                    status, reason, headers, contents = client.get_account(
+                        headers=hdrs, limit=limit, marker=marker,
+                        end_marker=end_marker)
+                else:
+                    if not marker:
+                        self._verbose('Retrieving %s listing.\n' % path)
+                    else:
+                        self._verbose('Retrieving %s listing starting after '
+                                      '%s.\n' % (path, marker))
+                    status, reason, headers, contents = client.get_container(
+                        path, headers=hdrs, limit=limit, delimiter=delimiter,
+                        prefix=prefix, marker=marker, end_marker=end_marker)
             if status // 100 != 2:
+                if status == 404 and options.ignore_404:
+                    return 0
                 self.stderr.write('%s %s\n' % (status, reason))
                 self.stderr.flush()
                 if hasattr(contents, 'read'):
@@ -583,6 +672,13 @@ Issues a DELETE request of the [path] given.""".strip(),
                 self._output_headers(headers, mute, stdout=stdout)
                 stdout.write('\n')
                 stdout.flush()
+            conc_value = 1
+            if options.output and options.output.endswith('/'):
+                conc_value = int(self._main_options.concurrency)
+            elif options.all_objects:
+                self._verbose('Disabling some concurrency because of single '
+                              'stream output.\n')
+            conc = Concurrency(conc_value)
             while contents:
                 if options.all_objects:
                     for item in contents:
@@ -610,15 +706,19 @@ Issues a DELETE request of the [path] given.""".strip(),
                                     subargs.append(outpath + '/')
                                 else:
                                     subargs.append(outpath)
-                            rv = self._get(main_options, subargs)
-                            if rv == 404:
-                                self.stderr.write('skipping %s; not found')
-                                self.stderr.flush()
-                            elif rv:
-                                self.stderr.write('aborting after error with '
-                                    '%s\n' % subargs[0])
-                                self.stderr.flush()
-                                return rv
+                            subargs.append('--ignore-404')
+                            for rv in conc.get_results().values():
+                                if rv:
+                                    conc.join()
+                                    return rv
+                            if not options.output or \
+                                    not options.output.endswith('/'):
+                                conc.spawn(subargs[0],
+                                           self._get_recursive_helper, subargs,
+                                           stdout=stdout)
+                            else:
+                                conc.spawn(subargs[0],
+                                           self._get_recursive_helper, subargs)
                 elif options.raw:
                     json.dump(contents, stdout)
                     stdout.write('\n')
@@ -644,49 +744,65 @@ Issues a DELETE request of the [path] given.""".strip(),
                     stdout.flush()
                 if options.limit:
                     break
-                if path:
-                    status, reason, headers, contents = func(
-                        path, headers=hdrs, limit=limit, delimiter=delimiter,
-                        prefix=prefix, end_marker=end_marker,
-                        marker=contents[-1].get('name',
-                                               contents[-1].get('subdir', '')))
-                else:
-                    status, reason, headers, contents = func(
-                        headers=hdrs, limit=limit, delimiter=delimiter,
-                        prefix=prefix, end_marker=end_marker,
-                        marker=contents[-1].get('name',
-                                               contents[-1].get('subdir', '')))
+                marker = \
+                    contents[-1].get('name', contents[-1].get('subdir', ''))
+                with self._with_client() as client:
+                    if not path:
+                        self._verbose('Retrieving account listing starting '
+                                      'after %s.\n' % marker)
+                        status, reason, headers, contents = client.get_account(
+                            headers=hdrs, limit=limit, delimiter=delimiter,
+                            prefix=prefix, end_marker=end_marker,
+                            marker=marker)
+                    else:
+                        self._verbose('Retrieving %s listing starting after '
+                                      '%s.\n' % (path, marker))
+                        status, reason, headers, contents = \
+                            client.get_container(path, headers=hdrs,
+                            limit=limit, delimiter=delimiter, prefix=prefix,
+                            end_marker=end_marker, marker=marker)
                 if status // 100 != 2:
+                    if status == 404 and options.ignore_404:
+                        return 0
                     self.stderr.write('%s %s\n' % (status, reason))
                     self.stderr.flush()
                     if hasattr(contents, 'read'):
                         contents.read()
                     return 1
+            conc.join()
+            for rv in conc.get_results().values():
+                if rv:
+                    return rv
             return 0
-        status, reason, headers, contents = \
-            self.client.get_object(*path.split('/', 1), headers=hdrs)
-        if status // 100 != 2:
-            self.stderr.write('%s %s\n' % (status, reason))
-            self.stderr.flush()
-            if hasattr(contents, 'read'):
+        with self._with_client() as client:
+            self._verbose('GETting %s.\n' % path)
+            status, reason, headers, contents = \
+                client.get_object(*path.split('/', 1), headers=hdrs)
+            if status // 100 != 2:
+                if status == 404 and options.ignore_404:
+                    return 0
+                self.stderr.write('%s %s\n' % (status, reason))
+                self.stderr.flush()
+                if hasattr(contents, 'read'):
+                    contents.read()
+                return 1
+            if options.headers:
+                self._output_headers(headers, MUTED_OBJECT_HEADERS,
+                                     stdout=stdout)
+                stdout.write('\n')
+            if headers.get('content-type') == 'text/directory' and \
+                    headers.get('content-length') == '0':
                 contents.read()
-            return 1
-        if options.headers:
-            self._output_headers(headers, MUTED_OBJECT_HEADERS, stdout=stdout)
-            stdout.write('\n')
-        if headers.get('content-type') == 'text/directory' and \
-                headers.get('content-length') == '0':
-            contents.read()
-            if options.output and not options.output.endswith('/'):
-                stdout.close()
-                unlink(options.output)
-                makedirs(options.output)
-        else:
-            chunk = contents.read(CHUNK_SIZE)
-            while chunk:
-                stdout.write(chunk)
+                if options.output and not options.output.endswith('/'):
+                    stdout.close()
+                    unlink(options.output)
+                    makedirs(options.output)
+            else:
                 chunk = contents.read(CHUNK_SIZE)
-            stdout.flush()
+                while chunk:
+                    stdout.write(chunk)
+                    chunk = contents.read(CHUNK_SIZE)
+                stdout.flush()
         if options.output and not options.output.endswith('/'):
             stdout.close()
             mtime = 0
@@ -699,8 +815,17 @@ Issues a DELETE request of the [path] given.""".strip(),
                 utime(options.output, (mtime, mtime))
         return 0
 
+    def _put_recursive_helper(self, args):
+        rv = self._put(args)
+        if rv:
+            self.stderr.write(
+                'aborting after error with %s\n' % args[0])
+            self.stderr.flush()
+            return rv
+        return 0
+
     @_client_command
-    def _put(self, main_options, args):
+    def _put(self, args):
         options, args = self._put_parser.parse_args(args)
         if self._put_parser.error_encountered:
             return 1
@@ -713,7 +838,7 @@ Issues a DELETE request of the [path] given.""".strip(),
                 for h in options.header:
                     subargs.append('-h')
                     subargs.append(h)
-            rv = self._put(main_options, subargs)
+            rv = self._put(subargs)
             if rv:
                 self.stderr.write(
                     'aborting after error with %s\n' % subargs[0])
@@ -722,6 +847,7 @@ Issues a DELETE request of the [path] given.""".strip(),
             ilen = len(options.input_)
             if not options.input_.endswith('/'):
                 ilen += 1
+            conc = Concurrency(int(self._main_options.concurrency))
             for (dirpath, dirnames, filenames) in walk(options.input_):
                 if not dirnames and not filenames:
                     subargs = [args[0] + '/' + dirpath[ilen:]]
@@ -735,16 +861,18 @@ Issues a DELETE request of the [path] given.""".strip(),
                     subargs.append(
                         'x-object-meta-mtime:%d' % getmtime(options.input_))
                     subargs.append('-e')
-                    rv = self._put(main_options, subargs)
-                    if rv:
-                        self.stderr.write(
-                            'aborting after error with %s\n' % subargs[0])
-                        self.stderr.flush()
-                        return rv
+                    for rv in conc.get_results().values():
+                        if rv:
+                            conc.join()
+                            return rv
+                    conc.spawn(subargs[0], self._put_recursive_helper, subargs)
                 else:
                     for fname in filenames:
-                        subargs = \
-                            ['%s/%s/%s' % (args[0], dirpath[ilen:], fname)]
+                        if dirpath[ilen:]:
+                            subargs = \
+                                ['%s/%s/%s' % (args[0], dirpath[ilen:], fname)]
+                        else:
+                            subargs = ['%s/%s' % (args[0], fname)]
                         if options.header:
                             for h in options.header:
                                 subargs.append('-h')
@@ -755,12 +883,16 @@ Issues a DELETE request of the [path] given.""".strip(),
                             subargs.append('-n')
                         if options.different:
                             subargs.append('-d')
-                        rv = self._put(main_options, subargs)
-                        if rv:
-                            self.stderr.write(
-                                'aborting after error with %s\n' % subargs[0])
-                            self.stderr.flush()
-                            return rv
+                        for rv in conc.get_results().values():
+                            if rv:
+                                conc.join()
+                                return rv
+                        conc.spawn(subargs[0], self._put_recursive_helper,
+                                   subargs)
+            conc.join()
+            for rv in conc.get_results().values():
+                if rv:
+                    return rv
             return 0
         path = args[0].lstrip('/')
         hdrs = {}
@@ -774,8 +906,9 @@ Issues a DELETE request of the [path] given.""".strip(),
                     '/' in path.rstrip('/'):
                 r_mtime = 0
                 r_size = -1
-                status, reason, headers, contents = \
-                    self.client.head_object(*path.split('/', 1))
+                with self._with_client() as client:
+                    status, reason, headers, contents = \
+                        client.head_object(*path.split('/', 1))
                 if status // 100 == 2:
                     try:
                         r_mtime = int(headers.get('x-object-meta-mtime', 0))
@@ -794,13 +927,15 @@ Issues a DELETE request of the [path] given.""".strip(),
             stdin = open(options.input_, 'rb')
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
-        if '/' not in path.rstrip('/'):
-            status, reason, headers, contents = \
-                self.client.put_container(path.rstrip('/'), headers=hdrs)
-        else:
-            c, o = path.split('/', 1)
-            status, reason, headers, contents = \
-                self.client.put_object(c, o, stdin, headers=hdrs)
+        with self._with_client() as client:
+            self._verbose('PUTting %s.\n' % path)
+            if '/' not in path.rstrip('/'):
+                status, reason, headers, contents = \
+                    client.put_container(path.rstrip('/'), headers=hdrs)
+            else:
+                c, o = path.split('/', 1)
+                status, reason, headers, contents = \
+                    client.put_object(c, o, stdin, headers=hdrs)
         if status // 100 != 2:
             self.stderr.write('%s %s\n' % (status, reason))
             self.stderr.flush()
@@ -808,23 +943,26 @@ Issues a DELETE request of the [path] given.""".strip(),
         return 0
 
     @_client_command
-    def _post(self, main_options, args):
+    def _post(self, args):
         options, args = self._post_parser.parse_args(args)
         if self._post_parser.error_encountered:
             return 1
         hdrs = self._command_line_headers(options.header)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         if not args:
-            status, reason, headers, contents = \
-                self.client.post_account(headers=hdrs)
+            with self._with_client() as client:
+                status, reason, headers, contents = \
+                    client.post_account(headers=hdrs)
         elif len(args) == 1:
             path = args[0].lstrip('/')
-            if '/' not in path.rstrip('/'):
-                status, reason, headers, contents = \
-                    self.client.post_container(path.rstrip('/'), headers=hdrs)
-            else:
-                status, reason, headers, contents = \
-                    self.client.post_object(*path.split('/', 1), headers=hdrs)
+            with self._with_client() as client:
+                self._verbose('POSting %s.\n' % path)
+                if '/' not in path.rstrip('/'):
+                    status, reason, headers, contents = \
+                        client.post_container(path.rstrip('/'), headers=hdrs)
+                else:
+                    status, reason, headers, contents = \
+                        client.post_object(*path.split('/', 1), headers=hdrs)
         else:
             self._post_parser.print_help()
             return 1
@@ -834,8 +972,16 @@ Issues a DELETE request of the [path] given.""".strip(),
             return 1
         return 0
 
+    def _delete_recursive_helper(self, args):
+        rv = self._delete(args)
+        if rv:
+            self.stderr.write('aborting after error with %s\n' % args[0])
+            self.stderr.flush()
+            return 1
+        return 0
+
     @_client_command
-    def _delete(self, main_options, args):
+    def _delete(self, args):
         options, args = self._delete_parser.parse_args(args)
         if self._delete_parser.error_encountered:
             return 1
@@ -871,9 +1017,17 @@ THERE IS NO GOING BACK!""".strip())
             if options.yes_empty_account:
                 marker = None
                 while True:
-                    status, reason, headers, contents = \
-                        self.client.get_account(headers=hdrs, marker=marker)
+                    with self._with_client() as client:
+                        if not marker:
+                            self._verbose('Retrieving account listing.\n')
+                        else:
+                            self._verbose('Retrieving account listing '
+                                          'starting after %s.\n' % marker)
+                        status, reason, headers, contents = \
+                            client.get_account(headers=hdrs, marker=marker)
                     if status // 100 != 2:
+                        if status == 404 and options.ignore_404:
+                            return 0
                         self.stderr.write('%s %s\n' % (status, reason))
                         self.stderr.flush()
                         return 1
@@ -885,7 +1039,7 @@ THERE IS NO GOING BACK!""".strip())
                             for h in options.header:
                                 subargs.append('-h')
                                 subargs.append(h)
-                        rv = self._delete(main_options, subargs)
+                        rv = self._delete(subargs)
                         if rv:
                             self.stderr.write(
                                'aborting after error with %s\n' % item['name'])
@@ -894,50 +1048,78 @@ THERE IS NO GOING BACK!""".strip())
                     marker = item['name']
                 return 0
             if options.yes_delete_account:
-                status, reason, headers, contents = \
-                    self.client.delete_account(headers=hdrs,
-                      yes_i_mean_delete_the_account=options.yes_delete_account)
+                with self._with_client() as client:
+                    yn = options.yes_delete_account
+                    self._verbose('DELETEing the account.\n')
+                    status, reason, headers, contents = \
+                        client.delete_account(headers=hdrs,
+                                              yes_i_mean_delete_the_account=yn)
         elif len(args) == 1:
             path = args[0].lstrip('/')
             if '/' not in path.rstrip('/'):
                 if options.recursive:
                     marker = None
                     while True:
-                        status, reason, headers, contents = \
-                            self.client.get_container(path.rstrip('/'),
-                                headers=hdrs, marker=marker)
+                        with self._with_client() as client:
+                            if not marker:
+                                self._verbose(
+                                    'Retrieving %s listing.\n' % path)
+                            else:
+                                self._verbose('Retrieving %s listing starting '
+                                    'after %s.\n' % (path.rstrip('/'), marker))
+                            status, reason, headers, contents = \
+                                client.get_container(path.rstrip('/'),
+                                    headers=hdrs, marker=marker)
                         if status // 100 != 2:
+                            if status == 404 and options.ignore_404:
+                                return 0
                             self.stderr.write('%s %s\n' % (status, reason))
                             self.stderr.flush()
                             return 1
                         if not contents:
-                            status, reason, headers, contents = \
-                                self.client.delete_container(path.rstrip('/'),
-                                                             headers=hdrs)
                             break
+                        conc = Concurrency(int(self._main_options.concurrency))
                         for item in contents:
-                            status, reason, headers, contents = \
-                                self.client.delete_object(path.rstrip('/'),
-                                    item['name'], headers=hdrs)
-                            if status // 100 != 2 and status != 404:
-                                self.stderr.write('%s %s\n' % (status, reason))
-                                self.stderr.write('aborting after error with '
-                                  '%s/%s\n' % (path.rstrip('/'), item['name']))
-                                self.stderr.flush()
-                                return 1
+                            subargs = \
+                                ['%s/%s' % (path.rstrip('/'), item['name'])]
+                            if options.header:
+                                for h in options.header:
+                                    subargs.append('-h')
+                                    subargs.append(h)
+                            subargs.append('--ignore-404')
+                            for rv in conc.get_results().values():
+                                if rv:
+                                    conc.join()
+                                    return rv
+                            conc.spawn(subargs[0],
+                                       self._delete_recursive_helper, subargs)
                         marker = item['name']
+                    conc.join()
+                    for rv in conc.get_results().values():
+                        if rv:
+                            return rv
+                    with self._with_client() as client:
+                        self._verbose('DELETEing %s\n' % path.rstrip('/'))
+                        status, reason, headers, contents = \
+                            client.delete_container(path.rstrip('/'),
+                                                    headers=hdrs)
                 else:
-                    status, reason, headers, contents = \
-                        self.client.delete_container(path.rstrip('/'),
-                                                     headers=hdrs)
+                    with self._with_client() as client:
+                        self._verbose('DELETEing %s\n' % path.rstrip('/'))
+                        status, reason, headers, contents = \
+                            client.delete_container(path.rstrip('/'),
+                                                    headers=hdrs)
             else:
-                status, reason, headers, contents = \
-                    self.client.delete_object(*path.split('/', 1),
-                                              headers=hdrs)
+                with self._with_client() as client:
+                    self._verbose('DELETEing %s\n' % path)
+                    status, reason, headers, contents = \
+                        client.delete_object(*path.split('/', 1), headers=hdrs)
         else:
             self._delete_parser.print_help()
             return 1
         if status // 100 != 2:
+            if status == 404 and options.ignore_404:
+                return 0
             self.stderr.write('%s %s\n' % (status, reason))
             self.stderr.flush()
             return 1
