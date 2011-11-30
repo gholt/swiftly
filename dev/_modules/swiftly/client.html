@@ -1,0 +1,964 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.client &mdash; Swiftly v1.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly v1.0 documentation" href="../../index.html" />
+    <link rel="up" title="swiftly" href="../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Swiftly v1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.client</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Client API to Swift</span>
+
+<span class="sd">Copyright 2011 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;VERSION&#39;</span><span class="p">,</span> <span class="s">&#39;CHUNK_SIZE&#39;</span><span class="p">,</span> <span class="s">&#39;Client&#39;</span><span class="p">]</span>
+
+
+<span class="kn">from</span> <span class="nn">os</span> <span class="kn">import</span> <span class="n">umask</span>
+<span class="kn">from</span> <span class="nn">urllib</span> <span class="kn">import</span> <span class="n">quote</span>
+<span class="kn">from</span> <span class="nn">urlparse</span> <span class="kn">import</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">urlunparse</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">eventlet.green.httplib</span> <span class="kn">import</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">HTTPSConnection</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">httplib</span> <span class="kn">import</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">HTTPSConnection</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">swift.common.bufferedhttp</span> \
+        <span class="kn">import</span> <span class="n">BufferedHTTPConnection</span> <span class="k">as</span> <span class="n">HTTPConnection</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">eventlet.green.httplib</span> <span class="kn">import</span> <span class="n">HTTPConnection</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">httplib</span> <span class="kn">import</span> <span class="n">HTTPConnection</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">json</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">eventlet</span> <span class="kn">import</span> <span class="n">sleep</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">swift.proxy.server</span> <span class="kn">import</span> <span class="n">Application</span> <span class="k">as</span> <span class="n">SwiftProxy</span>
+    <span class="kn">from</span> <span class="nn">webob</span> <span class="kn">import</span> <span class="n">Request</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">SwiftProxy</span> <span class="o">=</span> <span class="bp">None</span>
+
+<span class="kn">from</span> <span class="nn">swiftly</span> <span class="kn">import</span> <span class="n">VERSION</span>
+
+
+<span class="n">CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">65536</span>
+
+
+<span class="k">def</span> <span class="nf">_quote</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="s">&#39;/:&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">unicode</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">quote</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">safe</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">_LocalMemcache</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">incr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cacahe</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">delta</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">decr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">delta</span><span class="o">=-</span><span class="n">delta</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">set_multi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">,</span> <span class="n">server_key</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">def</span> <span class="nf">get_multi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">server_key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">_IterReader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterator</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="n">iterator</span>
+
+    <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">_FileIter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fp</span><span class="p">,</span> <span class="n">chunked</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fp</span> <span class="o">=</span> <span class="n">fp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chunked</span> <span class="o">=</span> <span class="n">chunked</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final_chunk_sent</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">next</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">chunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fp</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">CHUNK_SIZE</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">chunk</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunked</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_chunk_sent</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">final_chunk_sent</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="k">return</span> <span class="s">&#39;0</span><span class="se">\r\n\r\n</span><span class="s">&#39;</span>
+            <span class="k">raise</span> <span class="ne">StopIteration</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chunked</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;</span><span class="si">%x</span><span class="se">\r\n</span><span class="si">%s</span><span class="se">\r\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">),</span> <span class="n">chunk</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">chunk</span>
+
+
+<div class="viewcode-block" id="Client"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client">[docs]</a><span class="k">class</span> <span class="nc">Client</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Client code to work with Swift.</span>
+
+<span class="sd">    :param auth_url: The URL to the auth system.</span>
+<span class="sd">    :param auth_user: The user to authenticate as.</span>
+<span class="sd">    :param auth_key: The key to use when authenticating.</span>
+<span class="sd">    :param proxy: The URL to the proxy to use. Default: None.</span>
+<span class="sd">    :param snet: Prepends &quot;snet-&quot; to the host name of the storage URL</span>
+<span class="sd">        given once authenticated. This is usually only useful when</span>
+<span class="sd">        working with Rackspace Cloud Files and wanting to use</span>
+<span class="sd">        Rackspace ServiceNet. Default: False.</span>
+<span class="sd">    :param retries: The number of times to retry requests if a server</span>
+<span class="sd">        error ocurrs (5xx response). Default: 4 (for a total of 5</span>
+<span class="sd">        attempts).</span>
+<span class="sd">    :param swift_proxy: Default: None. If set, the</span>
+<span class="sd">        swift.proxy.server.Application given will be used instead of</span>
+<span class="sd">        connecting to an external proxy server. You can also set it to</span>
+<span class="sd">        True and the Swift proxy will be created with default values.</span>
+<span class="sd">    :param swift_proxy_storage_path: If swift_proxy is set,</span>
+<span class="sd">        swift_proxy_storage_path is the path to the Swift account to</span>
+<span class="sd">        use (example: /v1/AUTH_test).</span>
+<span class="sd">    :param cache_path: Default: None. If set to a path, the storage URL and</span>
+<span class="sd">        auth token are cached in the file for reuse. If there is already cached</span>
+<span class="sd">        values in the file, they are used without authenticating first.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_user</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_key</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">snet</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">swift_proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">swift_proxy_storage_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cache_path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span> <span class="o">=</span> <span class="n">auth_url</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span> <span class="o">=</span> <span class="n">auth_user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span> <span class="o">=</span> <span class="n">auth_key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="o">=</span> <span class="n">proxy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">snet</span> <span class="o">=</span> <span class="n">snet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attempts</span> <span class="o">=</span> <span class="n">retries</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage_path</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span> <span class="o">=</span> <span class="n">swift_proxy</span>
+        <span class="k">if</span> <span class="n">swift_proxy</span> <span class="ow">is</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span> <span class="o">=</span> <span class="n">SwiftProxy</span><span class="p">({},</span> <span class="n">memcache</span><span class="o">=</span><span class="n">_LocalMemcache</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">swift_proxy</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">storage_path</span> <span class="o">=</span> <span class="n">swift_proxy_storage_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span> <span class="o">=</span> <span class="n">cache_path</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&#39;base64&#39;</span><span class="p">)</span>
+                <span class="p">(</span><span class="n">auth_url</span><span class="p">,</span> <span class="n">auth_user</span><span class="p">,</span> <span class="n">auth_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">,</span>
+                 <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)]</span>
+                <span class="k">if</span> <span class="n">auth_url</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span> <span class="ow">or</span> <span class="n">auth_user</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span> \
+                        <span class="ow">or</span> <span class="n">auth_key</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">=</span> <span class="bp">None</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="nf">_connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">url</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_auth</span><span class="p">()</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span>
+        <span class="n">parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">proxy_parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="n">netloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">proxy_parsed</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="k">else</span> <span class="n">parsed</span><span class="p">)</span><span class="o">.</span><span class="n">netloc</span>
+        <span class="k">if</span> <span class="n">parsed</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s">&#39;http&#39;</span><span class="p">:</span>
+            <span class="n">conn</span> <span class="o">=</span> <span class="n">HTTPConnection</span><span class="p">(</span><span class="n">netloc</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">parsed</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s">&#39;https&#39;</span><span class="p">:</span>
+            <span class="n">conn</span> <span class="o">=</span> <span class="n">HTTPSConnection</span><span class="p">(</span><span class="n">netloc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="s">&#39;Cannot handle protocol scheme </span><span class="si">%s</span><span class="s"> for url </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">parsed</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">url</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">_set_tunnel</span><span class="p">(</span><span class="n">parsed</span><span class="o">.</span><span class="n">hostname</span><span class="p">,</span> <span class="n">parsed</span><span class="o">.</span><span class="n">port</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">parsed</span><span class="p">,</span> <span class="n">conn</span>
+
+    <span class="k">def</span> <span class="nf">_response_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="p">):</span>
+        <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hdrs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdrs</span><span class="p">[</span><span class="n">h</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                    <span class="n">hdrs</span><span class="p">[</span><span class="n">h</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">hdrs</span><span class="p">[</span><span class="n">h</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">hdrs</span><span class="p">[</span><span class="n">h</span><span class="p">],</span> <span class="n">v</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">hdrs</span><span class="p">[</span><span class="n">h</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">hdrs</span>
+
+    <span class="k">def</span> <span class="nf">_auth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">reason</span> <span class="o">=</span> <span class="s">&#39;Unknown&#39;</span>
+        <span class="n">attempt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">attempt</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">attempts</span><span class="p">:</span>
+            <span class="n">attempt</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">parsed</span><span class="p">,</span> <span class="n">conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span><span class="p">)</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="n">parsed</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span>
+                <span class="p">{</span><span class="s">&#39;User-Agent&#39;</span><span class="p">:</span> <span class="s">&#39;Swiftly v</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">VERSION</span><span class="p">,</span>
+                 <span class="s">&#39;X-Auth-User&#39;</span><span class="p">:</span> <span class="n">_quote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span><span class="p">),</span>
+                 <span class="s">&#39;X-Auth-Key&#39;</span><span class="p">:</span> <span class="n">_quote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span><span class="p">)})</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">getresponse</span><span class="p">()</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span>
+            <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">reason</span>
+            <span class="n">hdrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_headers</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">getheaders</span><span class="p">())</span>
+            <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">401</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">=</span> <span class="n">hdrs</span><span class="p">[</span><span class="s">&#39;x-storage-url&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span><span class="p">:</span>
+                    <span class="n">parsed</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">))</span>
+                    <span class="c"># Second item in the list is the netloc</span>
+                    <span class="n">parsed</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;snet-&#39;</span> <span class="o">+</span> <span class="n">parsed</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">=</span> <span class="n">urlunparse</span><span class="p">(</span><span class="n">parsed</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="n">hdrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-auth-token&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="n">hdrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-storage-token&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s">&#39;x-auth-token or x-storage-token&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">])</span>
+                    <span class="n">old_umask</span> <span class="o">=</span> <span class="n">umask</span><span class="p">(</span><span class="mo">0077</span><span class="p">)</span>
+                    <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;base64&#39;</span><span class="p">))</span>
+                    <span class="n">umask</span><span class="p">(</span><span class="n">old_umask</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="s">&#39;Auth GET failed&#39;</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_default_reset_func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="s">&#39;Failure and no ability to reset contents for reupload.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                 <span class="n">stream</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="n">reset_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_reset_func</span>
+        <span class="n">tell</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;tell&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="n">seek</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;seek&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tell</span> <span class="ow">and</span> <span class="n">seek</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">orig_pos</span> <span class="o">=</span> <span class="n">tell</span><span class="p">()</span>
+                <span class="n">reset_func</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">seek</span><span class="p">(</span><span class="n">orig_pos</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">tell</span> <span class="o">=</span> <span class="n">seek</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">contents</span><span class="p">:</span>
+            <span class="n">reset_func</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">None</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">reason</span> <span class="o">=</span> <span class="s">&#39;Unknown&#39;</span>
+        <span class="n">attempt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">attempt</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">attempts</span><span class="p">:</span>
+            <span class="n">attempt</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="p">:</span>
+                <span class="n">parsed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connect</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">storage_path</span> <span class="o">=</span> <span class="n">parsed</span><span class="o">.</span><span class="n">path</span>
+            <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;User-Agent&#39;</span><span class="p">:</span> <span class="s">&#39;Swiftly v</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">VERSION</span><span class="p">,</span>
+                    <span class="s">&#39;X-Auth-Token&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">headers</span><span class="p">:</span>
+                <span class="n">hdrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">:</span>
+                    <span class="n">req</span> <span class="o">=</span> <span class="n">Request</span><span class="o">.</span><span class="n">blank</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">storage_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span>
+                                        <span class="n">environ</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;REQUEST_METHOD&#39;</span><span class="p">:</span> <span class="n">method</span><span class="p">},</span>
+                                        <span class="n">headers</span><span class="o">=</span><span class="n">hdrs</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">contents</span><span class="p">)</span>
+                    <span class="n">resp</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">get_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+                        <span class="n">method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">hdrs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">req</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">:</span>
+                    <span class="n">req</span> <span class="o">=</span> <span class="n">Request</span><span class="o">.</span><span class="n">blank</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">storage_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span>
+                                        <span class="n">environ</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;REQUEST_METHOD&#39;</span><span class="p">:</span> <span class="n">method</span><span class="p">},</span>
+                                        <span class="n">headers</span><span class="o">=</span><span class="n">hdrs</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">putrequest</span><span class="p">(</span>
+                        <span class="n">method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">)</span>
+                <span class="n">content_length</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">hdrs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">h</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;content-length&#39;</span><span class="p">:</span>
+                        <span class="n">content_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">req</span><span class="p">:</span>
+                        <span class="n">req</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="n">h</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">putheader</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">content_length</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">req</span><span class="p">:</span>
+                        <span class="n">req</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&#39;Transfer-Encoding&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;chunked&#39;</span>
+                        <span class="n">req</span><span class="o">.</span><span class="n">body_file</span> <span class="o">=</span> <span class="n">contents</span>
+                        <span class="n">resp</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">get_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">putheader</span><span class="p">(</span>
+                            <span class="s">&#39;Transfer-Encoding&#39;</span><span class="p">,</span> <span class="s">&#39;chunked&#39;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">endheaders</span><span class="p">()</span>
+                        <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">CHUNK_SIZE</span><span class="p">)</span>
+                        <span class="k">while</span> <span class="n">chunk</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">send</span><span class="p">(</span>
+                                <span class="s">&#39;</span><span class="si">%x</span><span class="se">\r\n</span><span class="si">%s</span><span class="se">\r\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">),</span> <span class="n">chunk</span><span class="p">))</span>
+                            <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">CHUNK_SIZE</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s">&#39;0</span><span class="se">\r\n\r\n</span><span class="s">&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">req</span><span class="p">:</span>
+                        <span class="n">req</span><span class="o">.</span><span class="n">body_file</span> <span class="o">=</span> <span class="n">contents</span>
+                        <span class="n">req</span><span class="o">.</span><span class="n">content_length</span> <span class="o">=</span> <span class="n">content_length</span>
+                        <span class="n">resp</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">get_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">endheaders</span><span class="p">()</span>
+                        <span class="n">left</span> <span class="o">=</span> <span class="n">content_length</span>
+                        <span class="k">while</span> <span class="n">left</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">size</span> <span class="o">=</span> <span class="n">CHUNK_SIZE</span>
+                            <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">left</span><span class="p">:</span>
+                                <span class="n">size</span> <span class="o">=</span> <span class="n">left</span>
+                            <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                            <span class="n">left</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">resp</span><span class="p">:</span>
+                <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">getresponse</span><span class="p">()</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span>
+                <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">reason</span>
+                <span class="n">hdrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_headers</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">getheaders</span><span class="p">())</span>
+                <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                    <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status_int</span>
+                <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">hdrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_headers</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">headerlist</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">_IterReader</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">app_iter</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">body</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">401</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
+                    <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_auth</span><span class="p">()</span>
+                <span class="n">attempt</span> <span class="o">-=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">stream</span> <span class="ow">and</span> <span class="n">decode_json</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">hdrs</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">if</span> <span class="n">reset_func</span><span class="p">:</span>
+                <span class="n">reset_func</span><span class="p">()</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> failed&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">),</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Client.head_account"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.head_account">[docs]</a>    <span class="k">def</span> <span class="nf">head_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        HEADs the account and returns the results. Useful headers</span>
+<span class="sd">        returned are:</span>
+
+<span class="sd">        =========================== =================================</span>
+<span class="sd">        x-account-bytes-used        Object storage used for the</span>
+<span class="sd">                                    account, in bytes.</span>
+<span class="sd">        x-account-container-count   The number of containers in the</span>
+<span class="sd">                                    account.</span>
+<span class="sd">        x-account-object-count      The number of objects in the</span>
+<span class="sd">                                    account.</span>
+<span class="sd">        =========================== =================================</span>
+
+<span class="sd">        Also, any user headers beginning with x-account-meta- are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        These values can be delayed depending the Swift cluster.</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span><span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.get_account"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.get_account">[docs]</a>    <span class="k">def</span> <span class="nf">get_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                    <span class="n">marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        GETs the account and returns the results. This is done to list</span>
+<span class="sd">        the containers for the account. Some useful headers are also</span>
+<span class="sd">        returned:</span>
+
+<span class="sd">        =========================== =================================</span>
+<span class="sd">        x-account-bytes-used        Object storage used for the</span>
+<span class="sd">                                    account, in bytes.</span>
+<span class="sd">        x-account-container-count   The number of containers in the</span>
+<span class="sd">                                    account.</span>
+<span class="sd">        x-account-object-count      The number of objects in the</span>
+<span class="sd">                                    account.</span>
+<span class="sd">        =========================== =================================</span>
+
+<span class="sd">        Also, any user headers beginning with x-account-meta- are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        These values can be delayed depending the Swift cluster.</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param prefix: The prefix container names must match to be</span>
+<span class="sd">                       listed.</span>
+<span class="sd">        :param delimiter: The delimiter for the listing. Delimiters</span>
+<span class="sd">                          indicate how far to progress through</span>
+<span class="sd">                          container names before &quot;rolling them up&quot;.</span>
+<span class="sd">                          For instance, a delimiter=&#39;.&#39; query on an</span>
+<span class="sd">                          account with the containers::</span>
+
+<span class="sd">                           one.one</span>
+<span class="sd">                           one.two</span>
+<span class="sd">                           two</span>
+<span class="sd">                           three.one</span>
+
+<span class="sd">                          would return the JSON value of::</span>
+
+<span class="sd">                           [{&#39;subdir&#39;: &#39;one.&#39;},</span>
+<span class="sd">                            {&#39;count&#39;: 0, &#39;bytes&#39;: 0, &#39;name&#39;: &#39;two&#39;},</span>
+<span class="sd">                            {&#39;subdir&#39;: &#39;three.&#39;}]</span>
+
+<span class="sd">                          Using this with prefix can allow you to</span>
+<span class="sd">                          traverse a psuedo hierarchy.</span>
+<span class="sd">        :param marker: Only container names after this marker will be</span>
+<span class="sd">                       returned. Swift returns a limited number of</span>
+<span class="sd">                       containers per request (often 10,000). To get</span>
+<span class="sd">                       the next batch of names, you issue another</span>
+<span class="sd">                       query with the marker set to the last name you</span>
+<span class="sd">                       received. You can continue to issue requests</span>
+<span class="sd">                       until you receive no more names.</span>
+<span class="sd">        :param end_marker: Only container names before this marker will be</span>
+<span class="sd">                           returned.</span>
+<span class="sd">        :param limit: Limits the size of the list returned per</span>
+<span class="sd">                      request. The default and maximum depends on the</span>
+<span class="sd">                      Swift cluster (usually 10,000).</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s">&#39;?format=json&#39;</span>
+        <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;prefix=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">delimiter</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;delimiter=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">delimiter</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">marker</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;marker=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">end_marker</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;end_marker=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">end_marker</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;limit=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">limit</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.post_account"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.post_account">[docs]</a>    <span class="k">def</span> <span class="nf">post_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        POSTs the account and returns the results. This is usually</span>
+<span class="sd">        done to set X-Account-Meta-xxx headers. Note that any existing</span>
+<span class="sd">        X-Account-Meta-xxx headers will remain untouched. To remove an</span>
+<span class="sd">        X-Account-Meta-xxx header, send the header with an empty</span>
+<span class="sd">        string as its value.</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span><span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.delete_account"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.delete_account">[docs]</a>    <span class="k">def</span> <span class="nf">delete_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                       <span class="n">yes_i_mean_delete_the_account</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DELETEs the account and returns the results. </span>
+
+<span class="sd">        Some Swift clusters do not support this.</span>
+
+<span class="sd">        Those that do will mark the account as deleted and immediately begin</span>
+<span class="sd">        removing the objects from the cluster in the backgound.</span>
+
+<span class="sd">        THERE IS NO GOING BACK!</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param yes_i_mean_delete_the_account: Set to True to verify you really</span>
+<span class="sd">                                              mean to delete the entire</span>
+<span class="sd">                                              account.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">yes_i_mean_delete_the_account</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s">&#39;yes_i_mean_delete_the_account was not set to True&#39;</span><span class="p">,</span> <span class="p">{},</span>
+                    <span class="s">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span><span class="s">&#39;DELETE&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_container_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">container</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">_quote</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Client.head_container"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.head_container">[docs]</a>    <span class="k">def</span> <span class="nf">head_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        HEADs the container and returns the results. Useful headers</span>
+<span class="sd">        returned are:</span>
+
+<span class="sd">        =========================== =================================</span>
+<span class="sd">        x-container-bytes-used      Object storage used for the</span>
+<span class="sd">                                    container, in bytes.</span>
+<span class="sd">        x-container-object-count    The number of objects in the</span>
+<span class="sd">                                    container.</span>
+<span class="sd">        =========================== =================================</span>
+
+<span class="sd">        Also, any user headers beginning with x-container-meta- are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        These values can be delayed depending the Swift cluster.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
+            <span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.get_container"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.get_container">[docs]</a>    <span class="k">def</span> <span class="nf">get_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                      <span class="n">delimiter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                      <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        GETs the container and returns the results. This is done to</span>
+<span class="sd">        list the objects for the container. Some useful headers are</span>
+<span class="sd">        also returned:</span>
+
+<span class="sd">        =========================== =================================</span>
+<span class="sd">        x-container-bytes-used      Object storage used for the</span>
+<span class="sd">                                    container, in bytes.</span>
+<span class="sd">        x-container-object-count    The number of objects in the</span>
+<span class="sd">                                    container.</span>
+<span class="sd">        =========================== =================================</span>
+
+<span class="sd">        Also, any user headers beginning with x-container-meta- are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        These values can be delayed depending the Swift cluster.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param prefix: The prefix object names must match to be</span>
+<span class="sd">                       listed.</span>
+<span class="sd">        :param delimiter: The delimiter for the listing. Delimiters</span>
+<span class="sd">                          indicate how far to progress through object</span>
+<span class="sd">                          names before &quot;rolling them up&quot;. For</span>
+<span class="sd">                          instance, a delimiter=&#39;/&#39; query on an</span>
+<span class="sd">                          container with the objects::</span>
+
+<span class="sd">                           one/one</span>
+<span class="sd">                           one/two</span>
+<span class="sd">                           two</span>
+<span class="sd">                           three/one</span>
+
+<span class="sd">                          would return the JSON value of::</span>
+
+<span class="sd">                           [{&#39;subdir&#39;: &#39;one/&#39;},</span>
+<span class="sd">                            {&#39;count&#39;: 0, &#39;bytes&#39;: 0, &#39;name&#39;: &#39;two&#39;},</span>
+<span class="sd">                            {&#39;subdir&#39;: &#39;three/&#39;}]</span>
+
+<span class="sd">                          Using this with prefix can allow you to</span>
+<span class="sd">                          traverse a psuedo hierarchy.</span>
+<span class="sd">        :param marker: Only object names after this marker will be</span>
+<span class="sd">                       returned. Swift returns a limited number of</span>
+<span class="sd">                       objects per request (often 10,000). To get the</span>
+<span class="sd">                       next batch of names, you issue another query</span>
+<span class="sd">                       with the marker set to the last name you</span>
+<span class="sd">                       received. You can continue to issue requests</span>
+<span class="sd">                       until you receive no more names.</span>
+<span class="sd">        :param end_marker: Only object names before this marker will be</span>
+<span class="sd">                           returned.</span>
+<span class="sd">        :param limit: Limits the size of the list returned per</span>
+<span class="sd">                      request. The default and maximum depends on the</span>
+<span class="sd">                      Swift cluster (usually 10,000).</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="s">&#39;?format=json&#39;</span>
+        <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;prefix=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">delimiter</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;delimiter=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">delimiter</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">marker</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;marker=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">end_marker</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;end_marker=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">end_marker</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">+=</span> <span class="s">&#39;&amp;limit=&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">limit</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">)</span> <span class="o">+</span> <span class="n">query</span><span class="p">,</span>
+                             <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.put_container"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.put_container">[docs]</a>    <span class="k">def</span> <span class="nf">put_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        PUTs the container and returns the results. This is usually</span>
+<span class="sd">        done to create new containers and can also be used to set</span>
+<span class="sd">        X-Container-Meta-xxx headers. Note that if the container</span>
+<span class="sd">        already exists, any existing X-Container-Meta-xxx headers will</span>
+<span class="sd">        remain untouched. To remove an X-Container-Meta-xxx header,</span>
+<span class="sd">        send the header with an empty string as its value.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
+            <span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.post_container"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.post_container">[docs]</a>    <span class="k">def</span> <span class="nf">post_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        POSTs the container and returns the results. This is usually</span>
+<span class="sd">        done to set X-Container-Meta-xxx headers. Note that any</span>
+<span class="sd">        existing X-Container-Meta-xxx headers will remain untouched.</span>
+<span class="sd">        To remove an X-Container-Meta-xxx header, send the header with</span>
+<span class="sd">        an empty string as its value.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
+            <span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.delete_container"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.delete_container">[docs]</a>    <span class="k">def</span> <span class="nf">delete_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DELETEs the container and returns the results.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
+            <span class="s">&#39;DELETE&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_object_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="n">container</span> <span class="o">=</span> <span class="n">container</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">container</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span>
+            <span class="n">container</span> <span class="o">=</span> <span class="n">_quote</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">container</span> <span class="o">=</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">container</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">container</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">_quote</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Client.head_object"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.head_object">[docs]</a>    <span class="k">def</span> <span class="nf">head_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        HEADs the object and returns the results.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
+            <span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.get_object"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.get_object">[docs]</a>    <span class="k">def</span> <span class="nf">get_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        GETs the object and returns the results.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param stream: Indicates whether to stream the contents or</span>
+<span class="sd">                       preread them fully and return them as a str.</span>
+<span class="sd">                       Default: True to stream the contents.</span>
+<span class="sd">                       When streaming, contents will have the standard</span>
+<span class="sd">                       file-like-object read function, which accepts</span>
+<span class="sd">                       an optional size parameter to limit how much</span>
+<span class="sd">                       data is read per call.</span>
+<span class="sd">                       When streaming is on, be certain to fully read</span>
+<span class="sd">                       the contents before issuing another request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: if *stream* was True, *contents* is a</span>
+<span class="sd">                file-like-object of the contents of the HTTP body. If</span>
+<span class="sd">                *stream* was False, *contents* is just a simple str of</span>
+<span class="sd">                the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span><span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span>
+                             <span class="n">headers</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.put_object"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.put_object">[docs]</a>    <span class="k">def</span> <span class="nf">put_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        PUTs the object and returns the results. This is used to</span>
+<span class="sd">        create or overwrite objects. X-Object-Meta-xxx can optionally</span>
+<span class="sd">        be sent to be stored with the object. Content-Type,</span>
+<span class="sd">        Content-Encoding and other standard HTTP headers can often</span>
+<span class="sd">        also be set, depending on the Swift cluster.</span>
+
+<span class="sd">        Note that you can set the ETag header to the MD5 sum of the</span>
+<span class="sd">        contents for extra verifification the object was stored</span>
+<span class="sd">        correctly.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param contents: The contents of the object to store. This can</span>
+<span class="sd">                         be a simple str, or a file-like-object with</span>
+<span class="sd">                         at least a read function. If the</span>
+<span class="sd">                         file-like-object also has tell and seek</span>
+<span class="sd">                         functions, the PUT can be reattempted on any</span>
+<span class="sd">                         server error.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
+            <span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">),</span> <span class="n">contents</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.post_object"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.post_object">[docs]</a>    <span class="k">def</span> <span class="nf">post_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        POSTs the object and returns the results. This is used to</span>
+<span class="sd">        update the object&#39;s header values. Note that all headers must</span>
+<span class="sd">        be sent with the POST, unlike the account and container POSTs.</span>
+<span class="sd">        With account and container POSTs, existing headers are</span>
+<span class="sd">        untouched. But with object POSTs, any existing headers are</span>
+<span class="sd">        removed. The full list of supported headers depends on the</span>
+<span class="sd">        Swift cluster, but usually include Content-Type,</span>
+<span class="sd">        Content-Encoding, and any X-Object-Meta-xxx headers.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
+            <span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.delete_object"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.delete_object">[docs]</a>    <span class="k">def</span> <span class="nf">delete_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DELETEs the object and returns the results.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
+            <span class="s">&#39;DELETE&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Swiftly v1.0 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Gregory Holt.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

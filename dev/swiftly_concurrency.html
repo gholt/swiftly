@@ -1,0 +1,174 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.concurrency &mdash; Swiftly v1.0 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Swiftly v1.0 documentation" href="index.html" />
+    <link rel="prev" title="swiftly.client" href="swiftly_client.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="swiftly_client.html" title="swiftly.client"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Swiftly v1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-swiftly.concurrency">
+<span id="swiftly-concurrency"></span><span id="swiftly-concurrency-module"></span><h1>swiftly.concurrency<a class="headerlink" href="#module-swiftly.concurrency" title="Permalink to this headline">¶</a></h1>
+<p>Concurrency API for Swiftly.</p>
+<p>Copyright 2011 Gregory Holt</p>
+<p>Licensed under the Apache License, Version 2.0 (the &#8220;License&#8221;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+<blockquote>
+<div><a class="reference external" href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></div></blockquote>
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &#8220;AS IS&#8221; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+<dl class="class">
+<dt id="swiftly.concurrency.Concurrency">
+<em class="property">class </em><tt class="descclassname">swiftly.concurrency.</tt><tt class="descname">Concurrency</tt><big>(</big><em>concurrency=10</em><big>)</big><a class="reference internal" href="_modules/swiftly/concurrency.html#Concurrency"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.concurrency.Concurrency" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Convenience class to support concurrency, if Eventlet is available;
+otherwise it just performs at single concurrency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><strong>concurrency</strong> &#8211; The level of concurrency desired. Default: 10</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="swiftly.concurrency.Concurrency.get_results">
+<tt class="descname">get_results</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/swiftly/concurrency.html#Concurrency.get_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.concurrency.Concurrency.get_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dict of the results currently available. The keys are the
+ident values given with the calls to spawn. The values are the return
+values of the funcs.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.concurrency.Concurrency.join">
+<tt class="descname">join</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/swiftly/concurrency.html#Concurrency.join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.concurrency.Concurrency.join" title="Permalink to this definition">¶</a></dt>
+<dd><p>Blocks until all currently pending functions have finished.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.concurrency.Concurrency.spawn">
+<tt class="descname">spawn</tt><big>(</big><em>ident</em>, <em>func</em>, <em>*args</em>, <em>**kwargs</em><big>)</big><a class="reference internal" href="_modules/swiftly/concurrency.html#Concurrency.spawn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.concurrency.Concurrency.spawn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns immediately to the caller and begins executing the func in
+the background. Use get_results and the ident given to retrieve the
+results of the func.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ident</strong> &#8211; An identifier to find the results of the func from
+get_results. This identifier can be anything unique to
+the Concurrency instance.</li>
+<li><strong>func</strong> &#8211; The function to execute in the concurrently.</li>
+<li><strong>args</strong> &#8211; The args to give the func.</li>
+<li><strong>kwargs</strong> &#8211; The keyword args to the give the func.</li>
+</ul>
+</td>
+</tr>
+<tr class="field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="swiftly_client.html"
+                        title="previous chapter">swiftly.client</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/swiftly_concurrency.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="swiftly_client.html" title="swiftly.client"
+             >previous</a> |</li>
+        <li><a href="index.html">Swiftly v1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Gregory Holt.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>
