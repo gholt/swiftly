@@ -202,9 +202,9 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'the listing retrieved; the items returned will begin with '
                  'the item just after the MARKER given (note: the marker does '
                  'not have to actually exist).')
-        self._get_parser.add_option('-e', '--end_marker', dest='end_marker',
+        self._get_parser.add_option('-e', '--end-marker', dest='end_marker',
             metavar='MARKER',
-            help='For account and container GETs, this sets the end_marker '
+            help='For account and container GETs, this sets the end-marker '
                  'for the listing retrieved; the items returned will stop '
                  'with the item just before the MARKER given (note: the '
                  'marker does not have to actually exist).')
@@ -337,17 +337,17 @@ Issues a DELETE request of the [path] given.""".strip(),
         self._main_parser = _OptionParser(version='%prog 1.0',
             usage='Usage: %prog [options] <command> [command_options] [args]',
             stdout=self.stdout, stderr=self.stderr)
-        self._main_parser.add_option('-A', '--auth_url', dest='auth_url',
+        self._main_parser.add_option('-A', '--auth-url', dest='auth_url',
             default=environ.get('SWIFTLY_AUTH_URL', ''),
             help='URL to auth system, example: '
                  'http://127.0.0.1:8080/auth/v1.0 You can also set this with '
                  'the environment variable SWIFTLY_AUTH_URL.')
-        self._main_parser.add_option('-U', '--auth_user', dest='auth_user',
+        self._main_parser.add_option('-U', '--auth-user', dest='auth_user',
             default=environ.get('SWIFTLY_AUTH_USER', ''),
             help='User name for auth system, example: test:tester You can '
                  'also set this with the environment variable '
                  'SWIFTLY_AUTH_USER.')
-        self._main_parser.add_option('-K', '--auth_key', dest='auth_key',
+        self._main_parser.add_option('-K', '--auth-key', dest='auth_key',
             default=environ.get('SWIFTLY_AUTH_KEY', ''),
             help='Key for auth system, example: testing You can also set this '
                  'with the environment variable SWIFTLY_AUTH_KEY.')
