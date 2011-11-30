@@ -1094,10 +1094,10 @@ THERE IS NO GOING BACK!""".strip())
                             conc.spawn(subargs[0],
                                        self._delete_recursive_helper, subargs)
                         marker = item['name']
-                    conc.join()
-                    for rv in conc.get_results().values():
-                        if rv:
-                            return rv
+                        conc.join()
+                        for rv in conc.get_results().values():
+                            if rv:
+                                return rv
                     with self._with_client() as client:
                         self._verbose('DELETEing %s\n' % path.rstrip('/'))
                         status, reason, headers, contents = \
