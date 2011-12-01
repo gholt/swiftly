@@ -103,7 +103,7 @@ class _LocalMemcache(object):
 class _IterReader(object):
 
     def __init__(self, iterator):
-        self.iterator = iterator
+        self.iterator = iter(iterator)
 
     def read(self, size=-1):
         try:
