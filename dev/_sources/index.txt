@@ -217,6 +217,17 @@ Output from `swiftly help get`::
                             similarly named file inside the PATH given.
       --ignore-404          Ignores 404 Not Found responses. Nothing will be
                             output, but the exit code will be 0 instead of 1.
+      --sub-command=COMMAND
+                            Sends the contents of each object downloaded as
+                            standard input to the COMMAND given and outputs the
+                            command's standard output as if it were the object's
+                            contents. This can be useful in combination with
+                            --all-objects to filter the objects before writing
+                            them to disk; for instance, downloading logs,
+                            gunzipping them, grepping for a keyword, and only
+                            storing matching lines locally (--sub-command "gunzip
+                            | grep keyword" or --sub-command "zgrep keyword" if
+                            your system has that).
 
 
 Output from `swiftly help head`::
