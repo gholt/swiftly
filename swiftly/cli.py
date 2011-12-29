@@ -255,7 +255,32 @@ Usage: %prog [main_options] put [options] <path>
 For help on [main_options] run %prog with no args.
 
 Performs a PUT request on the <path> given. If the <path> is an object, the
-contents for the object are read from standard input.""".strip(),
+contents for the object are read from standard input.
+
+Special Note About Segmented Objects:
+
+For object uploads exceeding the -s [size] (default: 5G) the object
+will be uploaded in segments. At this time, auto-segmenting only
+works for objects uploaded from source files -- objects sourced from
+standard input cannot exceed the maximum object size for the cluster.
+
+A segmented object is one that has its contents in several other
+objects. On download, these other objects are concatenated into a
+single object stream.
+
+Segmented objects can be useful to greatly exceed the maximum single
+object size, speed up uploading large objects with concurrent segment
+uploading, and provide the option to replace, insert, and delete
+segments within a whole object without having to alter or reupload
+any of the other segments.
+
+The main object of a segmented object is called the "manifest
+object". This object just has an X-Object-Manifest header that points
+to another path where the segments for the object contents are
+stored. For Swiftly, this header value is auto-generated as the same
+name as the manifest object, but with "_segments" added to the
+container name. This keeps the segments out of the main container
+listing, which is often useful.""".strip(),
             stdout=self.stdout, stderr=self.stderr)
         self._put_parser.add_option('-h', '--header', dest='header',
             action='append', metavar='HEADER:VALUE',
@@ -297,6 +322,11 @@ contents for the object are read from standard input.""".strip(),
         self._put_parser.add_option('-e', '--empty', dest='empty',
             action='store_true',
             help='Indicates a zero-byte object should be PUT.')
+        self._put_parser.add_option('-s', '--segment-size',
+            dest='segment_size', metavar='BYTES',
+            help='Indicates the maximum size of an object before uploading it '
+                 'as a segmented object. See full help text for more '
+                 'information.')
 
         self._post_parser = _OptionParser(version='%prog 1.0', usage="""
 Usage: %prog [main_options] post [options] [path]
@@ -414,6 +444,10 @@ Issues a DELETE request of the [path] given.""".strip(),
                 main_line = '  ' + lines[0].split(']', 1)[1].strip()
                 for x in xrange(4):
                     lines.pop(0)
+                for x, line in enumerate(lines):
+                    if not line:
+                        lines = lines[:x]
+                        break
                 if len(main_line) < 24:
                     initial_indent = main_line + ' ' * (24 - len(main_line))
                 else:
@@ -815,8 +849,8 @@ Issues a DELETE request of the [path] given.""".strip(),
                 utime(options.output, (mtime, mtime))
         return 0
 
-    def _put_recursive_helper(self, args):
-        rv = self._put(args)
+    def _put_recursive_helper(self, args, stdin=None):
+        rv = self._put(args, stdin)
         if rv:
             self.stderr.write(
                 'aborting after error with %s\n' % args[0])
@@ -825,12 +859,25 @@ Issues a DELETE request of the [path] given.""".strip(),
         return 0
 
     @_client_command
-    def _put(self, args):
+    def _put(self, args, stdin=None):
         options, args = self._put_parser.parse_args(args)
         if self._put_parser.error_encountered:
             return 1
         if not args or len(args) != 1:
             self._put_parser.print_help()
+            return 1
+        g5 = 5 * 1024 * 1024 * 1024
+        try:
+            options.segment_size = int(options.segment_size or g5)
+        except ValueError:
+            self.stderr.write(
+                'invalid segment size %s\n' % options.segment_size)
+            self.stderr.flush()
+            return 1
+        if options.segment_size < 1:
+            self.stderr.write(
+                'invalid segment size %s\n' % options.segment_size)
+            self.stderr.flush()
             return 1
         if options.input_ and isdir(options.input_):
             subargs = [args[0].split('/', 1)[0]]
@@ -896,7 +943,8 @@ Issues a DELETE request of the [path] given.""".strip(),
             return 0
         path = args[0].lstrip('/')
         hdrs = {}
-        stdin = self.stdin
+        if not stdin:
+            stdin = self.stdin
         if options.empty:
             hdrs['content-length'] = '0'
             stdin = ''
@@ -924,7 +972,36 @@ Issues a DELETE request of the [path] given.""".strip(),
                         getsize(options.input_) == r_size:
                     return 0
             hdrs['x-object-meta-mtime'] = '%d' % l_mtime
-            stdin = open(options.input_, 'rb')
+            size = getsize(options.input_)
+            if size <= options.segment_size:
+                stdin = open(options.input_, 'rb')
+            else:
+                stdin = ''
+                hdrs['content-length'] = '0'
+                prefix = '%s_segments/%s' % tuple(args[0].split('/', 1))
+                prefix = '%s/%s/%s/' % (prefix, l_mtime, size)
+                hdrs['x-object-manifest'] = prefix
+                conc = Concurrency(int(self._main_options.concurrency))
+                start = 0
+                segment = 0
+                while start < size:
+                    subargs = ['%s%08d' % (prefix, segment), '-h',
+                        'content-length:%s' %
+                            min(size - start, options.segment_size)]
+                    substdin = open(options.input_, 'rb')
+                    substdin.seek(start)
+                    for rv in conc.get_results().values():
+                        if rv:
+                            conc.join()
+                            return rv
+                    conc.spawn(subargs[0], self._put_recursive_helper,
+                               subargs, substdin)
+                    segment += 1
+                    start += options.segment_size
+                conc.join()
+                for rv in conc.get_results().values():
+                    if rv:
+                        return rv
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         with self._with_client() as client:
