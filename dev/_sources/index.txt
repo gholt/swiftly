@@ -263,6 +263,31 @@ Output from `swiftly help put`::
     Performs a PUT request on the <path> given. If the <path> is an object, the
     contents for the object are read from standard input.
 
+    Special Note About Segmented Objects:
+
+    For object uploads exceeding the -s [size] (default: 5G) the object
+    will be uploaded in segments. At this time, auto-segmenting only
+    works for objects uploaded from source files -- objects sourced from
+    standard input cannot exceed the maximum object size for the cluster.
+
+    A segmented object is one that has its contents in several other
+    objects. On download, these other objects are concatenated into a
+    single object stream.
+
+    Segmented objects can be useful to greatly exceed the maximum single
+    object size, speed up uploading large objects with concurrent segment
+    uploading, and provide the option to replace, insert, and delete
+    segments within a whole object without having to alter or reupload
+    any of the other segments.
+
+    The main object of a segmented object is called the "manifest
+    object". This object just has an X-Object-Manifest header that points
+    to another path where the segments for the object contents are
+    stored. For Swiftly, this header value is auto-generated as the same
+    name as the manifest object, but with "_segments" added to the
+    container name. This keeps the segments out of the main container
+    listing, which is often useful.
+
     Options:
       -h HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
@@ -298,6 +323,10 @@ Output from `swiftly help put`::
                             of HEAD requests). NOTE THAT THIS CAN UPLOAD OLDER
                             FILES OVER NEWER ONES! DIFFERENT does not mean NEWER.
       -e, --empty           Indicates a zero-byte object should be PUT.
+      -s BYTES, --segment-size=BYTES
+                            Indicates the maximum size of an object before
+                            uploading it as a segmented object. See full help text
+                            for more information.
 
 
 Indices and tables
