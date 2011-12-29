@@ -123,10 +123,12 @@ class TestPost(unittest.TestCase):
         self.assertEquals(stderr.getvalue(), '')
 
     def test_post_account(self):
+        uuid = uuid4().hex
         stdout = StringIO()
         stderr = StringIO()
         args = list(self.start_args)
-        args.extend(['post', '-h', 'x-account-meta-swiftly-test:one'])
+        args.extend(
+            ['post', '-h', 'x-account-meta-swiftly-test-%s:one' % uuid])
         cli = CLI(args=args, stdout=stdout, stderr=stderr)
         rv = cli.main()
         self.assertEquals(rv, 0)
@@ -145,7 +147,35 @@ class TestPost(unittest.TestCase):
         self.assertTrue('X-Account-Bytes-Used' in stdout)
         self.assertTrue('X-Account-Container-Count' in stdout)
         self.assertTrue('X-Account-Object-Count' in stdout)
-        self.assertTrue('X-Account-Meta-Swiftly-Test' in stdout)
+        self.assertTrue(
+            ('X-Account-Meta-Swiftly-Test-%s' % uuid).title() in stdout)
+        self.assertEquals(stderr.getvalue(), '')
+
+        stdout = StringIO()
+        stderr = StringIO()
+        args = list(self.start_args)
+        args.extend(
+            ['post', '-h', 'x-account-meta-swiftly-test-%s:' % uuid])
+        cli = CLI(args=args, stdout=stdout, stderr=stderr)
+        rv = cli.main()
+        self.assertEquals(rv, 0)
+        self.assertEquals(stdout.getvalue(), '')
+        self.assertEquals(stderr.getvalue(), '')
+
+        stdout = StringIO()
+        stderr = StringIO()
+        args = list(self.start_args)
+        args.extend(['head'])
+        cli = CLI(args=args, stdout=stdout, stderr=stderr)
+        rv = cli.main()
+        self.assertEquals(rv, 0)
+        stdout = \
+            dict(x.split(':', 1) for x in stdout.getvalue().split('\n') if x)
+        self.assertTrue('X-Account-Bytes-Used' in stdout)
+        self.assertTrue('X-Account-Container-Count' in stdout)
+        self.assertTrue('X-Account-Object-Count' in stdout)
+        self.assertTrue(
+            ('X-Account-Meta-Swiftly-Test-%s' % uuid).title() not in stdout)
         self.assertEquals(stderr.getvalue(), '')
 
 

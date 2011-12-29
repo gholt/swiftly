@@ -89,7 +89,7 @@ class TestAccountClient(unittest.TestCase):
                 'x-account-meta-swiftly-test-' + uuid not in headers)
         finally:
             status, reason, headers, contents = self.client.post_account(
-                headers={'x-account-meta-swiftly-test-' + uuid: '123456789'})
+                headers={'x-account-meta-swiftly-test-' + uuid: ''})
 
 
 class TestAccountDirect(TestAccountClient):
