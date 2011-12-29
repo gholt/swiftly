@@ -32,6 +32,11 @@ from swiftly.client import Client, CHUNK_SIZE
 from swiftly.concurrency import Concurrency
 
 try:
+    from eventlet.green.subprocess import PIPE, Popen
+except ImportError:
+    from subprocess import PIPE, Popen
+
+try:
     from simplejson import json
 except ImportError:
     import json
@@ -248,6 +253,17 @@ Outputs the resulting contents from a GET request of the [path] given. If no
             action='store_true',
             help='Ignores 404 Not Found responses. Nothing will be output, '
                  'but the exit code will be 0 instead of 1.')
+        self._get_parser.add_option('--sub-command', dest='sub_command',
+            metavar='COMMAND',
+            help='Sends the contents of each object downloaded as standard '
+                 'input to the COMMAND given and outputs the command\'s '
+                 'standard output as if it were the object\'s contents. This '
+                 'can be useful in combination with --all-objects to filter '
+                 'the objects before writing them to disk; for instance, '
+                 'downloading logs, gunzipping them, grepping for a keyword, '
+                 'and only storing matching lines locally (--sub-command '
+                 '"gunzip | grep keyword" or --sub-command "zgrep keyword" if '
+                 'your system has that).')
 
         self._put_parser = _OptionParser(version='%prog 1.0', usage="""
 Usage: %prog [main_options] put [options] <path>
@@ -741,6 +757,9 @@ Issues a DELETE request of the [path] given.""".strip(),
                                 else:
                                     subargs.append(outpath)
                             subargs.append('--ignore-404')
+                            if options.sub_command:
+                                subargs.append('--sub-command')
+                                subargs.append(options.sub_command)
                             for rv in conc.get_results().values():
                                 if rv:
                                     conc.join()
@@ -808,17 +827,34 @@ Issues a DELETE request of the [path] given.""".strip(),
                 if rv:
                     return rv
             return 0
+        sub_command = None
+        if options.sub_command:
+            sub_command = Popen(options.sub_command, shell=True, stdin=PIPE,
+                                stdout=stdout)
+            stdout = sub_command.stdin
         with self._with_client() as client:
             self._verbose('GETting %s.\n' % path)
             status, reason, headers, contents = \
                 client.get_object(*path.split('/', 1), headers=hdrs)
             if status // 100 != 2:
                 if status == 404 and options.ignore_404:
+                    if sub_command:
+                        stdout.close()
+                        self._verbose('Waiting on sub-command for %s\n' % path)
+                        self._verbose(
+                            'Sub-command returned %s with object %s\n' %
+                            (sub_command.wait(), path))
                     return 0
                 self.stderr.write('%s %s\n' % (status, reason))
                 self.stderr.flush()
                 if hasattr(contents, 'read'):
                     contents.read()
+                if sub_command:
+                    stdout.close()
+                    self._verbose('Waiting on sub-command for %s\n' % path)
+                    self._verbose(
+                        'Sub-command returned %s with object %s\n' %
+                        (sub_command.wait(), path))
                 return 1
             if options.headers:
                 self._output_headers(headers, MUTED_OBJECT_HEADERS,
@@ -847,6 +883,12 @@ Issues a DELETE request of the [path] given.""".strip(),
                                         '%a, %d %b %Y %H:%M:%S %Z'))
             if mtime:
                 utime(options.output, (mtime, mtime))
+        if sub_command:
+            stdout.close()
+            self._verbose('Waiting on sub-command for %s\n' % path)
+            self._verbose(
+                'Sub-command returned %s with object %s\n' %
+                (sub_command.wait(), path))
         return 0
 
     def _put_recursive_helper(self, args, stdin=None):
