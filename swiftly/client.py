@@ -65,39 +65,70 @@ def _quote(value, safe='/:'):
     return quote(value, safe)
 
 
+class _Node(object):
+
+    def __init__(self, key, val, prv, nxt):
+        self.key = key
+        self.val = val
+        self.prv = prv
+        self.nxt = nxt
+
+
 class _LocalMemcache(object):
 
     def __init__(self):
         self.cache = {}
+        self.first = None
+        self.last = None
+        self.count = 0
+        self.max_count = 1000
 
     def set(self, key, value, serialize=True, timeout=0):
-        self.cache[key] = value
+        self.delete(key)
+        self.last = node = _Node(key, value, self.last, None)
+        if node.prv:
+            node.prv.nxt = node
+        self.cache[key] = node
+        self.count += 1
+        if self.count > self.max_count:
+            self.delete(self.first.key)
 
     def get(self, key):
-        return self.cache.get(key)
+        node = self.cache.get(key)
+        return node.val if node else None
 
     def incr(self, key, delta=1, timeout=0):
-        if key not in self.cache:
-            self.cache[key] = max(0, delta)
+        node = self.cache.get(key)
+        if node:
+            node.val += delta
+            return node.val
         else:
-            self.cache[key] += delta
-        if self.cache[key] < 0:
-            self.cache[key] = 0
-        return self.cache[key]
+            self.set(key, delta)
+            return delta
 
     def decr(self, key, delta=1, timeout=0):
         return self.incr(key, delta=-delta, timeout=timeout)
 
     def delete(self, key):
-        if key in self.cache:
+        node = self.cache.get(key)
+        if node:
             del self.cache[key]
+            if node.prv:
+                node.prv.nxt = node.nxt
+            if node.nxt:
+                wax.nxt.prv = node.prv
+            if self.first == node:
+                self.first = node.nxt
+            if self.last == node:
+                self.last = node.prv
+            self.count -= 1
 
     def set_multi(self, mapping, server_key, serialize=True, timeout=0):
-        for k, v in mapping.iteritems():
-            self.cache[k] = v
+        for key, value in mapping.iteritems():
+            self.set(key, value)
 
     def get_multi(self, keys, server_key):
-        return [self.cache.get(k) for k in keys]
+        return [self.get(k) for k in keys]
 
 
 class _IterReader(object):
