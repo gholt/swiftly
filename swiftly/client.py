@@ -77,7 +77,7 @@ class _LocalMemcache(object):
         return self.cache.get(key)
 
     def incr(self, key, delta=1, timeout=0):
-        if key not in self.cacahe:
+        if key not in self.cache:
             self.cache[key] = max(0, delta)
         else:
             self.cache[key] += delta
