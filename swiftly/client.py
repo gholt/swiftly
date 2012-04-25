@@ -88,6 +88,8 @@ class _LocalMemcache(object):
         self.last = node = _Node(key, value, self.last, None)
         if node.prv:
             node.prv.nxt = node
+        elif not self.first:
+            self.first = node
         self.cache[key] = node
         self.count += 1
         if self.count > self.max_count:
@@ -116,7 +118,7 @@ class _LocalMemcache(object):
             if node.prv:
                 node.prv.nxt = node.nxt
             if node.nxt:
-                wax.nxt.prv = node.prv
+                node.nxt.prv = node.prv
             if self.first == node:
                 self.first = node.nxt
             if self.last == node:
