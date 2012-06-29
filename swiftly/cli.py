@@ -397,7 +397,11 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'instead of 1.')
 
         self._main_parser = _OptionParser(version='%prog 1.0',
-            usage='Usage: %prog [options] <command> [command_options] [args]',
+            usage="""
+Usage: %prog [options] <command> [command_options] [args]
+
+NOTE: Be sure any names given are url encoded if necessary. For instance, an
+object named 4&4.txt must be given as 4%264.txt.""".strip(),
             stdout=self.stdout, stderr=self.stderr)
         self._main_parser.add_option('-A', '--auth-url', dest='auth_url',
             default=environ.get('SWIFTLY_AUTH_URL', ''), metavar='URL',
