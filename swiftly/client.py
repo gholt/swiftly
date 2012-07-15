@@ -24,9 +24,10 @@ from urllib import quote
 from urlparse import urlparse, urlunparse
 
 try:
-    from eventlet.green.httplib import HTTPException, HTTPSConnection
+    from eventlet.green.httplib import BadStatusLine, HTTPException, \
+        HTTPSConnection
 except ImportError:
-    from httplib import HTTPException, HTTPSConnection
+    from httplib import BadStatusLine, HTTPException, HTTPSConnection
 
 try:
     from swift.common.bufferedhttp \
@@ -271,13 +272,18 @@ class Client(object):
                 {'User-Agent': 'Swiftly v%s' % VERSION,
                  'X-Auth-User': _quote(self.auth_user),
                  'X-Auth-Key': _quote(self.auth_key)})
-            resp = conn.getresponse()
-            status = resp.status
-            reason = resp.reason
-            hdrs = self._response_headers(resp.getheaders())
-            resp.read()
-            resp.close()
-            conn.close()
+            try:
+                resp = conn.getresponse()
+                status = resp.status
+                reason = resp.reason
+                hdrs = self._response_headers(resp.getheaders())
+                resp.read()
+                resp.close()
+                conn.close()
+            except BadStatusLine, err:
+                status = 0
+                reason = str(err)
+                hdrs = {}
             if status == 401:
                 break
             if status // 100 == 2:
@@ -389,15 +395,21 @@ class Client(object):
                             self.storage_conn.send(chunk)
                             left -= len(chunk)
             if not resp:
-                resp = self.storage_conn.getresponse()
-                status = resp.status
-                reason = resp.reason
-                hdrs = self._response_headers(resp.getheaders())
-                if stream:
-                    value = resp
-                else:
-                    value = resp.read()
-                    resp.close()
+                try:
+                    resp = self.storage_conn.getresponse()
+                    status = resp.status
+                    reason = resp.reason
+                    hdrs = self._response_headers(resp.getheaders())
+                    if stream:
+                        value = resp
+                    else:
+                        value = resp.read()
+                        resp.close()
+                except BadStatusLine, err:
+                    status = 0
+                    reason = str(err)
+                    hdrs = {}
+                    value = None
             else:
                 status = resp.status_int
                 reason = resp.status.split(' ', 1)[1]
@@ -413,7 +425,7 @@ class Client(object):
                 self.storage_conn = None
                 self._auth()
                 attempt -= 1
-            elif status // 100 != 5:
+            elif status and status // 100 != 5:
                 if not stream and decode_json and status // 100 == 2:
                     if value:
                         value = json.loads(value)
