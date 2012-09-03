@@ -280,7 +280,7 @@ class Client(object):
                 resp.read()
                 resp.close()
                 conn.close()
-            except BadStatusLine, err:
+            except Exception, err:
                 status = 0
                 reason = str(err)
                 hdrs = {}
