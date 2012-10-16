@@ -74,8 +74,10 @@ class TestHead(unittest.TestCase):
         self.assertEquals(rv, 0)
         stdout = \
             dict(x.split(':', 1) for x in stdout.getvalue().split('\n') if x)
-        self.assertEquals(sorted(stdout.keys()),
-            ['Content-Length', 'Content-Type', 'Etag', 'Last-Modified'])
+        self.assertEquals(
+            sorted(stdout.keys()),
+            ['Content-Length', 'Content-Type', 'Etag', 'Last-Modified',
+             'X-Timestamp'])
         self.assertEquals(stdout['Content-Length'].strip(), '9')
         self.assertEquals(stdout['Content-Type'].strip(),
                           'application/octet-stream')
@@ -114,8 +116,10 @@ class TestHead(unittest.TestCase):
         self.assertEquals(rv, 0)
         stdout = \
             dict(x.split(':', 1) for x in stdout.getvalue().split('\n') if x)
-        self.assertEquals(sorted(stdout.keys()),
-            ['X-Container-Bytes-Used', 'X-Container-Object-Count'])
+        self.assertEquals(
+            sorted(stdout.keys()),
+            ['X-Container-Bytes-Used', 'X-Container-Object-Count',
+             'X-Timestamp'])
         self.assertEquals(stderr.getvalue(), '')
 
     def test_head_container_ignore_404(self):

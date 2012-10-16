@@ -84,9 +84,10 @@ class TestPost(unittest.TestCase):
         self.assertEquals(rv, 0)
         stdout = \
             dict(x.split(':', 1) for x in stdout.getvalue().split('\n') if x)
-        self.assertEquals(sorted(stdout.keys()),
+        self.assertEquals(
+            sorted(stdout.keys()),
             ['Content-Length', 'Content-Type', 'Etag', 'Last-Modified',
-             'X-Object-Meta-Swiftly-Test'])
+             'X-Object-Meta-Swiftly-Test', 'X-Timestamp'])
         self.assertEquals(stdout['Content-Length'].strip(), '9')
         self.assertEquals(stdout['Content-Type'].strip(),
                           'application/octet-stream')
@@ -117,9 +118,10 @@ class TestPost(unittest.TestCase):
         self.assertEquals(rv, 0)
         stdout = \
             dict(x.split(':', 1) for x in stdout.getvalue().split('\n') if x)
-        self.assertEquals(sorted(stdout.keys()),
+        self.assertEquals(
+            sorted(stdout.keys()),
             ['X-Container-Bytes-Used', 'X-Container-Meta-Swiftly-Test',
-             'X-Container-Object-Count'])
+             'X-Container-Object-Count', 'X-Timestamp'])
         self.assertEquals(stderr.getvalue(), '')
 
     def test_post_account(self):
