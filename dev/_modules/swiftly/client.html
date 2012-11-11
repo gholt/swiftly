@@ -3,17 +3,20 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>swiftly.client &mdash; Swiftly v1.0 documentation</title>
+    <title>swiftly.client &mdash; Swiftly 1.1-dev documentation</title>
+    
     <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '1.0',
+        VERSION:     '1.1-dev',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -22,7 +25,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <link rel="top" title="Swiftly v1.0 documentation" href="../../index.html" />
+    <link rel="top" title="Swiftly 1.1-dev documentation" href="../../index.html" />
     <link rel="up" title="swiftly" href="../swiftly.html" /> 
   </head>
   <body>
@@ -35,7 +38,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly v1.0 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.1-dev documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
       </ul>
@@ -73,28 +76,9 @@
 <span class="kn">from</span> <span class="nn">urlparse</span> <span class="kn">import</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">urlunparse</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">eventlet.green.httplib</span> <span class="kn">import</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">HTTPSConnection</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">httplib</span> <span class="kn">import</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">HTTPSConnection</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">swift.common.bufferedhttp</span> \
-        <span class="kn">import</span> <span class="n">BufferedHTTPConnection</span> <span class="k">as</span> <span class="n">HTTPConnection</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">eventlet.green.httplib</span> <span class="kn">import</span> <span class="n">HTTPConnection</span>
-    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">httplib</span> <span class="kn">import</span> <span class="n">HTTPConnection</span>
-
-<span class="k">try</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="kn">import</span> <span class="nn">json</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">eventlet</span> <span class="kn">import</span> <span class="n">sleep</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">swift.proxy.server</span> <span class="kn">import</span> <span class="n">Application</span> <span class="k">as</span> <span class="n">SwiftProxy</span>
@@ -108,51 +92,112 @@
 <span class="n">CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">65536</span>
 
 
+<span class="k">def</span> <span class="nf">_delayed_imports</span><span class="p">(</span><span class="n">eventlet</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="n">BadStatusLine</span> <span class="o">=</span> <span class="n">HTTPConnection</span> <span class="o">=</span> <span class="n">HTTPException</span> <span class="o">=</span> <span class="n">HTTPSConnection</span> <span class="o">=</span> \
+        <span class="n">sleep</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="n">eventlet</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">eventlet.green.httplib</span> <span class="kn">import</span> <span class="n">BadStatusLine</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> \
+                <span class="n">HTTPSConnection</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">swift.common.bufferedhttp</span> \
+                    <span class="kn">import</span> <span class="n">BufferedHTTPConnection</span> <span class="k">as</span> <span class="n">HTTPConnection</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">eventlet.green.httplib</span> <span class="kn">import</span> <span class="n">HTTPConnection</span>
+            <span class="kn">from</span> <span class="nn">eventlet</span> <span class="kn">import</span> <span class="n">sleep</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">if</span> <span class="n">BadStatusLine</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">httplib</span> <span class="kn">import</span> <span class="n">BadStatusLine</span>
+    <span class="k">if</span> <span class="n">HTTPConnection</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">httplib</span> <span class="kn">import</span> <span class="n">HTTPConnection</span>
+    <span class="k">if</span> <span class="n">HTTPException</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">httplib</span> <span class="kn">import</span> <span class="n">HTTPException</span>
+    <span class="k">if</span> <span class="n">HTTPSConnection</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">httplib</span> <span class="kn">import</span> <span class="n">HTTPSConnection</span>
+    <span class="k">if</span> <span class="n">sleep</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+    <span class="k">return</span> <span class="n">BadStatusLine</span><span class="p">,</span> <span class="n">HTTPConnection</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">HTTPSConnection</span><span class="p">,</span> <span class="n">sleep</span>
+
+
 <span class="k">def</span> <span class="nf">_quote</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="s">&#39;/:&#39;</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">unicode</span><span class="p">):</span>
         <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">quote</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">safe</span><span class="p">)</span>
 
 
+<span class="k">class</span> <span class="nc">_Node</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">prv</span><span class="p">,</span> <span class="n">nxt</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">val</span> <span class="o">=</span> <span class="n">val</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prv</span> <span class="o">=</span> <span class="n">prv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nxt</span> <span class="o">=</span> <span class="n">nxt</span>
+
+
 <span class="k">class</span> <span class="nc">_LocalMemcache</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_count</span> <span class="o">=</span> <span class="mi">1000</span>
 
     <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last</span> <span class="o">=</span> <span class="n">node</span> <span class="o">=</span> <span class="n">_Node</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">prv</span><span class="p">:</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">prv</span><span class="o">.</span><span class="n">nxt</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">first</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_count</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">first</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">node</span><span class="o">.</span><span class="n">val</span> <span class="k">if</span> <span class="n">node</span> <span class="k">else</span> <span class="bp">None</span>
 
     <span class="k">def</span> <span class="nf">incr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cacahe</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">node</span><span class="p">:</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">val</span> <span class="o">+=</span> <span class="n">delta</span>
+            <span class="k">return</span> <span class="n">node</span><span class="o">.</span><span class="n">val</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">delta</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">delta</span>
 
     <span class="k">def</span> <span class="nf">decr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">delta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">incr</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">delta</span><span class="o">=-</span><span class="n">delta</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">node</span><span class="p">:</span>
             <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">prv</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">prv</span><span class="o">.</span><span class="n">nxt</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">nxt</span>
+            <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">nxt</span><span class="p">:</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">nxt</span><span class="o">.</span><span class="n">prv</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">prv</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">first</span> <span class="o">==</span> <span class="n">node</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">first</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">nxt</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last</span> <span class="o">==</span> <span class="n">node</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">last</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">prv</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">-=</span> <span class="mi">1</span>
 
     <span class="k">def</span> <span class="nf">set_multi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">,</span> <span class="n">server_key</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">mapping</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_multi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">server_key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">]</span>
 
 
 <span class="k">class</span> <span class="nc">_IterReader</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iterator</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="n">iterator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -208,11 +253,14 @@
 <span class="sd">    :param cache_path: Default: None. If set to a path, the storage URL and</span>
 <span class="sd">        auth token are cached in the file for reuse. If there is already cached</span>
 <span class="sd">        values in the file, they are used without authenticating first.</span>
+<span class="sd">    :param eventlet: Default: True. If true, Eventlet will be used if</span>
+<span class="sd">        installed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_user</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_key</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">snet</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">swift_proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                 <span class="n">swift_proxy_storage_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cache_path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+                 <span class="n">swift_proxy_storage_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cache_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">eventlet</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span> <span class="o">=</span> <span class="n">auth_url</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span> <span class="o">=</span> <span class="n">auth_user</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span> <span class="o">=</span> <span class="n">auth_key</span>
@@ -240,6 +288,8 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="bp">None</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
                 <span class="k">pass</span>
+        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">BadStatusLine</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPConnection</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPException</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">HTTPSConnection</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sleep</span><span class="p">)</span> <span class="o">=</span> <span class="n">_delayed_imports</span><span class="p">(</span><span class="n">eventlet</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_connect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">url</span><span class="p">:</span>
@@ -250,11 +300,11 @@
         <span class="n">proxy_parsed</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="k">else</span> <span class="bp">None</span>
         <span class="n">netloc</span> <span class="o">=</span> <span class="p">(</span><span class="n">proxy_parsed</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span> <span class="k">else</span> <span class="n">parsed</span><span class="p">)</span><span class="o">.</span><span class="n">netloc</span>
         <span class="k">if</span> <span class="n">parsed</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s">&#39;http&#39;</span><span class="p">:</span>
-            <span class="n">conn</span> <span class="o">=</span> <span class="n">HTTPConnection</span><span class="p">(</span><span class="n">netloc</span><span class="p">)</span>
+            <span class="n">conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPConnection</span><span class="p">(</span><span class="n">netloc</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">parsed</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s">&#39;https&#39;</span><span class="p">:</span>
-            <span class="n">conn</span> <span class="o">=</span> <span class="n">HTTPSConnection</span><span class="p">(</span><span class="n">netloc</span><span class="p">)</span>
+            <span class="n">conn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPSConnection</span><span class="p">(</span><span class="n">netloc</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPException</span><span class="p">(</span>
                 <span class="s">&#39;Cannot handle protocol scheme </span><span class="si">%s</span><span class="s"> for url </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
                 <span class="p">(</span><span class="n">parsed</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">url</span><span class="p">)))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">proxy</span><span class="p">:</span>
@@ -287,13 +337,18 @@
                 <span class="p">{</span><span class="s">&#39;User-Agent&#39;</span><span class="p">:</span> <span class="s">&#39;Swiftly v</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">VERSION</span><span class="p">,</span>
                  <span class="s">&#39;X-Auth-User&#39;</span><span class="p">:</span> <span class="n">_quote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span><span class="p">),</span>
                  <span class="s">&#39;X-Auth-Key&#39;</span><span class="p">:</span> <span class="n">_quote</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span><span class="p">)})</span>
-            <span class="n">resp</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">getresponse</span><span class="p">()</span>
-            <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span>
-            <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">reason</span>
-            <span class="n">hdrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_headers</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">getheaders</span><span class="p">())</span>
-            <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-            <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">resp</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">getresponse</span><span class="p">()</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span>
+                <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">reason</span>
+                <span class="n">hdrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_headers</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">getheaders</span><span class="p">())</span>
+                <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">reason</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">401</span><span class="p">:</span>
                 <span class="k">break</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
@@ -315,11 +370,11 @@
                     <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;base64&#39;</span><span class="p">))</span>
                     <span class="n">umask</span><span class="p">(</span><span class="n">old_umask</span><span class="p">)</span>
                 <span class="k">return</span>
-            <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">)</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="s">&#39;Auth GET failed&#39;</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPException</span><span class="p">(</span><span class="s">&#39;Auth GET failed&#39;</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_default_reset_func</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPException</span><span class="p">(</span>
             <span class="s">&#39;Failure and no ability to reset contents for reupload.&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
@@ -405,15 +460,21 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
                             <span class="n">left</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">resp</span><span class="p">:</span>
-                <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">getresponse</span><span class="p">()</span>
-                <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span>
-                <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">reason</span>
-                <span class="n">hdrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_headers</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">getheaders</span><span class="p">())</span>
-                <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
-                    <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-                    <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">resp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="o">.</span><span class="n">getresponse</span><span class="p">()</span>
+                    <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span>
+                    <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">reason</span>
+                    <span class="n">hdrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_headers</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">getheaders</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                        <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">except</span> <span class="bp">self</span><span class="o">.</span><span class="n">BadStatusLine</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+                    <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="n">reason</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                    <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="bp">None</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status_int</span>
                 <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
@@ -429,7 +490,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span> <span class="o">=</span> <span class="bp">None</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_auth</span><span class="p">()</span>
                 <span class="n">attempt</span> <span class="o">-=</span> <span class="mi">1</span>
-            <span class="k">elif</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="k">elif</span> <span class="n">status</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">5</span><span class="p">:</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="n">stream</span> <span class="ow">and</span> <span class="n">decode_json</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
                     <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
                         <span class="n">value</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
@@ -441,8 +502,9 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span> <span class="o">=</span> <span class="bp">None</span>
             <span class="k">if</span> <span class="n">reset_func</span><span class="p">:</span>
                 <span class="n">reset_func</span><span class="p">()</span>
-            <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">)</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> failed&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">),</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span> <span class="o">**</span> <span class="n">attempt</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPException</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> failed&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">),</span>
+                                 <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Client.head_account"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.head_account">[docs]</a>    <span class="k">def</span> <span class="nf">head_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -928,7 +990,7 @@
 <div id="searchbox" style="display: none">
   <h3>Quick search</h3>
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" size="18" />
+      <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
@@ -951,14 +1013,14 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly v1.0 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.1-dev documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" >swiftly</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Gregory Holt.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

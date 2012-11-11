@@ -3,17 +3,20 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>swiftly.cli &mdash; Swiftly v1.0 documentation</title>
+    <title>swiftly.cli &mdash; Swiftly 1.1-dev documentation</title>
+    
     <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '1.0',
+        VERSION:     '1.1-dev',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -22,7 +25,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <link rel="top" title="Swiftly v1.0 documentation" href="../../index.html" />
+    <link rel="top" title="Swiftly 1.1-dev documentation" href="../../index.html" />
     <link rel="up" title="swiftly" href="../swiftly.html" /> 
   </head>
   <body>
@@ -35,7 +38,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly v1.0 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.1-dev documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
       </ul>
@@ -91,6 +94,18 @@
 <span class="n">MUTED_CONTAINER_HEADERS</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;accept-ranges&#39;</span><span class="p">,</span> <span class="s">&#39;content-length&#39;</span><span class="p">,</span> <span class="s">&#39;content-type&#39;</span><span class="p">,</span>
                            <span class="s">&#39;date&#39;</span><span class="p">]</span>
 <span class="n">MUTED_OBJECT_HEADERS</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;accept-ranges&#39;</span><span class="p">,</span> <span class="s">&#39;date&#39;</span><span class="p">]</span>
+
+
+<span class="k">def</span> <span class="nf">_delayed_imports</span><span class="p">(</span><span class="n">eventlet</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="n">PIPE</span> <span class="o">=</span> <span class="n">Popen</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="n">eventlet</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">eventlet.green.subprocess</span> <span class="kn">import</span> <span class="n">PIPE</span><span class="p">,</span> <span class="n">Popen</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">if</span> <span class="n">PIPE</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">Popen</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">subprocess</span> <span class="kn">import</span> <span class="n">PIPE</span><span class="p">,</span> <span class="n">Popen</span>
+    <span class="k">return</span> <span class="n">PIPE</span><span class="p">,</span> <span class="n">Popen</span>
 
 
 <span class="k">def</span> <span class="nf">_command</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
@@ -183,7 +198,6 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">clients</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="bp">False</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_help_parser</span> <span class="o">=</span> <span class="n">_OptionParser</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s">&#39;%prog 1.0&#39;</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
 <span class="s">Usage: %prog [main_options] help [command]</span>
@@ -297,6 +311,17 @@
             <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Ignores 404 Not Found responses. Nothing will be output, &#39;</span>
                  <span class="s">&#39;but the exit code will be 0 instead of 1.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&#39;--sub-command&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;sub_command&#39;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;COMMAND&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Sends the contents of each object downloaded as standard &#39;</span>
+                 <span class="s">&#39;input to the COMMAND given and outputs the command</span><span class="se">\&#39;</span><span class="s">s &#39;</span>
+                 <span class="s">&#39;standard output as if it were the object</span><span class="se">\&#39;</span><span class="s">s contents. This &#39;</span>
+                 <span class="s">&#39;can be useful in combination with --all-objects to filter &#39;</span>
+                 <span class="s">&#39;the objects before writing them to disk; for instance, &#39;</span>
+                 <span class="s">&#39;downloading logs, gunzipping them, grepping for a keyword, &#39;</span>
+                 <span class="s">&#39;and only storing matching lines locally (--sub-command &#39;</span>
+                 <span class="s">&#39;&quot;gunzip | grep keyword&quot; or --sub-command &quot;zgrep keyword&quot; if &#39;</span>
+                 <span class="s">&#39;your system has that).&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_put_parser</span> <span class="o">=</span> <span class="n">_OptionParser</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s">&#39;%prog 1.0&#39;</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
 <span class="s">Usage: %prog [main_options] put [options] &lt;path&gt;</span>
@@ -304,7 +329,32 @@
 <span class="s">For help on [main_options] run %prog with no args.</span>
 
 <span class="s">Performs a PUT request on the &lt;path&gt; given. If the &lt;path&gt; is an object, the</span>
-<span class="s">contents for the object are read from standard input.&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+<span class="s">contents for the object are read from standard input.</span>
+
+<span class="s">Special Note About Segmented Objects:</span>
+
+<span class="s">For object uploads exceeding the -s [size] (default: 5G) the object</span>
+<span class="s">will be uploaded in segments. At this time, auto-segmenting only</span>
+<span class="s">works for objects uploaded from source files -- objects sourced from</span>
+<span class="s">standard input cannot exceed the maximum object size for the cluster.</span>
+
+<span class="s">A segmented object is one that has its contents in several other</span>
+<span class="s">objects. On download, these other objects are concatenated into a</span>
+<span class="s">single object stream.</span>
+
+<span class="s">Segmented objects can be useful to greatly exceed the maximum single</span>
+<span class="s">object size, speed up uploading large objects with concurrent segment</span>
+<span class="s">uploading, and provide the option to replace, insert, and delete</span>
+<span class="s">segments within a whole object without having to alter or reupload</span>
+<span class="s">any of the other segments.</span>
+
+<span class="s">The main object of a segmented object is called the &quot;manifest</span>
+<span class="s">object&quot;. This object just has an X-Object-Manifest header that points</span>
+<span class="s">to another path where the segments for the object contents are</span>
+<span class="s">stored. For Swiftly, this header value is auto-generated as the same</span>
+<span class="s">name as the manifest object, but with &quot;_segments&quot; added to the</span>
+<span class="s">container name. This keeps the segments out of the main container</span>
+<span class="s">listing, which is often useful.&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
             <span class="n">stdout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_put_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&#39;-h&#39;</span><span class="p">,</span> <span class="s">&#39;--header&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;header&#39;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;HEADER:VALUE&#39;</span><span class="p">,</span>
@@ -346,6 +396,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_put_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&#39;-e&#39;</span><span class="p">,</span> <span class="s">&#39;--empty&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;empty&#39;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Indicates a zero-byte object should be PUT.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_put_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&#39;-s&#39;</span><span class="p">,</span> <span class="s">&#39;--segment-size&#39;</span><span class="p">,</span>
+            <span class="n">dest</span><span class="o">=</span><span class="s">&#39;segment_size&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;BYTES&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Indicates the maximum size of an object before uploading it &#39;</span>
+                 <span class="s">&#39;as a segmented object. See full help text for more &#39;</span>
+                 <span class="s">&#39;information.&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_post_parser</span> <span class="o">=</span> <span class="n">_OptionParser</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s">&#39;%prog 1.0&#39;</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
 <span class="s">Usage: %prog [main_options] post [options] [path]</span>
@@ -400,7 +455,11 @@
                  <span class="s">&#39;instead of 1.&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_main_parser</span> <span class="o">=</span> <span class="n">_OptionParser</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="s">&#39;%prog 1.0&#39;</span><span class="p">,</span>
-            <span class="n">usage</span><span class="o">=</span><span class="s">&#39;Usage: %prog [options] &lt;command&gt; [command_options] [args]&#39;</span><span class="p">,</span>
+            <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">Usage: %prog [options] &lt;command&gt; [command_options] [args]</span>
+
+<span class="s">NOTE: Be sure any names given are url encoded if necessary. For instance, an</span>
+<span class="s">object named 4&amp;4.txt must be given as 4%264.txt.&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
             <span class="n">stdout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_main_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&#39;-A&#39;</span><span class="p">,</span> <span class="s">&#39;--auth-url&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;auth_url&#39;</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_AUTH_URL&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;URL&#39;</span><span class="p">,</span>
@@ -448,9 +507,14 @@
                  <span class="s">&#39;also set this with the environment variable &#39;</span>
                  <span class="s">&#39;SWIFTLY_CACHE_AUTH (set to &quot;true&quot; or &quot;false&quot;).&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_main_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&#39;--concurrency&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;concurrency&#39;</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="s">&#39;10&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;INTEGER&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s">&#39;1&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;INTEGER&#39;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Sets the the number of actions that can be done &#39;</span>
-                 <span class="s">&#39;simultaneously when possible. Default: 10&#39;</span><span class="p">)</span>
+                 <span class="s">&#39;simultaneously when possible (currently requires using &#39;</span>
+                 <span class="s">&#39;--eventlet too). Default: 1&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_main_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&#39;--eventlet&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;eventlet&#39;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Uses Eventlet, if installed. This is disabled by default &#39;</span>
+                 <span class="s">&#39;because Swiftly+Eventlet tends to use excessive CPU.&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_main_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s">&#39;-v&#39;</span><span class="p">,</span> <span class="s">&#39;--verbose&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;verbose&#39;</span><span class="p">,</span>
             <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Causes output to standard error indicating actions being &#39;</span>
@@ -463,6 +527,10 @@
                 <span class="n">main_line</span> <span class="o">=</span> <span class="s">&#39;  &#39;</span> <span class="o">+</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;]&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
                 <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
                     <span class="n">lines</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                        <span class="n">lines</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[:</span><span class="n">x</span><span class="p">]</span>
+                        <span class="k">break</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">main_line</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">24</span><span class="p">:</span>
                     <span class="n">initial_indent</span> <span class="o">=</span> <span class="n">main_line</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">24</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">main_line</span><span class="p">))</span>
                 <span class="k">else</span><span class="p">:</span>
@@ -514,7 +582,8 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;Connecting direct client.</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
                 <span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">swift_proxy</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
                     <span class="n">swift_proxy_storage_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">direct</span><span class="p">,</span>
-                    <span class="n">retries</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">retries</span><span class="p">))</span>
+                    <span class="n">retries</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">retries</span><span class="p">),</span>
+                    <span class="n">eventlet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">eventlet</span><span class="p">)</span>
             <span class="k">elif</span> <span class="nb">all</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">auth_url</span><span class="p">,</span>
                       <span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">auth_user</span><span class="p">,</span>
                       <span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">auth_key</span><span class="p">]):</span>
@@ -529,7 +598,8 @@
                     <span class="n">proxy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span>
                     <span class="n">snet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">snet</span><span class="p">,</span>
                     <span class="n">retries</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">retries</span><span class="p">),</span>
-                    <span class="n">cache_path</span><span class="o">=</span><span class="n">cache_path</span><span class="p">)</span>
+                    <span class="n">cache_path</span><span class="o">=</span><span class="n">cache_path</span><span class="p">,</span>
+                    <span class="n">eventlet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">eventlet</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">client</span>
 
     <span class="k">def</span> <span class="nf">_put_client</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
@@ -756,6 +826,9 @@
                                 <span class="k">else</span><span class="p">:</span>
                                     <span class="n">subargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">outpath</span><span class="p">)</span>
                             <span class="n">subargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;--ignore-404&#39;</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">sub_command</span><span class="p">:</span>
+                                <span class="n">subargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;--sub-command&#39;</span><span class="p">)</span>
+                                <span class="n">subargs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">sub_command</span><span class="p">)</span>
                             <span class="k">for</span> <span class="n">rv</span> <span class="ow">in</span> <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
                                 <span class="k">if</span> <span class="n">rv</span><span class="p">:</span>
                                     <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
@@ -823,17 +896,35 @@
                 <span class="k">if</span> <span class="n">rv</span><span class="p">:</span>
                     <span class="k">return</span> <span class="n">rv</span>
             <span class="k">return</span> <span class="mi">0</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">sub_command</span><span class="p">:</span>
+            <span class="n">PIPE</span><span class="p">,</span> <span class="n">Popen</span> <span class="o">=</span> <span class="n">_delayed_imports</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">eventlet</span><span class="p">)</span>
+            <span class="n">sub_command</span> <span class="o">=</span> <span class="n">Popen</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">sub_command</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">PIPE</span><span class="p">,</span>
+                                <span class="n">stdout</span><span class="o">=</span><span class="n">stdout</span><span class="p">)</span>
+            <span class="n">stdout</span> <span class="o">=</span> <span class="n">sub_command</span><span class="o">.</span><span class="n">stdin</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;GETting </span><span class="si">%s</span><span class="s">.</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
             <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> \
                 <span class="n">client</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="o">*</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">headers</span><span class="o">=</span><span class="n">hdrs</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">options</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">sub_command</span><span class="p">:</span>
+                        <span class="n">stdout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;Waiting on sub-command for </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
+                            <span class="s">&#39;Sub-command returned </span><span class="si">%s</span><span class="s"> with object </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
+                            <span class="p">(</span><span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">))</span>
                     <span class="k">return</span> <span class="mi">0</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
                     <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">sub_command</span><span class="p">:</span>
+                    <span class="n">stdout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;Waiting on sub-command for </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
+                        <span class="s">&#39;Sub-command returned </span><span class="si">%s</span><span class="s"> with object </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
+                        <span class="p">(</span><span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">))</span>
                 <span class="k">return</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">headers</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_output_headers</span><span class="p">(</span><span class="n">headers</span><span class="p">,</span> <span class="n">MUTED_OBJECT_HEADERS</span><span class="p">,</span>
@@ -862,10 +953,16 @@
                                         <span class="s">&#39;%a, </span><span class="si">%d</span><span class="s"> %b %Y %H:%M:%S %Z&#39;</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">mtime</span><span class="p">:</span>
                 <span class="n">utime</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="p">(</span><span class="n">mtime</span><span class="p">,</span> <span class="n">mtime</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">sub_command</span><span class="p">:</span>
+            <span class="n">stdout</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;Waiting on sub-command for </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
+                <span class="s">&#39;Sub-command returned </span><span class="si">%s</span><span class="s"> with object </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">))</span>
         <span class="k">return</span> <span class="mi">0</span>
 
-    <span class="k">def</span> <span class="nf">_put_recursive_helper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-        <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">_put_recursive_helper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">stdin</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">rv</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
                 <span class="s">&#39;aborting after error with </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
@@ -874,12 +971,25 @@
         <span class="k">return</span> <span class="mi">0</span>
 
     <span class="nd">@_client_command</span>
-    <span class="k">def</span> <span class="nf">_put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_put</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="n">options</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put_parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put_parser</span><span class="o">.</span><span class="n">error_encountered</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">1</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_put_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="n">g5</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">segment_size</span> <span class="ow">or</span> <span class="n">g5</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;invalid segment size </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;invalid segment size </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
             <span class="k">return</span> <span class="mi">1</span>
         <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">input_</span> <span class="ow">and</span> <span class="n">isdir</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">input_</span><span class="p">):</span>
             <span class="n">subargs</span> <span class="o">=</span> <span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]]</span>
@@ -945,7 +1055,8 @@
             <span class="k">return</span> <span class="mi">0</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
         <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">stdin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stdin</span><span class="p">:</span>
+            <span class="n">stdin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span>
         <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
             <span class="n">hdrs</span><span class="p">[</span><span class="s">&#39;content-length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;0&#39;</span>
             <span class="n">stdin</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
@@ -973,7 +1084,36 @@
                         <span class="n">getsize</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span> <span class="o">==</span> <span class="n">r_size</span><span class="p">:</span>
                     <span class="k">return</span> <span class="mi">0</span>
             <span class="n">hdrs</span><span class="p">[</span><span class="s">&#39;x-object-meta-mtime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">l_mtime</span>
-            <span class="n">stdin</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">getsize</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">size</span> <span class="o">&lt;=</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span><span class="p">:</span>
+                <span class="n">stdin</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stdin</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="n">hdrs</span><span class="p">[</span><span class="s">&#39;content-length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;0&#39;</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">_segments/</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="n">prefix</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">/</span><span class="si">%s</span><span class="s">/</span><span class="si">%s</span><span class="s">/&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">l_mtime</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+                <span class="n">hdrs</span><span class="p">[</span><span class="s">&#39;x-object-manifest&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span>
+                <span class="n">conc</span> <span class="o">=</span> <span class="n">Concurrency</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_main_options</span><span class="o">.</span><span class="n">concurrency</span><span class="p">))</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">segment</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">while</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
+                    <span class="n">subargs</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;</span><span class="si">%s%08d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">segment</span><span class="p">),</span> <span class="s">&#39;-h&#39;</span><span class="p">,</span>
+                        <span class="s">&#39;content-length:</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
+                            <span class="nb">min</span><span class="p">(</span><span class="n">size</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span><span class="p">)]</span>
+                    <span class="n">substdin</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+                    <span class="n">substdin</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">rv</span> <span class="ow">in</span> <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">rv</span><span class="p">:</span>
+                            <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                            <span class="k">return</span> <span class="n">rv</span>
+                    <span class="n">conc</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">subargs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_put_recursive_helper</span><span class="p">,</span>
+                               <span class="n">subargs</span><span class="p">,</span> <span class="n">substdin</span><span class="p">)</span>
+                    <span class="n">segment</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">start</span> <span class="o">+=</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span>
+                <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">rv</span> <span class="ow">in</span> <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">rv</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">rv</span>
         <span class="n">hdrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_command_line_headers</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">header</span><span class="p">))</span>
         <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&#39;Unknown&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s">&#39;&#39;</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
@@ -1143,10 +1283,10 @@
                             <span class="n">conc</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">subargs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                        <span class="bp">self</span><span class="o">.</span><span class="n">_delete_recursive_helper</span><span class="p">,</span> <span class="n">subargs</span><span class="p">)</span>
                         <span class="n">marker</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">]</span>
-                    <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-                    <span class="k">for</span> <span class="n">rv</span> <span class="ow">in</span> <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                        <span class="k">if</span> <span class="n">rv</span><span class="p">:</span>
-                            <span class="k">return</span> <span class="n">rv</span>
+                        <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                        <span class="k">for</span> <span class="n">rv</span> <span class="ow">in</span> <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                            <span class="k">if</span> <span class="n">rv</span><span class="p">:</span>
+                                <span class="k">return</span> <span class="n">rv</span>
                     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;DELETEing </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">))</span>
                         <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> \
@@ -1183,7 +1323,7 @@
 <div id="searchbox" style="display: none">
   <h3>Quick search</h3>
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" size="18" />
+      <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
@@ -1206,14 +1346,14 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly v1.0 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.1-dev documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" >swiftly</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Gregory Holt.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

@@ -3,17 +3,20 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Swiftly &mdash; Swiftly v1.0 documentation</title>
+    <title>Swiftly &mdash; Swiftly 1.1-dev documentation</title>
+    
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '1.0',
+        VERSION:     '1.1-dev',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -22,7 +25,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Swiftly v1.0 documentation" href="#" />
+    <link rel="top" title="Swiftly 1.1-dev documentation" href="#" />
     <link rel="next" title="LICENSE" href="license.html" /> 
   </head>
   <body>
@@ -38,7 +41,7 @@
         <li class="right" >
           <a href="license.html" title="LICENSE"
              accesskey="N">next</a> |</li>
-        <li><a href="#">Swiftly v1.0 documentation</a> &raquo;</li> 
+        <li><a href="#">Swiftly 1.1-dev documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -92,6 +95,9 @@ direct access to the rings and to all back end servers.</p>
 <p>Output from <cite>swiftly</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [options] &lt;command&gt; [command_options] [args]
 
+NOTE: Be sure any names given are url encoded if necessary. For instance, an
+object named 4&amp;4.txt must be given as 4%264.txt.
+
 Options:
   -A URL, --auth-url=URL
                         URL to auth system, example:
@@ -128,7 +134,11 @@ Options:
                         "false").
   --concurrency=INTEGER
                         Sets the the number of actions that can be done
-                        simultaneously when possible. Default: 10
+                        simultaneously when possible (currently requires using
+                        --eventlet too). Default: 1
+  --eventlet            Uses Eventlet, if installed. This is disabled by
+                        default because Swiftly+Eventlet tends to use
+                        excessive CPU.
   -v, --verbose         Causes output to standard error indicating actions
                         being taken.
 Commands:
@@ -416,7 +426,7 @@ Options:
 <div id="searchbox" style="display: none">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" size="18" />
+      <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
@@ -442,12 +452,12 @@ Options:
         <li class="right" >
           <a href="license.html" title="LICENSE"
              >next</a> |</li>
-        <li><a href="#">Swiftly v1.0 documentation</a> &raquo;</li> 
+        <li><a href="#">Swiftly 1.1-dev documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Gregory Holt.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>
