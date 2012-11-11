@@ -18,5 +18,5 @@ limitations under the License.
 
 __all__ = ['VERSION']
 
-#: Version str for Swiftly: "major.minor" or "major.minor-dev".
-VERSION = '1.1-dev'
+#: Version str for Swiftly: "major.minor" or "major.minor~dev".
+VERSION = '1.1~dev'
