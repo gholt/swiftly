@@ -47,7 +47,10 @@ Command Line Tool Usage
 Output from `swiftly`::
 
     Usage: swiftly [options] <command> [command_options] [args]
-
+    
+    NOTE: Be sure any names given are url encoded if necessary. For instance, an
+    object named 4&4.txt must be given as 4%264.txt.
+    
     Options:
       -A URL, --auth-url=URL
                             URL to auth system, example:
@@ -84,7 +87,11 @@ Output from `swiftly`::
                             "false").
       --concurrency=INTEGER
                             Sets the the number of actions that can be done
-                            simultaneously when possible. Default: 10
+                            simultaneously when possible (currently requires using
+                            --eventlet too). Default: 1
+      --eventlet            Uses Eventlet, if installed. This is disabled by
+                            default because Swiftly+Eventlet tends to use
+                            excessive CPU.
       -v, --verbose         Causes output to standard error indicating actions
                             being taken.
     Commands:

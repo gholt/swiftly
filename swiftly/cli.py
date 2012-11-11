@@ -32,11 +32,6 @@ from swiftly.client import Client, CHUNK_SIZE
 from swiftly.concurrency import Concurrency
 
 try:
-    from eventlet.green.subprocess import PIPE, Popen
-except ImportError:
-    from subprocess import PIPE, Popen
-
-try:
     from simplejson import json
 except ImportError:
     import json
@@ -47,6 +42,18 @@ MUTED_ACCOUNT_HEADERS = ['accept-ranges', 'content-length', 'content-type',
 MUTED_CONTAINER_HEADERS = ['accept-ranges', 'content-length', 'content-type',
                            'date']
 MUTED_OBJECT_HEADERS = ['accept-ranges', 'date']
+
+
+def _delayed_imports(eventlet=False):
+    PIPE = Popen = None
+    if eventlet:
+        try:
+            from eventlet.green.subprocess import PIPE, Popen
+        except ImportError:
+            pass
+    if PIPE is None or Popen is None:
+        from subprocess import PIPE, Popen
+    return PIPE, Popen
 
 
 def _command(func):
@@ -139,7 +146,6 @@ class CLI(object):
         if not self.stderr:
             self.stderr = sys.stderr
         self.clients = Queue()
-        self.verbose = False
 
         self._help_parser = _OptionParser(version='%prog 1.0', usage="""
 Usage: %prog [main_options] help [command]
@@ -449,9 +455,14 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                  'also set this with the environment variable '
                  'SWIFTLY_CACHE_AUTH (set to "true" or "false").')
         self._main_parser.add_option('--concurrency', dest='concurrency',
-            default='10', metavar='INTEGER',
+            default='1', metavar='INTEGER',
             help='Sets the the number of actions that can be done '
-                 'simultaneously when possible. Default: 10')
+                 'simultaneously when possible (currently requires using '
+                 '--eventlet too). Default: 1')
+        self._main_parser.add_option('--eventlet', dest='eventlet',
+            action='store_true',
+            help='Uses Eventlet, if installed. This is disabled by default '
+                 'because Swiftly+Eventlet tends to use excessive CPU.')
         self._main_parser.add_option('-v', '--verbose', dest='verbose',
             action='store_true',
             help='Causes output to standard error indicating actions being '
@@ -519,7 +530,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self._verbose('Connecting direct client.\n')
                 client = Client(swift_proxy=True,
                     swift_proxy_storage_path=self._main_options.direct,
-                    retries=int(self._main_options.retries))
+                    retries=int(self._main_options.retries),
+                    eventlet=self._main_options.eventlet)
             elif all([self._main_options.auth_url,
                       self._main_options.auth_user,
                       self._main_options.auth_key]):
@@ -534,7 +546,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     proxy=self._main_options.proxy,
                     snet=self._main_options.snet,
                     retries=int(self._main_options.retries),
-                    cache_path=cache_path)
+                    cache_path=cache_path,
+                    eventlet=self._main_options.eventlet)
         return client
 
     def _put_client(self, client):
@@ -833,6 +846,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             return 0
         sub_command = None
         if options.sub_command:
+            PIPE, Popen = _delayed_imports(self._main_options.eventlet)
             sub_command = Popen(options.sub_command, shell=True, stdin=PIPE,
                                 stdout=stdout)
             stdout = sub_command.stdin

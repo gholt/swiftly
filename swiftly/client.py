@@ -24,29 +24,9 @@ from urllib import quote
 from urlparse import urlparse, urlunparse
 
 try:
-    from eventlet.green.httplib import BadStatusLine, HTTPException, \
-        HTTPSConnection
-except ImportError:
-    from httplib import BadStatusLine, HTTPException, HTTPSConnection
-
-try:
-    from swift.common.bufferedhttp \
-        import BufferedHTTPConnection as HTTPConnection
-except ImportError:
-    try:
-        from eventlet.green.httplib import HTTPConnection
-    except ImportError:
-        from httplib import HTTPConnection
-
-try:
     import simplejson as json
 except ImportError:
     import json
-
-try:
-    from eventlet import sleep
-except ImportError:
-    from time import sleep
 
 try:
     from swift.proxy.server import Application as SwiftProxy
@@ -58,6 +38,34 @@ from swiftly import VERSION
 
 
 CHUNK_SIZE = 65536
+
+
+def _delayed_imports(eventlet=True):
+    BadStatusLine = HTTPConnection = HTTPException = HTTPSConnection = \
+        sleep = None
+    if eventlet:
+        try:
+            from eventlet.green.httplib import BadStatusLine, HTTPException, \
+                HTTPSConnection
+            try:
+                from swift.common.bufferedhttp \
+                    import BufferedHTTPConnection as HTTPConnection
+            except ImportError:
+                from eventlet.green.httplib import HTTPConnection
+            from eventlet import sleep
+        except ImportError:
+            pass
+    if BadStatusLine is None:
+        from httplib import BadStatusLine
+    if HTTPConnection is None:
+        from httplib import HTTPConnection
+    if HTTPException is None:
+        from httplib import HTTPException
+    if HTTPSConnection is None:
+        from httplib import HTTPSConnection
+    if sleep is None:
+        from time import sleep
+    return BadStatusLine, HTTPConnection, HTTPException, HTTPSConnection, sleep
 
 
 def _quote(value, safe='/:'):
@@ -193,11 +201,14 @@ class Client(object):
     :param cache_path: Default: None. If set to a path, the storage URL and
         auth token are cached in the file for reuse. If there is already cached
         values in the file, they are used without authenticating first.
+    :param eventlet: Default: True. If true, Eventlet will be used if
+        installed.
     """
 
     def __init__(self, auth_url=None, auth_user=None, auth_key=None,
                  proxy=None, snet=False, retries=4, swift_proxy=None,
-                 swift_proxy_storage_path=None, cache_path=None):
+                 swift_proxy_storage_path=None, cache_path=None,
+                 eventlet=True):
         self.auth_url = auth_url
         self.auth_user = auth_user
         self.auth_key = auth_key
@@ -225,6 +236,8 @@ class Client(object):
                     self.auth_token = None
             except Exception:
                 pass
+        (self.BadStatusLine, self.HTTPConnection, self.HTTPException,
+         self.HTTPSConnection, self.sleep) = _delayed_imports(eventlet)
 
     def _connect(self, url=None):
         if not url:
@@ -235,11 +248,11 @@ class Client(object):
         proxy_parsed = urlparse(self.proxy) if self.proxy else None
         netloc = (proxy_parsed if self.proxy else parsed).netloc
         if parsed.scheme == 'http':
-            conn = HTTPConnection(netloc)
+            conn = self.HTTPConnection(netloc)
         elif parsed.scheme == 'https':
-            conn = HTTPSConnection(netloc)
+            conn = self.HTTPSConnection(netloc)
         else:
-            raise HTTPException(
+            raise self.HTTPException(
                 'Cannot handle protocol scheme %s for url %s' %
                 (parsed.scheme, repr(url)))
         if self.proxy:
@@ -305,11 +318,11 @@ class Client(object):
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
                 return
-            sleep(2 ** attempt)
-        raise HTTPException('Auth GET failed', status, reason)
+            self.sleep(2 ** attempt)
+        raise self.HTTPException('Auth GET failed', status, reason)
 
     def _default_reset_func(self):
-        raise HTTPException(
+        raise self.HTTPException(
             'Failure and no ability to reset contents for reupload.')
 
     def _request(self, method, path, contents, headers, decode_json=False,
@@ -405,7 +418,7 @@ class Client(object):
                     else:
                         value = resp.read()
                         resp.close()
-                except BadStatusLine, err:
+                except self.BadStatusLine, err:
                     status = 0
                     reason = str(err)
                     hdrs = {}
@@ -437,8 +450,9 @@ class Client(object):
                 self.storage_conn = None
             if reset_func:
                 reset_func()
-            sleep(2 ** attempt)
-        raise HTTPException('%s %s failed' % (method, path), status, reason)
+            self.sleep(2 ** attempt)
+        raise self.HTTPException('%s %s failed' % (method, path),
+                                 status, reason)
 
     def head_account(self, headers=None):
         """
