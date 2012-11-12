@@ -30,7 +30,10 @@ except ImportError:
 
 try:
     from swift.proxy.server import Application as SwiftProxy
-    from webob import Request
+    try:
+        from swift.common.swob import Request
+    except ImportError:
+        from webob import Request
 except ImportError:
     SwiftProxy = None
 
@@ -426,7 +429,7 @@ class Client(object):
             else:
                 status = resp.status_int
                 reason = resp.status.split(' ', 1)[1]
-                hdrs = self._response_headers(resp.headerlist)
+                hdrs = self._response_headers(resp.headers.items())
                 if stream:
                     value = _IterReader(resp.app_iter)
                 else:
