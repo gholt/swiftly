@@ -1,0 +1,2 @@
+Update swiftly/__init__.py VERSION string
+Update rpmbuild/SPECS/swiftly.spec Version: line and %changelog area
