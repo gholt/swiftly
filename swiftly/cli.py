@@ -76,9 +76,12 @@ class _OptionParser(OptionParser):
                  stdout=None, stderr=None):
         OptionParser.__init__(self, usage, option_list, option_class, version,
                               conflict_handler, description, formatter,
-                              add_help_option, prog, epilog)
+                              False, prog, epilog)
         self.remove_option('--version')
-        self.remove_option('-h')
+        if add_help_option:
+            self.add_option(
+                '-?', '--help', dest='help', action='store_true',
+                help='Shows this help text.')
         self.stdout = stdout
         if not self.stdout:
             self.stdout = sys.stdout
@@ -409,6 +412,9 @@ Usage: %prog [options] <command> [command_options] [args]
 NOTE: Be sure any names given are url encoded if necessary. For instance, an
 object named 4&4.txt must be given as 4%264.txt.""".strip(),
             stdout=self.stdout, stderr=self.stderr)
+        self._main_parser.add_option(
+            '-h', dest='help', action='store_true',
+            help='Shows this help text.')
         self._main_parser.add_option('-A', '--auth-url', dest='auth_url',
             default=environ.get('SWIFTLY_AUTH_URL', ''), metavar='URL',
             help='URL to auth system, example: '
@@ -503,7 +509,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         self._main_parser.enable_interspersed_args()
         if self._main_parser.error_encountered:
             return 1
-        if not args:
+        if not args or self._main_options.help:
             self._main_parser.print_help()
             return 1
         func = getattr(self, '_' + args[0], None)
@@ -599,7 +605,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         if self._help_parser.error_encountered:
             return 1
-        if not args:
+        if not args or options.help:
             self._main_parser.print_help()
             return 1
         func = getattr(self, '_' + args[0], None)
@@ -619,7 +625,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         if self._auth_parser.error_encountered:
             return 1
-        if args:
+        if args or options.help:
             self._auth_parser.print_help()
             return 1
         if self._main_options.direct:
@@ -654,6 +660,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             # own exception. We'll catch the error below.
             pass
         if self._head_parser.error_encountered:
+            return 1
+        if options.help:
+            self._head_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
@@ -706,7 +715,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         if self._get_parser.error_encountered:
             return 1
-        if len(args) > 1:
+        if len(args) > 1 or options.help:
             self._get_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
@@ -953,7 +962,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         if self._put_parser.error_encountered:
             return 1
-        if not args or len(args) != 1:
+        if not args or len(args) != 1 or options.help:
             self._put_parser.print_help()
             return 1
         g5 = 5 * 1024 * 1024 * 1024
@@ -1119,6 +1128,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         if self._post_parser.error_encountered:
             return 1
+        if options.help:
+            self._post_parser.print_help()
+            return 1
         hdrs = self._command_line_headers(options.header)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         if not args:
@@ -1161,6 +1173,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             # own exception. We'll catch the error below.
             pass
         if self._delete_parser.error_encountered:
+            return 1
+        if options.help:
+            self._delete_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
