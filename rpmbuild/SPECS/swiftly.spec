@@ -4,7 +4,7 @@
 %endif
 
 Name:           swiftly
-Version:        1.1
+Version:        1.2
 Release:        1
 Summary:        Client for Swift
 
@@ -39,8 +39,7 @@ rm -rf %{buildroot}
 %{python_sitelib}/%{name}-%{version}-*.egg-info
 
 %changelog
-* Tue Dec  5 2012 Gregory Holt <gholt@rackspace.com> - 1.1-1
-- development release
-- porting to swiftly repo itself
+* Tue Dec  5 2012 Gregory Holt <gholt@rackspace.com> - 1.2-1
+- porting RPM packaging to swiftly repo itself
 * Mon Oct 15 2012 Jeffrey Ness <jeffrey.ness@rackspace.com> - 1.0-1
 - new package
