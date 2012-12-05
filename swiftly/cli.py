@@ -77,11 +77,15 @@ class _OptionParser(OptionParser):
         OptionParser.__init__(self, usage, option_list, option_class, version,
                               conflict_handler, description, formatter,
                               False, prog, epilog)
-        self.remove_option('--version')
         if add_help_option:
             self.add_option(
                 '-?', '--help', dest='help', action='store_true',
                 help='Shows this help text.')
+        if version:
+            self.remove_option('--version')
+            self.add_option(
+                '--version', dest='version', action='store_true',
+                help='Shows the version of Swiftly.')
         self.stdout = stdout
         if not self.stdout:
             self.stdout = sys.stdout
@@ -150,7 +154,7 @@ class CLI(object):
             self.stderr = sys.stderr
         self.clients = Queue()
 
-        self._help_parser = _OptionParser(version='%prog 1.0', usage="""
+        self._help_parser = _OptionParser(usage="""
 Usage: %prog [main_options] help [command]
 
 For help on [main_options] run %prog with no args.
@@ -159,7 +163,7 @@ Outputs help information for the given [command] or general help if no
 [command] is given.""".strip(),
             stdout=self.stdout, stderr=self.stderr)
 
-        self._auth_parser = _OptionParser(version='%prog 1.0', usage="""
+        self._auth_parser = _OptionParser(usage="""
 Usage: %prog [main_options] auth
 
 For help on [main_options] run %prog with no args.
@@ -167,7 +171,7 @@ For help on [main_options] run %prog with no args.
 Outputs auth information.""".strip(),
             stdout=self.stdout, stderr=self.stderr)
 
-        self._head_parser = _OptionParser(version='%prog 1.0', usage="""
+        self._head_parser = _OptionParser(usage="""
 Usage: %prog [main_options] head [options] [path]
 
 For help on [main_options] run %prog with no args.
@@ -186,7 +190,7 @@ Outputs the resulting headers from a HEAD request of the [path] given. If no
             help='Ignores 404 Not Found responses. Nothing will be output, '
                  'but the exit code will be 0 instead of 1.')
 
-        self._get_parser = _OptionParser(version='%prog 1.0', usage="""
+        self._get_parser = _OptionParser(usage="""
 Usage: %prog [main_options] get [options] [path]
 
 For help on [main_options] run %prog with no args.
@@ -274,7 +278,7 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  '"gunzip | grep keyword" or --sub-command "zgrep keyword" if '
                  'your system has that).')
 
-        self._put_parser = _OptionParser(version='%prog 1.0', usage="""
+        self._put_parser = _OptionParser(usage="""
 Usage: %prog [main_options] put [options] <path>
 
 For help on [main_options] run %prog with no args.
@@ -353,7 +357,7 @@ listing, which is often useful.""".strip(),
                  'as a segmented object. See full help text for more '
                  'information.')
 
-        self._post_parser = _OptionParser(version='%prog 1.0', usage="""
+        self._post_parser = _OptionParser(usage="""
 Usage: %prog [main_options] post [options] [path]
 
 For help on [main_options] run %prog with no args.
@@ -367,7 +371,7 @@ request on the account is performed.""".strip(),
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
 
-        self._delete_parser = _OptionParser(version='%prog 1.0', usage="""
+        self._delete_parser = _OptionParser(usage="""
 Usage: %prog [main_options] delete [options] [path]
 
 For help on [main_options] run %prog with no args.
@@ -405,7 +409,8 @@ Issues a DELETE request of the [path] given.""".strip(),
             help='Ignores 404 Not Found responses; the exit code will be 0 '
                  'instead of 1.')
 
-        self._main_parser = _OptionParser(version='%prog 1.0',
+        self._main_parser = _OptionParser(
+            version=VERSION,
             usage="""
 Usage: %prog [options] <command> [command_options] [args]
 
@@ -508,6 +513,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         self._main_parser.enable_interspersed_args()
         if self._main_parser.error_encountered:
+            return 1
+        if self._main_options.version:
+            self._main_parser.print_version()
             return 1
         if not args or self._main_options.help:
             self._main_parser.print_help()
