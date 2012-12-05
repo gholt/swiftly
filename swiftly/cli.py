@@ -494,7 +494,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         Process the command line given in the constructor.
         """
         self._main_parser.disable_interspersed_args()
-        self._main_options, args = self._main_parser.parse_args(self.args)
+        try:
+            self._main_options, args = self._main_parser.parse_args(self.args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
         self._main_parser.enable_interspersed_args()
         if self._main_parser.error_encountered:
             return 1
@@ -586,7 +591,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     @_command
     def _help(self, args):
-        options, args = self._help_parser.parse_args(args)
+        try:
+            options, args = self._help_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
         if self._help_parser.error_encountered:
             return 1
         if not args:
@@ -601,7 +611,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     @_client_command
     def _auth(self, args):
-        options, args = self._auth_parser.parse_args(args)
+        try:
+            options, args = self._auth_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
         if self._auth_parser.error_encountered:
             return 1
         if args:
@@ -632,7 +647,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     @_client_command
     def _head(self, args):
-        options, args = self._head_parser.parse_args(args)
+        try:
+            options, args = self._head_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
         if self._head_parser.error_encountered:
             return 1
         hdrs = self._command_line_headers(options.header)
@@ -678,7 +698,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     @_client_command
     def _get(self, args, stdout=None):
-        options, args = self._get_parser.parse_args(args)
+        try:
+            options, args = self._get_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
         if self._get_parser.error_encountered:
             return 1
         if len(args) > 1:
@@ -920,7 +945,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     @_client_command
     def _put(self, args, stdin=None):
-        options, args = self._put_parser.parse_args(args)
+        try:
+            options, args = self._put_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
         if self._put_parser.error_encountered:
             return 1
         if not args or len(args) != 1:
@@ -1081,7 +1111,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     @_client_command
     def _post(self, args):
-        options, args = self._post_parser.parse_args(args)
+        try:
+            options, args = self._post_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
         if self._post_parser.error_encountered:
             return 1
         hdrs = self._command_line_headers(options.header)
@@ -1119,7 +1154,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     @_client_command
     def _delete(self, args):
-        options, args = self._delete_parser.parse_args(args)
+        try:
+            options, args = self._delete_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
         if self._delete_parser.error_encountered:
             return 1
         hdrs = self._command_line_headers(options.header)
