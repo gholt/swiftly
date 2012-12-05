@@ -1,9 +1,10 @@
 #!/bin/sh
 
-cd `dirname $0`
-mkdir -p BUILD RPMS SOURCES SRPMS
-cd ..
+topdir=`dirname $0`
+topdir=`realpath $topdir`
+cd ${topdir}/..
 VERSION=`grep "VERSION = '" swiftly/__init__.py | cut -d"'" -f2`
-tar zcf rpmbuild/SOURCES/swiftly-${VERSION}.tar.gz --exclude=rpmbuild ./
-cd `dirname $0`
-rpmbuild -v -ba --clean SPECS/swiftly.spec
+mkdir -p rpmbuild/SOURCES
+git archive --format tar.gz --prefix swiftly-${VERSION}/ -o rpmbuild/SOURCES/swiftly-${VERSION}.tar.gz master
+cd rpmbuild
+rpmbuild --define "_topdir $topdir" -v -ba --clean SPECS/swiftly.spec

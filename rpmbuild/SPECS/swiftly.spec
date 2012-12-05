@@ -4,8 +4,8 @@
 %endif
 
 Name:           swiftly
-Version:        1.1~dev
-Release:        1%{?dist}
+Version:        1.1
+Release:        1
 Summary:        Client for Swift
 
 Group:          Development/Tools
@@ -17,7 +17,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  python-devel, python-setuptools
 
 %description
-Client for Swift
+Client for OpenStack Swift
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -39,7 +39,8 @@ rm -rf %{buildroot}
 %{python_sitelib}/%{name}-%{version}-*.egg-info
 
 %changelog
-* Tue Dec 04 2012 Gregory Holt <gholt@rackspace.com> - 1.1~dev-1
+* Tue Dec  5 2012 Gregory Holt <gholt@rackspace.com> - 1.1-1
+- development release
 - porting to swiftly repo itself
 * Mon Oct 15 2012 Jeffrey Ness <jeffrey.ness@rackspace.com> - 1.0-1
 - new package

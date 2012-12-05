@@ -1,7 +1,7 @@
 """
 Client for Swift
 
-Copyright 2011 Gregory Holt
+Copyright 2012 Gregory Holt
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,5 +18,7 @@ limitations under the License.
 
 __all__ = ['VERSION']
 
-#: Version str for Swiftly: "major.minor" or "major.minor~dev".
-VERSION = '1.1~dev'
+#: Version str for Swiftly: "major.minor".
+#: If the second number is even, it's an official release.
+#: If the second number is odd, it's a development release.
+VERSION = '1.1'
