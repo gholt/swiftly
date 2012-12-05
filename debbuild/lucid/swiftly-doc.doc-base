@@ -1,0 +1,9 @@
+Document: swiftly-doc
+Title: Swiftly Documentation
+Author: Greg Holt
+Abstract: Sphinx documentation for Swiftly
+Section: Network/File Transfer
+
+Format: HTML
+Index: /usr/share/doc/swiftly-doc/html/index.html
+Files: /usr/share/doc/swiftly-doc/html/*
