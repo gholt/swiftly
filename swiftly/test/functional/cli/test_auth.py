@@ -20,7 +20,7 @@ from urlparse import urlparse
 
 from swiftly.cli import CLI
 from swiftly.test.functional import AUTH_URL, AUTH_USER, AUTH_KEY, \
-                                    SWIFT_PROXY_STORAGE_PATH
+    SWIFT_PROXY_STORAGE_PATH
 
 
 class TestAuth(unittest.TestCase):

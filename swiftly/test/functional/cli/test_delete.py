@@ -21,7 +21,7 @@ from uuid import uuid4
 
 from swiftly.cli import CLI
 from swiftly.test.functional import AUTH_URL, AUTH_USER, AUTH_KEY, \
-                                    SWIFT_PROXY_STORAGE_PATH
+    SWIFT_PROXY_STORAGE_PATH
 
 
 class TestDelete(unittest.TestCase):

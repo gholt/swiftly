@@ -18,8 +18,8 @@ from setuptools import setup
 import swiftly
 
 
-setup(name='swiftly', version=swiftly.VERSION,
-    description='Client for Swift', author='Gregory Holt',
-    author_email='swiftly@brim.net',
+setup(
+    name='swiftly', version=swiftly.VERSION, description='Client for Swift',
+    author='Gregory Holt', author_email='swiftly@brim.net',
     url='http://gholt.github.com/swiftly/', packages=['swiftly'],
     scripts=['bin/swiftly'])

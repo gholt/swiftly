@@ -156,7 +156,8 @@ class CLI(object):
             self.stderr = sys.stderr
         self.clients = Queue()
 
-        self._help_parser = _OptionParser(usage="""
+        self._help_parser = _OptionParser(
+            usage="""
 Usage: %prog [main_options] help [command]
 
 For help on [main_options] run %prog with no args.
@@ -165,7 +166,8 @@ Outputs help information for the given [command] or general help if no
 [command] is given.""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='help command: ')
 
-        self._auth_parser = _OptionParser(usage="""
+        self._auth_parser = _OptionParser(
+            usage="""
 Usage: %prog [main_options] auth
 
 For help on [main_options] run %prog with no args.
@@ -173,7 +175,8 @@ For help on [main_options] run %prog with no args.
 Outputs auth information.""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='auth command: ')
 
-        self._head_parser = _OptionParser(usage="""
+        self._head_parser = _OptionParser(
+            usage="""
 Usage: %prog [main_options] head [options] [path]
 
 For help on [main_options] run %prog with no args.
@@ -181,18 +184,20 @@ For help on [main_options] run %prog with no args.
 Outputs the resulting headers from a HEAD request of the [path] given. If no
 [path] is given, a HEAD request on the account is performed.""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='head command: ')
-        self._head_parser.add_option('-h', '--header', dest='header',
-            action='append', metavar='HEADER:VALUE',
+        self._head_parser.add_option(
+            '-h', '--header', dest='header', action='append',
+            metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
-        self._head_parser.add_option('--ignore-404', dest='ignore_404',
-            action='store_true',
+        self._head_parser.add_option(
+            '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses. Nothing will be output, '
                  'but the exit code will be 0 instead of 1.')
 
-        self._get_parser = _OptionParser(usage="""
+        self._get_parser = _OptionParser(
+            usage="""
 Usage: %prog [main_options] get [options] [path]
 
 For help on [main_options] run %prog with no args.
@@ -200,76 +205,81 @@ For help on [main_options] run %prog with no args.
 Outputs the resulting contents from a GET request of the [path] given. If no
 [path] is given, a GET request on the account is performed.""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='get command: ')
-        self._get_parser.add_option('--headers', dest='headers',
-            action='store_true',
+        self._get_parser.add_option(
+            '--headers', dest='headers', action='store_true',
             help='Output headers as well as the contents.')
-        self._get_parser.add_option('-h', '--header', dest='header',
-            action='append', metavar='HEADER:VALUE',
+        self._get_parser.add_option(
+            '-h', '--header', dest='header', action='append',
+            metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
-        self._get_parser.add_option('-l', '--limit', dest='limit',
+        self._get_parser.add_option(
+            '-l', '--limit', dest='limit',
             help='For account and container GETs, this limits the number of '
                  'items returned. Without this option, all items are '
                  'returned, even if it requires several backend requests to '
                  'the gather the information.')
-        self._get_parser.add_option('-d', '--delimiter', dest='delimiter',
+        self._get_parser.add_option(
+            '-d', '--delimiter', dest='delimiter',
             help='For account and container GETs, this sets the delimiter for '
                  'the listing retrieved. For example, a container with the '
                  'objects "abc/one", "abc/two", "xyz" and a delimiter of "/" '
                  'would return "abc/" and "xyz". Using the same delimiter, '
                  'but with a prefix of "abc/", would return "abc/one" and '
                  '"abc/two".')
-        self._get_parser.add_option('-p', '--prefix', dest='prefix',
+        self._get_parser.add_option(
+            '-p', '--prefix', dest='prefix',
             help='For account and container GETs, this sets the prefix for '
                  'the listing retrieved; the items returned will all match '
                  'the PREFIX given.')
-        self._get_parser.add_option('-m', '--marker', dest='marker',
+        self._get_parser.add_option(
+            '-m', '--marker', dest='marker',
             help='For account and container GETs, this sets the marker for '
                  'the listing retrieved; the items returned will begin with '
                  'the item just after the MARKER given (note: the marker does '
                  'not have to actually exist).')
-        self._get_parser.add_option('-e', '--end-marker', dest='end_marker',
-            metavar='MARKER',
+        self._get_parser.add_option(
+            '-e', '--end-marker', dest='end_marker', metavar='MARKER',
             help='For account and container GETs, this sets the end-marker '
                  'for the listing retrieved; the items returned will stop '
                  'with the item just before the MARKER given (note: the '
                  'marker does not have to actually exist).')
-        self._get_parser.add_option('-f', '--full', dest='full',
-            action="store_true",
+        self._get_parser.add_option(
+            '-f', '--full', dest='full', action="store_true",
             help='For account and container GETs, this will output additional '
                  'information about each item. For an account GET, the items '
                  'output will be bytes-used, object-count, and '
                  'container-name. For a container GET, the items output will '
                  'be bytes-used, last-modified-time, etag, content-type, and '
                  'object-name.')
-        self._get_parser.add_option('-r', '--raw', dest='raw',
-            action="store_true",
+        self._get_parser.add_option(
+            '-r', '--raw', dest='raw', action="store_true",
             help='For account and container GETs, this will return the raw '
                  'JSON from the request. This will only do one request, even '
                  'if subsequent requests would be needed to return all items. '
                  'Use a subsequent call with --marker set to the last item '
                  'name returned to get the next batch of items, if desired.')
-        self._get_parser.add_option('--all-objects', dest='all_objects',
-            action="store_true",
+        self._get_parser.add_option(
+            '--all-objects', dest='all_objects', action="store_true",
             help='For an account GET, performs a container GET --all-objects '
                  'for every container returned by the original account GET. '
                  'For a container GET, performs a GET for every object '
                  'returned by that original container GET. Any headers set '
                  'with --header options are also sent for every object GET.')
-        self._get_parser.add_option('-o', '--output', dest='output',
-            metavar='PATH',
+        self._get_parser.add_option(
+            '-o', '--output', dest='output', metavar='PATH',
             help='Indicates where to send the output; default is standard '
                  'output. If the PATH ends with a slash "/" and --all-objects '
                  'is used, each object will be placed in a similarly named '
                  'file inside the PATH given.')
-        self._get_parser.add_option('--ignore-404', dest='ignore_404',
-            action='store_true',
+        self._get_parser.add_option(
+            '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses. Nothing will be output, '
                  'but the exit code will be 0 instead of 1.')
-        self._get_parser.add_option('--sub-command', dest='sub_command',
-            metavar='COMMAND',
+        self._get_parser.add_option(
+            '--sub-command', dest='sub_command', metavar='COMMAND',
             help='Sends the contents of each object downloaded as standard '
                  'input to the COMMAND given and outputs the command\'s '
                  'standard output as if it were the object\'s contents. This '
@@ -280,7 +290,8 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  '"gunzip | grep keyword" or --sub-command "zgrep keyword" if '
                  'your system has that).')
 
-        self._put_parser = _OptionParser(usage="""
+        self._put_parser = _OptionParser(
+            usage="""
 Usage: %prog [main_options] put [options] <path>
 
 For help on [main_options] run %prog with no args.
@@ -313,20 +324,21 @@ name as the manifest object, but with "_segments" added to the
 container name. This keeps the segments out of the main container
 listing, which is often useful.""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='put command: ')
-        self._put_parser.add_option('-h', '--header', dest='header',
-            action='append', metavar='HEADER:VALUE',
+        self._put_parser.add_option(
+            '-h', '--header', dest='header', action='append',
+            metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
-        self._put_parser.add_option('-i', '--input', dest='input_',
-            metavar='PATH',
+        self._put_parser.add_option(
+            '-i', '--input', dest='input_', metavar='PATH',
             help='Indicates where to read the contents from; default is '
                  'standard input. If the PATH is a directory, all files in '
                  'the directory will be uploaded as similarly named objects '
                  'and empty directories will create text/directory marker '
                  'objects.')
-        self._put_parser.add_option('-n', '--newer', dest='newer',
-            action='store_true',
+        self._put_parser.add_option(
+            '-n', '--newer', dest='newer', action='store_true',
             help='For PUTs with an --input option, first performs a HEAD on '
                  'the object and compares the X-Object-Meta-Mtime header with '
                  'the modified time of the PATH obtained from the --input '
@@ -336,8 +348,8 @@ listing, which is often useful.""".strip(),
                  'upload (at the expense of HEAD requests). NOTE THAT THIS '
                  'WILL NOT UPLOAD CHANGED FILES THAT DO NOT HAVE A NEWER '
                  'LOCAL MODIFIED TIME! NEWER does not mean DIFFERENT.')
-        self._put_parser.add_option('-d', '--different', dest='different',
-            action='store_true',
+        self._put_parser.add_option(
+            '-d', '--different', dest='different', action='store_true',
             help='For PUTs with an --input option, first performs a HEAD on '
                  'the object and compares the X-Object-Meta-Mtime header with '
                  'the modified time of the PATH obtained from the --input '
@@ -350,16 +362,17 @@ listing, which is often useful.""".strip(),
                  'differing files since the last upload (at the expense of '
                  'HEAD requests). NOTE THAT THIS CAN UPLOAD OLDER FILES OVER '
                  'NEWER ONES! DIFFERENT does not mean NEWER.')
-        self._put_parser.add_option('-e', '--empty', dest='empty',
-            action='store_true',
+        self._put_parser.add_option(
+            '-e', '--empty', dest='empty', action='store_true',
             help='Indicates a zero-byte object should be PUT.')
-        self._put_parser.add_option('-s', '--segment-size',
-            dest='segment_size', metavar='BYTES',
+        self._put_parser.add_option(
+            '-s', '--segment-size', dest='segment_size', metavar='BYTES',
             help='Indicates the maximum size of an object before uploading it '
                  'as a segmented object. See full help text for more '
                  'information.')
 
-        self._post_parser = _OptionParser(usage="""
+        self._post_parser = _OptionParser(
+            usage="""
 Usage: %prog [main_options] post [options] [path]
 
 For help on [main_options] run %prog with no args.
@@ -367,13 +380,15 @@ For help on [main_options] run %prog with no args.
 Issues a POST request of the [path] given. If no [path] is given, a POST
 request on the account is performed.""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='post command: ')
-        self._post_parser.add_option('-h', '--header', dest='header',
-            action='append', metavar='HEADER:VALUE',
+        self._post_parser.add_option(
+            '-h', '--header', dest='header', action='append',
+            metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
 
-        self._delete_parser = _OptionParser(usage="""
+        self._delete_parser = _OptionParser(
+            usage="""
 Usage: %prog [main_options] delete [options] [path]
 
 For help on [main_options] run %prog with no args.
@@ -381,34 +396,37 @@ For help on [main_options] run %prog with no args.
 Issues a DELETE request of the [path] given.""".strip(),
             stdout=self.stdout, stderr=self.stderr,
             preamble='delete command: ')
-        self._delete_parser.add_option('-h', '--header', dest='header',
-            action='append', metavar='HEADER:VALUE',
+        self._delete_parser.add_option(
+            '-h', '--header', dest='header', action='append',
+            metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '
                  '-hx-some-header:some-value -h "X-Some-Other-Header: Some '
                  'other value"')
-        self._delete_parser.add_option('--recursive', dest='recursive',
-            action='store_true',
+        self._delete_parser.add_option(
+            '--recursive', dest='recursive', action='store_true',
             help='Normally a delete for a non-empty container will error with '
                  'a 409 Conflict; --recursive will first delete all objects '
                  'in a container and then delete the container itself. For an '
                  'account delete, all containers and objects will be deleted '
                  '(requires the --yes-i-mean-empty-the-account option).')
-        self._delete_parser.add_option('--yes-i-mean-empty-the-account',
-            dest='yes_empty_account', action='store_true',
+        self._delete_parser.add_option(
+            '--yes-i-mean-empty-the-account', dest='yes_empty_account',
+            action='store_true',
             help='Required when issuing a delete directly on an account with '
                  'the --recursive option. This will delete all containers and '
                  'objects in the account without deleting the account itself, '
                  'leaving an empty account. THERE IS NO GOING BACK!')
-        self._delete_parser.add_option('--yes-i-mean-delete-the-account',
-            dest='yes_delete_account', action='store_true',
+        self._delete_parser.add_option(
+            '--yes-i-mean-delete-the-account', dest='yes_delete_account',
+            action='store_true',
             help='Required when issuing a delete directly on an account. Some '
                  'Swift clusters do not support this. Those that do will mark '
                  'the account as deleted and immediately begin removing the '
                  'objects from the cluster in the backgound. THERE IS NO '
                  'GOING BACK!')
-        self._delete_parser.add_option('--ignore-404', dest='ignore_404',
-            action='store_true',
+        self._delete_parser.add_option(
+            '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses; the exit code will be 0 '
                  'instead of 1.')
 
@@ -423,44 +441,50 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         self._main_parser.add_option(
             '-h', dest='help', action='store_true',
             help='Shows this help text.')
-        self._main_parser.add_option('-A', '--auth-url', dest='auth_url',
+        self._main_parser.add_option(
+            '-A', '--auth-url', dest='auth_url',
             default=environ.get('SWIFTLY_AUTH_URL', ''), metavar='URL',
             help='URL to auth system, example: '
                  'http://127.0.0.1:8080/auth/v1.0 You can also set this with '
                  'the environment variable SWIFTLY_AUTH_URL.')
-        self._main_parser.add_option('-U', '--auth-user', dest='auth_user',
+        self._main_parser.add_option(
+            '-U', '--auth-user', dest='auth_user',
             default=environ.get('SWIFTLY_AUTH_USER', ''), metavar='USER',
             help='User name for auth system, example: test:tester You can '
                  'also set this with the environment variable '
                  'SWIFTLY_AUTH_USER.')
-        self._main_parser.add_option('-K', '--auth-key', dest='auth_key',
+        self._main_parser.add_option(
+            '-K', '--auth-key', dest='auth_key',
             default=environ.get('SWIFTLY_AUTH_KEY', ''), metavar='KEY',
             help='Key for auth system, example: testing You can also set this '
                  'with the environment variable SWIFTLY_AUTH_KEY.')
-        self._main_parser.add_option('-D', '--direct', dest='direct',
+        self._main_parser.add_option(
+            '-D', '--direct', dest='direct',
             default=environ.get('SWIFTLY_DIRECT', ''), metavar='PATH',
             help='Uses direct connect method to access Swift. Requires access '
                  'to rings and backend servers. The PATH is the account '
                  'path, example: /v1/AUTH_test You can also set this with the '
                  'environment variable SWIFTLY_DIRECT.')
-        self._main_parser.add_option('-P', '--proxy', dest='proxy',
+        self._main_parser.add_option(
+            '-P', '--proxy', dest='proxy',
             default=environ.get('SWIFTLY_PROXY', ''), metavar='URL',
             help='Uses the given proxy URL. You can also set this with the '
                  'environment variable SWIFTLY_PROXY.')
-        self._main_parser.add_option('-S', '--snet', dest='snet',
-            action='store_true',
+        self._main_parser.add_option(
+            '-S', '--snet', dest='snet', action='store_true',
             default=environ.get('SWIFTLY_SNET', 'false').lower() == 'true',
             help='Prepends the storage URL host name with "snet-". Mostly '
                  'only useful with Rackspace Cloud Files and Rackspace '
                  'ServiceNet. You can also set this with the environment '
                  'variable SWIFTLY_SNET (set to "true" or "false").')
-        self._main_parser.add_option('-R', '--retries', dest='retries',
+        self._main_parser.add_option(
+            '-R', '--retries', dest='retries',
             default=int(environ.get('SWIFTLY_RETRIES', 4)), metavar='INTEGER',
             help='Indicates how many times to retry the request on a server '
                  'error. Default: 4. You can also set this with the '
                  'environment variable SWIFTLY_RETRIES.')
-        self._main_parser.add_option('-C', '--cache-auth', dest='cache_auth',
-            action='store_true',
+        self._main_parser.add_option(
+            '-C', '--cache-auth', dest='cache_auth', action='store_true',
             default=(
                 environ.get('SWIFTLY_CACHE_AUTH', 'false').lower() == 'true'),
             help='If set true, the storage URL and auth token are cached in '
@@ -468,17 +492,18 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                  'values, they are used without authenticating first. You can '
                  'also set this with the environment variable '
                  'SWIFTLY_CACHE_AUTH (set to "true" or "false").')
-        self._main_parser.add_option('--concurrency', dest='concurrency',
-            default='1', metavar='INTEGER',
+        self._main_parser.add_option(
+            '--concurrency', dest='concurrency', default='1',
+            metavar='INTEGER',
             help='Sets the the number of actions that can be done '
                  'simultaneously when possible (currently requires using '
                  '--eventlet too). Default: 1')
-        self._main_parser.add_option('--eventlet', dest='eventlet',
-            action='store_true',
+        self._main_parser.add_option(
+            '--eventlet', dest='eventlet', action='store_true',
             help='Uses Eventlet, if installed. This is disabled by default '
                  'because Swiftly+Eventlet tends to use excessive CPU.')
-        self._main_parser.add_option('-v', '--verbose', dest='verbose',
-            action='store_true',
+        self._main_parser.add_option(
+            '-v', '--verbose', dest='verbose', action='store_true',
             help='Causes output to standard error indicating actions being '
                  'taken.')
         self._main_parser.commands = 'Commands:\n'
@@ -498,8 +523,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 else:
                     self._main_parser.commands += main_line + '\n'
                     initial_indent = ' ' * 24
-                self._main_parser.commands += textwrap.fill(' '.join(lines),
-                    width=79, initial_indent=initial_indent,
+                self._main_parser.commands += textwrap.fill(
+                    ' '.join(lines), width=79, initial_indent=initial_indent,
                     subsequent_indent=' ' * 24) + '\n'
         self._main_options = None
 
@@ -550,7 +575,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if not client:
             if self._main_options.direct:
                 self._verbose('Connecting direct client.\n')
-                client = Client(swift_proxy=True,
+                client = Client(
+                    swift_proxy=True,
                     swift_proxy_storage_path=self._main_options.direct,
                     retries=int(self._main_options.retries),
                     eventlet=self._main_options.eventlet)
@@ -562,7 +588,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 if self._main_options.cache_auth:
                     cache_path = \
                         '/tmp/%s.swiftly' % environ.get('USER', 'user')
-                client = Client(auth_url=self._main_options.auth_url,
+                client = Client(
+                    auth_url=self._main_options.auth_url,
                     auth_user=self._main_options.auth_user,
                     auth_key=self._main_options.auth_key,
                     proxy=self._main_options.proxy,
@@ -802,14 +829,15 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                                     subargs.append('-h')
                                     subargs.append(h)
                             if options.output and options.output.endswith('/'):
-                                outpath = \
-                                   options.output + item['name'].encode('utf8')
+                                outpath = options.output + \
+                                    item['name'].encode('utf8')
                                 dirpath = dirname(outpath)
                                 if not exists(dirpath):
                                     makedirs(dirpath)
                                 elif not isdir(dirpath):
-                                    self.stderr.write('%s conflict; file and '
-                                        'directory\n' % dirpath)
+                                    self.stderr.write(
+                                        '%s conflict; file and directory\n' %
+                                        dirpath)
                                     self.stderr.flush()
                                     return 1
                                 subargs.append('--all-objects')
@@ -853,8 +881,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                                              '-')[:22].replace('T', ' '),
                                     item.get('hash', '-'),
                                     item.get('content_type', '-')))
-                        stdout.write(
-                           item.get('name', item.get('subdir')).encode('utf8'))
+                        stdout.write(item.get(
+                            'name', item.get('subdir')).encode('utf8'))
                         stdout.write('\n')
                     stdout.flush()
                 if options.limit:
@@ -873,9 +901,10 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         self._verbose('Retrieving %s listing starting after '
                                       '%s.\n' % (path, marker))
                         status, reason, headers, contents = \
-                            client.get_container(path, headers=hdrs,
-                            limit=limit, delimiter=delimiter, prefix=prefix,
-                            end_marker=end_marker, marker=marker)
+                            client.get_container(
+                                path, headers=hdrs, limit=limit,
+                                delimiter=delimiter, prefix=prefix,
+                                end_marker=end_marker, marker=marker)
                 if status // 100 != 2:
                     if status == 404 and options.ignore_404:
                         return 0
@@ -1095,9 +1124,11 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 start = 0
                 segment = 0
                 while start < size:
-                    subargs = ['%s%08d' % (prefix, segment), '-h',
-                        'content-length:%s' %
-                            min(size - start, options.segment_size)]
+                    subargs = [
+                        '%s%08d' % (prefix, segment),
+                        '-h',
+                        'content-length:%s' % min(
+                            size - start, options.segment_size)]
                     substdin = open(options.input_, 'rb')
                     substdin.seek(start)
                     for rv in conc.get_results().values():
@@ -1245,7 +1276,8 @@ THERE IS NO GOING BACK!""".strip())
                         rv = self._delete(subargs)
                         if rv:
                             self.stderr.write(
-                               'aborting after error with %s\n' % item['name'])
+                                'aborting after error with %s\n' %
+                                item['name'])
                             self.stderr.flush()
                             return 1
                     marker = item['name']
@@ -1268,11 +1300,13 @@ THERE IS NO GOING BACK!""".strip())
                                 self._verbose(
                                     'Retrieving %s listing.\n' % path)
                             else:
-                                self._verbose('Retrieving %s listing starting '
-                                    'after %s.\n' % (path.rstrip('/'), marker))
+                                self._verbose(
+                                    'Retrieving %s listing starting after '
+                                    '%s.\n' % (path.rstrip('/'), marker))
                             status, reason, headers, contents = \
-                                client.get_container(path.rstrip('/'),
-                                    headers=hdrs, marker=marker)
+                                client.get_container(
+                                    path.rstrip('/'), headers=hdrs,
+                                    marker=marker)
                         if status // 100 != 2:
                             if status == 404 and options.ignore_404:
                                 return 0

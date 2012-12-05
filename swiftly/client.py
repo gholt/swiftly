@@ -284,7 +284,8 @@ class Client(object):
         while attempt < self.attempts:
             attempt += 1
             parsed, conn = self._connect(self.auth_url)
-            conn.request('GET', parsed.path, '',
+            conn.request(
+                'GET', parsed.path, '',
                 {'User-Agent': 'Swiftly v%s' % VERSION,
                  'X-Auth-User': _quote(self.auth_user),
                  'X-Auth-Key': _quote(self.auth_key)})
@@ -315,8 +316,9 @@ class Client(object):
                     if not self.auth_token:
                         raise KeyError('x-auth-token or x-storage-token')
                 if self.cache_path:
-                    data = '\n'.join([self.auth_url, self.auth_user,
-                        self.auth_key, self.storage_url, self.auth_token])
+                    data = '\n'.join([
+                        self.auth_url, self.auth_user, self.auth_key,
+                        self.storage_url, self.auth_token])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
@@ -588,7 +590,7 @@ class Client(object):
     def delete_account(self, headers=None,
                        yes_i_mean_delete_the_account=False):
         """
-        DELETEs the account and returns the results. 
+        DELETEs the account and returns the results.
 
         Some Swift clusters do not support this.
 

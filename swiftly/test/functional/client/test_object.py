@@ -22,7 +22,7 @@ from nose import SkipTest
 
 from swiftly.client import Client
 from swiftly.test.functional import AUTH_URL, AUTH_USER, AUTH_KEY, \
-                                    SWIFT_PROXY_STORAGE_PATH
+    SWIFT_PROXY_STORAGE_PATH
 
 try:
     from eventlet.green.httplib import HTTPException
