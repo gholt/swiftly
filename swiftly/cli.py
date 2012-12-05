@@ -73,7 +73,8 @@ class _OptionParser(OptionParser):
     def __init__(self, usage=None, option_list=None, option_class=Option,
                  version=None, conflict_handler='error', description=None,
                  formatter=None, add_help_option=True, prog=None, epilog=None,
-                 stdout=None, stderr=None):
+                 stdout=None, stderr=None, preamble=''):
+        self.preamble = preamble
         OptionParser.__init__(self, usage, option_list, option_class, version,
                               conflict_handler, description, formatter,
                               False, prog, epilog)
@@ -97,6 +98,7 @@ class _OptionParser(OptionParser):
 
     def error(self, msg):
         self.error_encountered = True
+        self.stderr.write(self.preamble)
         self.stderr.write(msg)
         self.stderr.write('\n')
         self.stderr.flush()
@@ -161,7 +163,7 @@ For help on [main_options] run %prog with no args.
 
 Outputs help information for the given [command] or general help if no
 [command] is given.""".strip(),
-            stdout=self.stdout, stderr=self.stderr)
+            stdout=self.stdout, stderr=self.stderr, preamble='help command: ')
 
         self._auth_parser = _OptionParser(usage="""
 Usage: %prog [main_options] auth
@@ -169,7 +171,7 @@ Usage: %prog [main_options] auth
 For help on [main_options] run %prog with no args.
 
 Outputs auth information.""".strip(),
-            stdout=self.stdout, stderr=self.stderr)
+            stdout=self.stdout, stderr=self.stderr, preamble='auth command: ')
 
         self._head_parser = _OptionParser(usage="""
 Usage: %prog [main_options] head [options] [path]
@@ -178,7 +180,7 @@ For help on [main_options] run %prog with no args.
 
 Outputs the resulting headers from a HEAD request of the [path] given. If no
 [path] is given, a HEAD request on the account is performed.""".strip(),
-            stdout=self.stdout, stderr=self.stderr)
+            stdout=self.stdout, stderr=self.stderr, preamble='head command: ')
         self._head_parser.add_option('-h', '--header', dest='header',
             action='append', metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
@@ -197,7 +199,7 @@ For help on [main_options] run %prog with no args.
 
 Outputs the resulting contents from a GET request of the [path] given. If no
 [path] is given, a GET request on the account is performed.""".strip(),
-            stdout=self.stdout, stderr=self.stderr)
+            stdout=self.stdout, stderr=self.stderr, preamble='get command: ')
         self._get_parser.add_option('--headers', dest='headers',
             action='store_true',
             help='Output headers as well as the contents.')
@@ -310,7 +312,7 @@ stored. For Swiftly, this header value is auto-generated as the same
 name as the manifest object, but with "_segments" added to the
 container name. This keeps the segments out of the main container
 listing, which is often useful.""".strip(),
-            stdout=self.stdout, stderr=self.stderr)
+            stdout=self.stdout, stderr=self.stderr, preamble='put command: ')
         self._put_parser.add_option('-h', '--header', dest='header',
             action='append', metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
@@ -364,7 +366,7 @@ For help on [main_options] run %prog with no args.
 
 Issues a POST request of the [path] given. If no [path] is given, a POST
 request on the account is performed.""".strip(),
-            stdout=self.stdout, stderr=self.stderr)
+            stdout=self.stdout, stderr=self.stderr, preamble='post command: ')
         self._post_parser.add_option('-h', '--header', dest='header',
             action='append', metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
@@ -377,7 +379,8 @@ Usage: %prog [main_options] delete [options] [path]
 For help on [main_options] run %prog with no args.
 
 Issues a DELETE request of the [path] given.""".strip(),
-            stdout=self.stdout, stderr=self.stderr)
+            stdout=self.stdout, stderr=self.stderr,
+            preamble='delete command: ')
         self._delete_parser.add_option('-h', '--header', dest='header',
             action='append', metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
