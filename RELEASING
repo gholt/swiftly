@@ -1,2 +1,8 @@
-Update swiftly/__init__.py VERSION string
+Update swiftly/__init__.py VERSION string to an even-ending version
 Update rpmbuild/SPECS/swiftly.spec Version: line and %changelog area
+Commit the changes
+Tag the commit: git tag <version>
+Update swiftly/__init__.py VERSION string to an odd-ending version
+Update rpmbuild/SPECS/swiftly.spec Version: line and %changelog area
+Commit the changes
+Push the changes and the tag: git push ; git push --tags
