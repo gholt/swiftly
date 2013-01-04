@@ -801,10 +801,9 @@ class Client(object):
             container = _quote(container)
         else:
             container = '/' + _quote(container)
-        if obj.startswith('/'):
-            return container + _quote(obj)
-        else:
-            return container + '/' + _quote(obj)
+        # Leading/trailing slashes are allowed in object names, so don't strip
+        # them.
+        return container + '/' + _quote(obj)
 
     def head_object(self, container, obj, headers=None):
         """
