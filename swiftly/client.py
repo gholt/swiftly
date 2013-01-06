@@ -145,6 +145,34 @@ class _LocalMemcache(object):
         return [self.get(k) for k in keys]
 
 
+class _NullLogger(object):
+
+        client_ip = 'client_ip'
+        thread_locals = 'thread_locals'
+        txn_id = 'txn_id'
+
+        def debug(*args, **kwargs):
+                pass
+
+        def error(*args, **kwargs):
+                pass
+
+        def exception(*args, **kwargs):
+                pass
+
+        def increment(*args, **kwargs):
+                pass
+
+        def set_statsd_prefix(*args, **kwargs):
+                pass
+
+        def warn(*args, **kwargs):
+                pass
+
+        def warning(*args, **kwargs):
+                pass
+
+
 class _IterReader(object):
 
     def __init__(self, iterator):
@@ -224,7 +252,8 @@ class Client(object):
         self.storage_path = None
         self.swift_proxy = swift_proxy
         if swift_proxy is True:
-            self.swift_proxy = SwiftProxy({}, memcache=_LocalMemcache())
+            self.swift_proxy = SwiftProxy({}, memcache=_LocalMemcache(),
+                                          logger=_NullLogger())
         if swift_proxy:
             self.storage_path = swift_proxy_storage_path
         self.cache_path = cache_path
