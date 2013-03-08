@@ -1,4 +1,0 @@
-# Overwrite jquery.js  from upstream tarball with a  link to jquery.js
-# provided by jQuery Debian package
-/usr/share/javascript/jquery/jquery.js usr/share/doc/swiftly-doc/html/_static/jquery.js
-
