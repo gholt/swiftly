@@ -1,3 +1,9 @@
+swiftly (1.4-1) lucid; urgency=low
+
+  * Initial debian packaged release.
+
+ -- Greg Holt <greg@brim.net>  Sat, 08 Mar 2013 00:43:00 +0000
+
 swiftly (1.3-1) lucid; urgency=low
 
   * Working development release
