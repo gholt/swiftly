@@ -44,6 +44,7 @@ MUTED_CONTAINER_HEADERS = ['accept-ranges', 'content-length', 'content-type',
 MUTED_OBJECT_HEADERS = ['accept-ranges', 'date']
 
 
+# TODO: Make Eventlet back on by default again since 0.11.0 fixed the CPU bug
 def _delayed_imports(eventlet=False):
     PIPE = Popen = None
     if eventlet:
@@ -960,6 +961,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     unlink(options.output)
                     makedirs(options.output)
             else:
+                # TODO: Exception handling around these and other reads
                 chunk = contents.read(CHUNK_SIZE)
                 while chunk:
                     stdout.write(chunk)
