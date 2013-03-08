@@ -1,3 +1,9 @@
+swiftly (1.4-2) lucid; urgency=low
+
+  * Forgot to bump __init__.py version number.
+
+ -- Greg Holt <greg@brim.net>  Sat, 08 Mar 2013 01:19:00 +0000
+
 swiftly (1.4-1) lucid; urgency=low
 
   * Initial debian packaged release.
