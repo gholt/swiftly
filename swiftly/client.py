@@ -121,7 +121,7 @@ class _LocalMemcache(object):
             return delta
 
     def decr(self, key, delta=1, timeout=0, time=0):
-        return self.incr(key, delta=-delta, timeout=time or timeout)
+        return self.incr(key, delta=-delta, timeout=timeout, time=time)
 
     def delete(self, key):
         node = self.cache.get(key)
