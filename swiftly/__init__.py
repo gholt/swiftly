@@ -21,4 +21,4 @@ __all__ = ['VERSION']
 #: Version str for Swiftly: "major.minor".
 #: If the second number is even, it's an official release.
 #: If the second number is odd, it's a development release.
-VERSION = '1.4'
+VERSION = '1.6'
