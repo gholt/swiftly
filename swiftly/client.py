@@ -95,7 +95,7 @@ class _LocalMemcache(object):
         self.count = 0
         self.max_count = 1000
 
-    def set(self, key, value, serialize=True, timeout=0):
+    def set(self, key, value, serialize=True, timeout=0, time=0):
         self.delete(key)
         self.last = node = _Node(key, value, self.last, None)
         if node.prv:
@@ -111,7 +111,7 @@ class _LocalMemcache(object):
         node = self.cache.get(key)
         return node.val if node else None
 
-    def incr(self, key, delta=1, timeout=0):
+    def incr(self, key, delta=1, timeout=0, time=0):
         node = self.cache.get(key)
         if node:
             node.val += delta
@@ -120,8 +120,8 @@ class _LocalMemcache(object):
             self.set(key, delta)
             return delta
 
-    def decr(self, key, delta=1, timeout=0):
-        return self.incr(key, delta=-delta, timeout=timeout)
+    def decr(self, key, delta=1, timeout=0, time=0):
+        return self.incr(key, delta=-delta, timeout=timeout, time=time)
 
     def delete(self, key):
         node = self.cache.get(key)
@@ -137,7 +137,8 @@ class _LocalMemcache(object):
                 self.last = node.prv
             self.count -= 1
 
-    def set_multi(self, mapping, server_key, serialize=True, timeout=0):
+    def set_multi(self, mapping, server_key, serialize=True, timeout=0,
+                  time=0):
         for key, value in mapping.iteritems():
             self.set(key, value)
 
