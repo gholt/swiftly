@@ -734,7 +734,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             if not key:
                 self.stderr.write(
                     'There is no X-Account-Meta-Temp-URL-Key set for this '
-                    'account.')
+                    'account.\n')
                 self.stderr.flush()
                 return 1
             url = client.storage_url + '/' + path
