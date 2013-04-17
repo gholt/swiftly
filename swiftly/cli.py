@@ -28,7 +28,7 @@ import sys
 import textwrap
 
 from swiftly import VERSION
-from swiftly.client import Client, CHUNK_SIZE
+from swiftly.client import Client, CHUNK_SIZE, generate_temp_url
 from swiftly.concurrency import Concurrency
 
 try:
@@ -175,6 +175,18 @@ For help on [main_options] run %prog with no args.
 
 Outputs auth information.""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='auth command: ')
+
+        self._tempurl_parser = _OptionParser(
+            usage="""
+Usage: %prog [main_options] tempurl <method> <path> [seconds]
+
+For help on [main_options] run %prog with no args.
+
+Outputs a TempURL using the information given.
+The <path> should be to an object or object-prefix.
+[seconds] defaults to 3600""".strip(),
+            stdout=self.stdout, stderr=self.stderr,
+            preamble='tempurl command: ')
 
         self._head_parser = _OptionParser(
             usage="""
@@ -686,6 +698,47 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self.stdout.write('\n')
             self.stdout.write('Auth Token:  ')
             self.stdout.write(client.auth_token)
+            self.stdout.write('\n')
+            self.stdout.flush()
+        return 0
+
+    @_client_command
+    def _tempurl(self, args):
+        try:
+            options, args = self._tempurl_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
+        if self._tempurl_parser.error_encountered:
+            return 1
+        if not args or len(args) < 2 or options.help:
+            self._tempurl_parser.print_help()
+            return 1
+        method = args.pop(0)
+        path = args.pop(0).lstrip('/')
+        seconds = int(args.pop(0)) if args else 3600
+        if args:
+            self._tempurl_parser.print_help()
+            return 1
+        if '/' not in path:
+            self._tempurl_parser.print_help()
+            return 1
+        with self._with_client() as client:
+            status, reason, headers, contents = client.head_account()
+            if status // 100 != 2:
+                self.stderr.write('%s %s\n' % (status, reason))
+                self.stderr.flush()
+                return 1
+            key = headers.get('x-account-meta-temp-url-key')
+            if not key:
+                self.stderr.write(
+                    'There is no X-Account-Meta-Temp-URL-Key set for this '
+                    'account.')
+                self.stderr.flush()
+                return 1
+            url = client.storage_url + '/' + path
+            self.stdout.write(generate_temp_url(method, url, seconds, key))
             self.stdout.write('\n')
             self.stdout.flush()
         return 0

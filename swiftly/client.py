@@ -19,7 +19,10 @@ limitations under the License.
 __all__ = ['VERSION', 'CHUNK_SIZE', 'Client']
 
 
+import hmac
+from hashlib import sha1
 from os import umask
+from time import time
 from urllib import quote
 from urlparse import urlparse, urlunparse
 
@@ -41,6 +44,17 @@ from swiftly import VERSION
 
 
 CHUNK_SIZE = 65536
+
+
+def generate_temp_url(method, url, seconds, key):
+    method = method.upper()
+    base_url, object_path = url.split('/v1/')
+    object_path = '/v1/' + object_path
+    expires = int(time() + seconds)
+    hmac_body = '%s\n%s\n%s' % (method, expires, object_path)
+    sig = hmac.new(key, hmac_body, sha1).hexdigest()
+    return '%s%s?temp_url_sig=%s&temp_url_expires=%s' % (
+        base_url, object_path, sig, expires)
 
 
 def _delayed_imports(eventlet=True):
