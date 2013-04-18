@@ -386,7 +386,7 @@ class Client(object):
                 if self.cache_path:
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
-                        self.storage_url, self.cdn_url,
+                        self.storage_url, self.cdn_url or '',
                         self.auth_token])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
