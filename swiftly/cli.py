@@ -23,7 +23,7 @@ from optparse import Option, OptionParser
 from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
-from time import mktime, strptime
+from time import mktime, strptime, time
 import sys
 import textwrap
 
@@ -155,6 +155,7 @@ class CLI(object):
         self.stderr = stderr
         if not self.stderr:
             self.stderr = sys.stderr
+        self.start_time = time()
         self.clients = Queue()
 
         self._help_parser = _OptionParser(
@@ -496,6 +497,11 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             help='Key for auth system, example: testing You can also set this '
                  'with the environment variable SWIFTLY_AUTH_KEY.')
         self._main_parser.add_option(
+            '--region', dest='region',
+            default=environ.get('SWIFTLY_REGION', ''), metavar='VALUE',
+            help='Region to use, if supported by auth, example: DFW You can '
+                 'also set this with the environment variable SWIFTLY_REGION.')
+        self._main_parser.add_option(
             '-D', '--direct', dest='direct',
             default=environ.get('SWIFTLY_DIRECT', ''), metavar='PATH',
             help='Uses direct connect method to access Swift. Requires access '
@@ -545,7 +551,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         self._main_parser.add_option(
             '-v', '--verbose', dest='verbose', action='store_true',
             help='Causes output to standard error indicating actions being '
-                 'taken.')
+                 'taken. These output lines will be prefixed with VERBOSE and '
+                 'will also include the number of seconds elapsed since '
+                 'Swiftly started.')
         self._main_parser.commands = 'Commands:\n'
         for key in sorted(dir(self)):
             attr = getattr(self, key)
@@ -601,9 +609,15 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         self._put_client(client)
         return func(args[1:])
 
-    def _verbose(self, msg):
+    def _verbose(self, msg, *args):
         if self._main_options.verbose:
-            self.stderr.write(msg)
+            try:
+                self.stderr.write(
+                    'VERBOSE %.02f ' % (time() - self.start_time))
+                self.stderr.write(msg % args)
+            except TypeError, err:
+                raise TypeError('%s: %r %d args' % (err, msg, len(args)))
+            self.stderr.write('\n')
             self.stderr.flush()
 
     def _get_client(self):
@@ -614,16 +628,16 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         if not client:
             if self._main_options.direct:
-                self._verbose('Connecting direct client.\n')
                 client = Client(
                     swift_proxy=True,
                     swift_proxy_storage_path=self._main_options.direct,
                     retries=int(self._main_options.retries),
-                    eventlet=self._main_options.eventlet)
+                    eventlet=self._main_options.eventlet,
+                    region=self._main_options.region,
+                    verbose=self._verbose)
             elif all([self._main_options.auth_url,
                       self._main_options.auth_user,
                       self._main_options.auth_key]):
-                self._verbose('Connecting client.\n')
                 cache_path = None
                 if self._main_options.cache_auth:
                     cache_path = \
@@ -636,7 +650,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     snet=self._main_options.snet,
                     retries=int(self._main_options.retries),
                     cache_path=cache_path,
-                    eventlet=self._main_options.eventlet)
+                    eventlet=self._main_options.eventlet,
+                    region=self._main_options.region,
+                    verbose=self._verbose)
         return client
 
     def _put_client(self, client):
@@ -714,12 +730,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self.stdout.flush()
             return 0
         with self._with_client() as client:
-            self._verbose('HEADing the account to establish auth.\n')
-            status, reason, headers, contents = client.head_account()
-            if status // 100 != 2:
-                self.stderr.write('%s %s\n' % (status, reason))
-                self.stderr.flush()
-                return 1
+            client.auth()
             self.stdout.write('Storage URL: ')
             self.stdout.write(client.storage_url)
             self.stdout.write('\n')
@@ -792,7 +803,6 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         mute = []
         if not args:
             with self._with_client() as client:
-                self._verbose('HEADing the account.\n')
                 status, reason, headers, contents = client.head_account(
                     headers=hdrs, query=options.query,
                     cdn=self._main_options.cdn)
@@ -800,7 +810,6 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         elif len(args) == 1:
             path = args[0].lstrip('/')
             with self._with_client() as client:
-                self._verbose('HEADing %s.\n' % path)
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = \
                         client.head_container(path.rstrip('/'), headers=hdrs,
@@ -870,21 +879,11 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             end_marker = options.end_marker
             with self._with_client() as client:
                 if not path:
-                    if not marker:
-                        self._verbose('Retrieving account listing.\n')
-                    else:
-                        self._verbose('Retrieving account listing starting '
-                                      'after %s.\n' % marker)
                     status, reason, headers, contents = client.get_account(
                         headers=hdrs, limit=limit, marker=marker,
                         end_marker=end_marker, query=options.query,
                         cdn=self._main_options.cdn)
                 else:
-                    if not marker:
-                        self._verbose('Retrieving %s listing.\n' % path)
-                    else:
-                        self._verbose('Retrieving %s listing starting after '
-                                      '%s.\n' % (path, marker))
                     status, reason, headers, contents = client.get_container(
                         path, headers=hdrs, limit=limit, delimiter=delimiter,
                         prefix=prefix, marker=marker, end_marker=end_marker,
@@ -905,8 +904,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             if options.output and options.output.endswith('/'):
                 conc_value = int(self._main_options.concurrency)
             elif options.all_objects:
-                self._verbose('Disabling some concurrency because of single '
-                              'stream output.\n')
+                self._verbose(
+                    'Disabling some concurrency because of single stream '
+                    'output.')
             conc = Concurrency(conc_value)
             while contents:
                 if options.all_objects:
@@ -981,16 +981,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     contents[-1].get('name', contents[-1].get('subdir', ''))
                 with self._with_client() as client:
                     if not path:
-                        self._verbose('Retrieving account listing starting '
-                                      'after %s.\n' % marker)
                         status, reason, headers, contents = client.get_account(
                             headers=hdrs, limit=limit, delimiter=delimiter,
                             prefix=prefix, end_marker=end_marker,
                             marker=marker, query=options.query,
                             cdn=self._main_options.cdn)
                     else:
-                        self._verbose('Retrieving %s listing starting after '
-                                      '%s.\n' % (path, marker))
                         status, reason, headers, contents = \
                             client.get_container(
                                 path, headers=hdrs, limit=limit,
@@ -1018,7 +1014,6 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                                 stdout=stdout)
             stdout = sub_command.stdin
         with self._with_client() as client:
-            self._verbose('GETting %s.\n' % path)
             status, reason, headers, contents = \
                 client.get_object(*path.split('/', 1), headers=hdrs,
                 query=options.query, cdn=self._main_options.cdn)
@@ -1026,9 +1021,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 if status == 404 and options.ignore_404:
                     if sub_command:
                         stdout.close()
-                        self._verbose('Waiting on sub-command for %s\n' % path)
+                        self._verbose('Waiting on sub-command for %s', path)
                         self._verbose(
-                            'Sub-command returned %s with object %s\n' %
+                            'Sub-command returned %s with object %s',
                             (sub_command.wait(), path))
                     return 0
                 self.stderr.write('%s %s\n' % (status, reason))
@@ -1037,9 +1032,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     contents.read()
                 if sub_command:
                     stdout.close()
-                    self._verbose('Waiting on sub-command for %s\n' % path)
+                    self._verbose('Waiting on sub-command for %s', path)
                     self._verbose(
-                        'Sub-command returned %s with object %s\n' %
+                        'Sub-command returned %s with object %s',
                         (sub_command.wait(), path))
                 return 1
             if options.headers:
@@ -1072,9 +1067,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 utime(options.output, (mtime, mtime))
         if sub_command:
             stdout.close()
-            self._verbose('Waiting on sub-command for %s\n' % path)
+            self._verbose('Waiting on sub-command for %s', path)
             self._verbose(
-                'Sub-command returned %s with object %s\n' %
+                'Sub-command returned %s with object %s',
                 (sub_command.wait(), path))
         return 0
 
@@ -1243,7 +1238,6 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         with self._with_client() as client:
-            self._verbose('PUTting %s.\n' % path)
             if '/' not in path.rstrip('/'):
                 status, reason, headers, contents = \
                     client.put_container(
@@ -1285,7 +1279,6 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         elif len(args) == 1:
             path = args[0].lstrip('/')
             with self._with_client() as client:
-                self._verbose('POSting %s.\n' % path)
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = \
                         client.post_container(
@@ -1359,11 +1352,6 @@ THERE IS NO GOING BACK!""".strip())
                 marker = None
                 while True:
                     with self._with_client() as client:
-                        if not marker:
-                            self._verbose('Retrieving account listing.\n')
-                        else:
-                            self._verbose('Retrieving account listing '
-                                          'starting after %s.\n' % marker)
                         status, reason, headers, contents = \
                             client.get_account(
                                 headers=hdrs, marker=marker,
@@ -1395,7 +1383,6 @@ THERE IS NO GOING BACK!""".strip())
             if options.yes_delete_account:
                 with self._with_client() as client:
                     yn = options.yes_delete_account
-                    self._verbose('DELETEing the account.\n')
                     status, reason, headers, contents = \
                         client.delete_account(
                             headers=hdrs, query=options.query,
@@ -1408,13 +1395,6 @@ THERE IS NO GOING BACK!""".strip())
                     marker = None
                     while True:
                         with self._with_client() as client:
-                            if not marker:
-                                self._verbose(
-                                    'Retrieving %s listing.\n' % path)
-                            else:
-                                self._verbose(
-                                    'Retrieving %s listing starting after '
-                                    '%s.\n' % (path.rstrip('/'), marker))
                             status, reason, headers, contents = \
                                 client.get_container(
                                     path.rstrip('/'), headers=hdrs,
@@ -1449,7 +1429,6 @@ THERE IS NO GOING BACK!""".strip())
                             if rv:
                                 return rv
                     with self._with_client() as client:
-                        self._verbose('DELETEing %s\n' % path.rstrip('/'))
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
@@ -1457,7 +1436,6 @@ THERE IS NO GOING BACK!""".strip())
                                 cdn=self._main_options.cdn)
                 else:
                     with self._with_client() as client:
-                        self._verbose('DELETEing %s\n' % path.rstrip('/'))
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
@@ -1465,7 +1443,6 @@ THERE IS NO GOING BACK!""".strip())
                                 cdn=self._main_options.cdn)
             else:
                 with self._with_client() as client:
-                    self._verbose('DELETEing %s\n' % path)
                     status, reason, headers, contents = \
                         client.delete_object(
                             *path.split('/', 1), headers=hdrs,

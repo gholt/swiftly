@@ -20,6 +20,7 @@ __all__ = ['VERSION', 'CHUNK_SIZE', 'Client']
 
 
 import hmac
+from errno import ENOENT
 from hashlib import sha1
 from os import umask
 from time import time
@@ -244,21 +245,35 @@ class Client(object):
     :param swift_proxy_storage_path: If swift_proxy is set,
         swift_proxy_storage_path is the path to the Swift account to
         use (example: /v1/AUTH_test).
-    :param cache_path: Default: None. If set to a path, the storage URL and
-        auth token are cached in the file for reuse. If there is already cached
-        values in the file, they are used without authenticating first.
+    :param cache_path: Default: None. If set to a path, the storage
+                       URL and auth token are cached in the file for
+                       reuse. If there is already cached values in
+                       the file, they are used without authenticating
+                       first.
     :param eventlet: Default: True. If true, Eventlet will be used if
-        installed.
+                     installed.
     :param swift_proxy_cdn_path: If swift_proxy is set,
-        swift_proxy_cdn_path is the path to the Swift account to use
-        for CDN management (example: /v1/AUTH_test).
+                                 swift_proxy_cdn_path is the path to
+                                 the Swift account to use for CDN
+                                 management (example: /v1/AUTH_test).
+    :param region: The region to access, if supported by auth
+                   (Example: DFW).
+    :param verbose: Set to a func(msg, *args) that will be called
+                    with debug messages. Constructing a string for
+                    output can be done with msg % args.
+    :param verbose_id: Set to a string you wish verbose messages to
+                       be prepended with; can help in identifying
+                       output when multiple Clients are in use.
     """
 
     def __init__(self, auth_url=None, auth_user=None, auth_key=None,
                  proxy=None, snet=False, retries=4, swift_proxy=None,
                  swift_proxy_storage_path=None, cache_path=None,
-                 eventlet=True, swift_proxy_cdn_path=None):
+                 eventlet=True, swift_proxy_cdn_path=None, region=None,
+                 verbose=None, verbose_id=''):
         self.auth_url = auth_url
+        if self.auth_url:
+            self.auth_url = self.auth_url.rstrip('/')
         self.auth_user = auth_user
         self.auth_key = auth_key
         self.proxy = proxy
@@ -271,8 +286,15 @@ class Client(object):
         self.cdn_conn = None
         self.cdn_path = None
         self.auth_token = None
+        self.region = region
+        self.verbose = verbose
+        self.verbose_id = verbose_id
+        self._verbose_id = self.verbose_id
+        if self._verbose_id:
+            self._verbose_id += ' '
         self.swift_proxy = swift_proxy
         if swift_proxy is True:
+            self._verbose('Creating default proxy instance.')
             self.swift_proxy = SwiftProxy({}, memcache=_LocalMemcache(),
                                           logger=_NullLogger())
         if swift_proxy:
@@ -283,29 +305,54 @@ class Client(object):
             try:
                 data = open(self.cache_path, 'r').read().decode('base64')
                 data = data.split('\n')
-                if len(data) == 6:
-                    (auth_url, auth_user, auth_key, self.storage_url,
-                     self.cdn_url, self.auth_token) = data
+                if len(data) == 7:
+                    (auth_url, auth_user, auth_key, region,
+                     self.storage_url, self.cdn_url, self.auth_token) = data
                     if auth_url != self.auth_url or \
                             auth_user != self.auth_user or \
-                            auth_key != self.auth_key:
+                            auth_key != self.auth_key or \
+                            (self.region and region != self.region):
                         self.storage_url = None
                         self.cdn_url = None
                         self.auth_token = None
-            except Exception:
-                pass
+                        self._verbose(
+                            'Cache %s did not match new settings; discarding.',
+                            self.cache_path)
+                    else:
+                        self._verbose(
+                            'Read auth response values from cache %s.',
+                            self.cache_path)
+                else:
+                    self._verbose(
+                        'Cache %s was unrecognized format; discarding.',
+                        self.cache_path)
+            except IOError, err:
+                if err.errno == ENOENT:
+                    self._verbose('No cached values in %s.', self.cache_path)
+                else:
+                    self._verbose(
+                        'Exception attempting to read auth response values '
+                        'from cache %s: %r', self.cache_path, err)
+            except Exception, err:
+                self._verbose(
+                    'Exception attempting to read auth response values from '
+                    'cache %s: %r', self.cache_path, err)
         (self.BadStatusLine, self.HTTPConnection, self.HTTPException,
          self.HTTPSConnection, self.sleep) = _delayed_imports(eventlet)
+
+    def _verbose(self, msg, *args):
+        if self.verbose:
+            self.verbose(self._verbose_id + msg, *args)
 
     def _connect(self, url=None, cdn=False):
         if not url:
             if cdn:
                 if not self.cdn_url:
-                    self._auth()
+                    self.auth()
                 url = self.cdn_url
             else:
                 if not self.storage_url:
-                    self._auth()
+                    self.auth()
                 url = self.storage_url
         parsed = urlparse(url) if url else None
         proxy_parsed = urlparse(self.proxy) if self.proxy else None
@@ -313,14 +360,18 @@ class Client(object):
             return None, None
         netloc = (proxy_parsed if self.proxy else parsed).netloc
         if parsed.scheme == 'http':
+            self._verbose('Establishing HTTP connection to %s', netloc)
             conn = self.HTTPConnection(netloc)
         elif parsed.scheme == 'https':
+            self._verbose('Establishing HTTPS connection to %s', netloc)
             conn = self.HTTPSConnection(netloc)
         else:
             raise self.HTTPException(
                 'Cannot handle protocol scheme %s for url %s' %
                 (parsed.scheme, repr(url)))
         if self.proxy:
+            self._verbose(
+                'Setting tunnelling to %s:%s', parsed.hostname, parsed.port)
             conn._set_tunnel(parsed.hostname, parsed.port)
         return parsed, conn
 
@@ -337,15 +388,31 @@ class Client(object):
                 hdrs[h] = v
         return hdrs
 
-    def _auth(self):
+    def auth(self):
         if not self.auth_url:
             return
+        if '1.0' in self.auth_url:
+            funcs = [self._auth1, self._auth2key, self._auth2password]
+        else:
+            funcs = [self._auth2key, self._auth2password, self._auth1]
+        info = []
+        for func in funcs:
+            status, reason = func()
+            info.append('%s %s' % (status, reason))
+            if status // 100 == 2:
+                break
+        else:
+            raise self.HTTPException('Auth failure %r.' % info)
+
+    def _auth1(self):
         status = 0
         reason = 'Unknown'
         attempt = 0
         while attempt < self.attempts:
             attempt += 1
+            self._verbose('Attempting auth v1 with %s', self.auth_url)
             parsed, conn = self._connect(self.auth_url)
+            self._verbose('> GET %s', parsed.path)
             conn.request(
                 'GET', parsed.path, '',
                 {'User-Agent': 'Swiftly v%s' % VERSION,
@@ -355,6 +422,7 @@ class Client(object):
                 resp = conn.getresponse()
                 status = resp.status
                 reason = resp.reason
+                self._verbose('< %s %s', status, reason)
                 hdrs = self._response_headers(resp.getheaders())
                 resp.read()
                 resp.close()
@@ -366,7 +434,12 @@ class Client(object):
             if status == 401:
                 break
             if status // 100 == 2:
-                self.storage_url = hdrs['x-storage-url']
+                try:
+                    self.storage_url = hdrs['x-storage-url']
+                except KeyError:
+                    status = 0
+                    reason = 'No x-storage-url header'
+                    break
                 if self.snet:
                     parsed = list(urlparse(self.storage_url))
                     # Second item in the list is the netloc
@@ -382,18 +455,114 @@ class Client(object):
                 if not self.auth_token:
                     self.auth_token = hdrs.get('x-storage-token')
                     if not self.auth_token:
-                        raise KeyError('x-auth-token or x-storage-token')
+                        status = 500
+                        reason = (
+                            'No x-auth-token or x-storage-token header in '
+                            'response')
+                        break
                 if self.cache_path:
+                    self._verbose(
+                        'Saving auth response values to cache %s.',
+                        self.cache_path)
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
-                        self.storage_url, self.cdn_url or '',
+                        self.region, self.storage_url, self.cdn_url or '',
                         self.auth_token])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
-                return
+                break
+            elif status // 100 != 5:
+                break
             self.sleep(2 ** attempt)
-        raise self.HTTPException('Auth GET failed', status, reason)
+        return status, reason
+
+    def _auth2key(self):
+        return self._auth2('RAX-KSKEY:apiKeyCredentials')
+    def _auth2password(self):
+        return self._auth2('passwordCredentials')
+
+    def _auth2(self, cred_type):
+        status = 0
+        reason = 'Unknown'
+        attempt = 0
+        while attempt < self.attempts:
+            attempt += 1
+            self._verbose(
+                'Attempting auth v2 %s with %s', cred_type, self.auth_url)
+            parsed, conn = self._connect(self.auth_url)
+            if cred_type == 'RAX-KSKEY:apiKeyCredentials':
+                body = json.dumps({'auth': {cred_type: {
+                    'username': self.auth_user, 'apiKey': self.auth_key}}})
+            else:
+                body = json.dumps({'auth': {cred_type: {
+                    'username': self.auth_user, 'password': self.auth_key}}})
+            self._verbose('> POST %s', parsed.path + '/tokens')
+            conn.request(
+                'POST', parsed.path + '/tokens', body,
+                {'Content-Type': 'application/json',
+                 'User-Agent': 'Swiftly v%s' % VERSION})
+            try:
+                resp = conn.getresponse()
+                status = resp.status
+                reason = resp.reason
+                self._verbose('< %s %s', status, reason)
+                hdrs = self._response_headers(resp.getheaders())
+                body = resp.read()
+                resp.close()
+                conn.close()
+            except Exception, err:
+                status = 0
+                reason = str(err)
+                hdrs = {}
+            if status == 401:
+                break
+            if status // 100 == 2:
+                try:
+                    body = json.loads(body)
+                except ValueError, err:
+                    status = 500
+                    reason = str(err)
+                    break
+                region = self.region or \
+                    body['access']['user']['RAX-AUTH:defaultRegion']
+                for service in body['access']['serviceCatalog']:
+                    if service['type'] == 'object-store':
+                        for endpoint in service['endpoints']:
+                            if endpoint['region'] == region:
+                                self.storage_url = endpoint.get(
+                                    'internalURL'
+                                    if self.snet else 'publicURL')
+                    elif service['type'] == 'rax:object-cdn':
+                        for endpoint in service['endpoints']:
+                            if endpoint['region'] == region:
+                                self.cdn_url = endpoint.get(
+                                    'internalURL'
+                                    if self.snet else 'publicURL')
+                self.auth_token = body['access']['token']['id']
+                if not self.storage_url:
+                    status = 500
+                    reason = (
+                        'No storage url resolved from response for region %r '
+                        'key %r.' %
+                        (region, 'internalURL' if self.snet else 'publicURL'))
+                    break
+                if self.cache_path:
+                    self._verbose(
+                        'Saving auth response values to cache %s.',
+                        self.cache_path)
+                    data = '\n'.join([
+                        self.auth_url, self.auth_user, self.auth_key,
+                        self.region, self.storage_url, self.cdn_url or '',
+                        self.auth_token])
+                    old_umask = umask(0077)
+                    open(self.cache_path, 'w').write(data.encode('base64'))
+                    umask(old_umask)
+                break
+            elif status // 100 != 5:
+                break
+            self.sleep(2 ** attempt)
+        return status, reason
 
     def _default_reset_func(self):
         raise self.HTTPException(
@@ -432,7 +601,6 @@ class Client(object):
                     else:
                         self.storage_conn = conn
                         self.storage_path = conn_path = parsed.path
-            if not conn:
                 raise self.HTTPException('%s %s failed' % (method, path),
                                          0, 'No connection')
             hdrs = {'User-Agent': 'Swiftly v%s' % VERSION,
@@ -445,8 +613,10 @@ class Client(object):
                     req = Request.blank(conn_path + path,
                                         environ={'REQUEST_METHOD': method},
                                         headers=hdrs, body=contents)
+                    self._verbose('> %s %s', req.method, req.path)
                     resp = req.get_response(self.swift_proxy)
                 else:
+                    self._verbose('> %s %s', method, conn_path + path)
                     conn.request(method, conn_path + path, contents, hdrs)
             else:
                 req = None
@@ -455,6 +625,7 @@ class Client(object):
                                         environ={'REQUEST_METHOD': method},
                                         headers=hdrs)
                 else:
+                    self._verbose('> %s %s', method, conn_path + path)
                     conn.putrequest(method, conn_path + path)
                 content_length = None
                 for h, v in hdrs.iteritems():
@@ -468,6 +639,7 @@ class Client(object):
                     if req:
                         req.headers['Transfer-Encoding'] = 'chunked'
                         req.body_file = contents
+                        self._verbose('> %s %s', req.method, req.path)
                         resp = req.get_response(self.swift_proxy)
                     else:
                         conn.putheader('Transfer-Encoding', 'chunked')
@@ -481,6 +653,7 @@ class Client(object):
                     if req:
                         req.body_file = contents
                         req.content_length = content_length
+                        self._verbose('>: %s %s', req.method, req.path)
                         resp = req.get_response(self.swift_proxy)
                     else:
                         conn.endheaders()
@@ -516,12 +689,13 @@ class Client(object):
                     value = _IterReader(resp.app_iter)
                 else:
                     value = resp.body
+            self._verbose('< %s', resp.status)
             if status == 401:
                 if stream:
                     resp.close()
                 conn.close()
                 conn = None
-                self._auth()
+                self.auth()
                 attempt -= 1
             elif status and status // 100 != 5:
                 if not stream and decode_json and status // 100 == 2:
@@ -663,8 +837,6 @@ class Client(object):
             query += '&end_marker=' + _quote(end_marker)
         if limit:
             query += '&limit=' + _quote(str(limit))
-        if query:
-            query += '&' + query
         return self._request(
             'GET', query, '', headers, decode_json=True, cdn=cdn)
 
