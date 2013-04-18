@@ -205,6 +205,10 @@ Outputs the resulting headers from a HEAD request of the [path] given. If no
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
         self._head_parser.add_option(
+            '-q', '--query', dest='query', metavar='QUERY_STRING',
+            help='This will add the QUERY_STRING to the request. Do not begin '
+                 'QUERY_STRING with ? or & as this will be done for you.')
+        self._head_parser.add_option(
             '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses. Nothing will be output, '
                  'but the exit code will be 0 instead of 1.')
@@ -228,6 +232,10 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'times for multiple headers. Examples: '
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
+        self._get_parser.add_option(
+            '-q', '--query', dest='query', metavar='QUERY_STRING',
+            help='This will add the QUERY_STRING to the request. Do not begin '
+                 'QUERY_STRING with ? or & as this will be done for you.')
         self._get_parser.add_option(
             '-l', '--limit', dest='limit',
             help='For account and container GETs, this limits the number of '
@@ -266,7 +274,10 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'output will be bytes-used, object-count, and '
                  'container-name. For a container GET, the items output will '
                  'be bytes-used, last-modified-time, etag, content-type, and '
-                 'object-name.')
+                 'object-name. Note that this is mostly useless for --cdn '
+                 'queries; for those it is best to just use --raw and parse '
+                 'the results yourself (perhaps through "python -m '
+                 'json.tool").')
         self._get_parser.add_option(
             '-r', '--raw', dest='raw', action="store_true",
             help='For account and container GETs, this will return the raw '
@@ -280,7 +291,8 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'for every container returned by the original account GET. '
                  'For a container GET, performs a GET for every object '
                  'returned by that original container GET. Any headers set '
-                 'with --header options are also sent for every object GET.')
+                 'with --header options are sent for every GET. Any query '
+                 'string set with --query is sent for every GET.')
         self._get_parser.add_option(
             '-o', '--output', dest='output', metavar='PATH',
             help='Indicates where to send the output; default is standard '
@@ -344,6 +356,10 @@ listing, which is often useful.""".strip(),
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
         self._put_parser.add_option(
+            '-q', '--query', dest='query', metavar='QUERY_STRING',
+            help='This will add the QUERY_STRING to the request. Do not begin '
+                 'QUERY_STRING with ? or & as this will be done for you.')
+        self._put_parser.add_option(
             '-i', '--input', dest='input_', metavar='PATH',
             help='Indicates where to read the contents from; default is '
                  'standard input. If the PATH is a directory, all files in '
@@ -399,6 +415,10 @@ request on the account is performed.""".strip(),
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
+        self._post_parser.add_option(
+            '-q', '--query', dest='query', metavar='QUERY_STRING',
+            help='This will add the QUERY_STRING to the request. Do not begin '
+                 'QUERY_STRING with ? or & as this will be done for you.')
 
         self._delete_parser = _OptionParser(
             usage="""
@@ -416,6 +436,10 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'times for multiple headers. Examples: '
                  '-hx-some-header:some-value -h "X-Some-Other-Header: Some '
                  'other value"')
+        self._delete_parser.add_option(
+            '-q', '--query', dest='query', metavar='QUERY_STRING',
+            help='This will add the QUERY_STRING to the request. Do not begin '
+                 'QUERY_STRING with ? or & as this will be done for you.')
         self._delete_parser.add_option(
             '--recursive', dest='recursive', action='store_true',
             help='Normally a delete for a non-empty container will error with '
@@ -505,6 +529,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                  'values, they are used without authenticating first. You can '
                  'also set this with the environment variable '
                  'SWIFTLY_CACHE_AUTH (set to "true" or "false").')
+        self._main_parser.add_option(
+            '--cdn', dest='cdn', action='store_true',
+            help='Directs requests to the CDN management interface.')
         self._main_parser.add_option(
             '--concurrency', dest='concurrency', default='1',
             metavar='INTEGER',
@@ -687,7 +714,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self.stdout.flush()
             return 0
         with self._with_client() as client:
-            self._verbose('HEADing the account.\n')
+            self._verbose('HEADing the account to establish auth.\n')
             status, reason, headers, contents = client.head_account()
             if status // 100 != 2:
                 self.stderr.write('%s %s\n' % (status, reason))
@@ -696,6 +723,10 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self.stdout.write('Storage URL: ')
             self.stdout.write(client.storage_url)
             self.stdout.write('\n')
+            if client.cdn_url:
+                self.stdout.write('CDN Management URL: ')
+                self.stdout.write(client.cdn_url)
+                self.stdout.write('\n')
             self.stdout.write('Auth Token:  ')
             self.stdout.write(client.auth_token)
             self.stdout.write('\n')
@@ -762,8 +793,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if not args:
             with self._with_client() as client:
                 self._verbose('HEADing the account.\n')
-                status, reason, headers, contents = \
-                    client.head_account(headers=hdrs)
+                status, reason, headers, contents = client.head_account(
+                    headers=hdrs, query=options.query,
+                    cdn=self._main_options.cdn)
             mute.extend(MUTED_ACCOUNT_HEADERS)
         elif len(args) == 1:
             path = args[0].lstrip('/')
@@ -771,11 +803,13 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self._verbose('HEADing %s.\n' % path)
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = \
-                        client.head_container(path.rstrip('/'), headers=hdrs)
+                        client.head_container(path.rstrip('/'), headers=hdrs,
+                        query=options.query, cdn=self._main_options.cdn)
                     mute.extend(MUTED_CONTAINER_HEADERS)
                 else:
                     status, reason, headers, contents = \
-                        client.head_object(*path.split('/', 1), headers=hdrs)
+                        client.head_object(*path.split('/', 1), headers=hdrs,
+                        query=options.query, cdn=self._main_options.cdn)
                     mute.extend(MUTED_OBJECT_HEADERS)
         else:
             self._head_parser.print_help()
@@ -843,7 +877,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                                       'after %s.\n' % marker)
                     status, reason, headers, contents = client.get_account(
                         headers=hdrs, limit=limit, marker=marker,
-                        end_marker=end_marker)
+                        end_marker=end_marker, query=options.query,
+                        cdn=self._main_options.cdn)
                 else:
                     if not marker:
                         self._verbose('Retrieving %s listing.\n' % path)
@@ -852,7 +887,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                                       '%s.\n' % (path, marker))
                     status, reason, headers, contents = client.get_container(
                         path, headers=hdrs, limit=limit, delimiter=delimiter,
-                        prefix=prefix, marker=marker, end_marker=end_marker)
+                        prefix=prefix, marker=marker, end_marker=end_marker,
+                        query=options.query, cdn=self._main_options.cdn)
             if status // 100 != 2:
                 if status == 404 and options.ignore_404:
                     return 0
@@ -950,7 +986,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         status, reason, headers, contents = client.get_account(
                             headers=hdrs, limit=limit, delimiter=delimiter,
                             prefix=prefix, end_marker=end_marker,
-                            marker=marker)
+                            marker=marker, query=options.query,
+                            cdn=self._main_options.cdn)
                     else:
                         self._verbose('Retrieving %s listing starting after '
                                       '%s.\n' % (path, marker))
@@ -958,7 +995,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                             client.get_container(
                                 path, headers=hdrs, limit=limit,
                                 delimiter=delimiter, prefix=prefix,
-                                end_marker=end_marker, marker=marker)
+                                end_marker=end_marker, marker=marker,
+                                query=options.query,
+                                cdn=self._main_options.cdn)
                 if status // 100 != 2:
                     if status == 404 and options.ignore_404:
                         return 0
@@ -981,7 +1020,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         with self._with_client() as client:
             self._verbose('GETting %s.\n' % path)
             status, reason, headers, contents = \
-                client.get_object(*path.split('/', 1), headers=hdrs)
+                client.get_object(*path.split('/', 1), headers=hdrs,
+                query=options.query, cdn=self._main_options.cdn)
             if status // 100 != 2:
                 if status == 404 and options.ignore_404:
                     if sub_command:
@@ -1150,7 +1190,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 r_size = -1
                 with self._with_client() as client:
                     status, reason, headers, contents = \
-                        client.head_object(*path.split('/', 1))
+                        client.head_object(
+                            *path.split('/', 1), query=options.query,
+                            cdn=self._main_options.cdn)
                 if status // 100 == 2:
                     try:
                         r_mtime = int(headers.get('x-object-meta-mtime', 0))
@@ -1204,11 +1246,15 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._verbose('PUTting %s.\n' % path)
             if '/' not in path.rstrip('/'):
                 status, reason, headers, contents = \
-                    client.put_container(path.rstrip('/'), headers=hdrs)
+                    client.put_container(
+                        path.rstrip('/'), headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn)
             else:
                 c, o = path.split('/', 1)
                 status, reason, headers, contents = \
-                    client.put_object(c, o, stdin, headers=hdrs)
+                    client.put_object(
+                        c, o, stdin, headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn)
         if status // 100 != 2:
             self.stderr.write('%s %s\n' % (status, reason))
             self.stderr.flush()
@@ -1233,17 +1279,23 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if not args:
             with self._with_client() as client:
                 status, reason, headers, contents = \
-                    client.post_account(headers=hdrs)
+                    client.post_account(
+                        headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn)
         elif len(args) == 1:
             path = args[0].lstrip('/')
             with self._with_client() as client:
                 self._verbose('POSting %s.\n' % path)
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = \
-                        client.post_container(path.rstrip('/'), headers=hdrs)
+                        client.post_container(
+                            path.rstrip('/'), headers=hdrs,
+                            query=options.query, cdn=self._main_options.cdn)
                 else:
                     status, reason, headers, contents = \
-                        client.post_object(*path.split('/', 1), headers=hdrs)
+                        client.post_object(
+                            *path.split('/', 1), headers=hdrs,
+                            query=options.query, cdn=self._main_options.cdn)
         else:
             self._post_parser.print_help()
             return 1
@@ -1313,7 +1365,10 @@ THERE IS NO GOING BACK!""".strip())
                             self._verbose('Retrieving account listing '
                                           'starting after %s.\n' % marker)
                         status, reason, headers, contents = \
-                            client.get_account(headers=hdrs, marker=marker)
+                            client.get_account(
+                                headers=hdrs, marker=marker,
+                                query=options.query,
+                                cdn=self._main_options.cdn)
                     if status // 100 != 2:
                         if status == 404 and options.ignore_404:
                             return 0
@@ -1342,8 +1397,10 @@ THERE IS NO GOING BACK!""".strip())
                     yn = options.yes_delete_account
                     self._verbose('DELETEing the account.\n')
                     status, reason, headers, contents = \
-                        client.delete_account(headers=hdrs,
-                                              yes_i_mean_delete_the_account=yn)
+                        client.delete_account(
+                            headers=hdrs, query=options.query,
+                            cdn=self._main_options.cdn,
+                            yes_i_mean_delete_the_account=yn)
         elif len(args) == 1:
             path = args[0].lstrip('/')
             if '/' not in path.rstrip('/'):
@@ -1361,7 +1418,8 @@ THERE IS NO GOING BACK!""".strip())
                             status, reason, headers, contents = \
                                 client.get_container(
                                     path.rstrip('/'), headers=hdrs,
-                                    marker=marker)
+                                    marker=marker, query=options.query,
+                                    cdn=self._main_options.cdn)
                         if status // 100 != 2:
                             if status == 404 and options.ignore_404:
                                 return 0
@@ -1393,19 +1451,25 @@ THERE IS NO GOING BACK!""".strip())
                     with self._with_client() as client:
                         self._verbose('DELETEing %s\n' % path.rstrip('/'))
                         status, reason, headers, contents = \
-                            client.delete_container(path.rstrip('/'),
-                                                    headers=hdrs)
+                            client.delete_container(
+                                path.rstrip('/'), headers=hdrs,
+                                query=options.query,
+                                cdn=self._main_options.cdn)
                 else:
                     with self._with_client() as client:
                         self._verbose('DELETEing %s\n' % path.rstrip('/'))
                         status, reason, headers, contents = \
-                            client.delete_container(path.rstrip('/'),
-                                                    headers=hdrs)
+                            client.delete_container(
+                                path.rstrip('/'), headers=hdrs,
+                                query=options.query,
+                                cdn=self._main_options.cdn)
             else:
                 with self._with_client() as client:
                     self._verbose('DELETEing %s\n' % path)
                     status, reason, headers, contents = \
-                        client.delete_object(*path.split('/', 1), headers=hdrs)
+                        client.delete_object(
+                            *path.split('/', 1), headers=hdrs,
+                            query=options.query, cdn=self._main_options.cdn)
         else:
             self._delete_parser.print_help()
             return 1

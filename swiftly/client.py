@@ -249,12 +249,15 @@ class Client(object):
         values in the file, they are used without authenticating first.
     :param eventlet: Default: True. If true, Eventlet will be used if
         installed.
+    :param swift_proxy_cdn_path: If swift_proxy is set,
+        swift_proxy_cdn_path is the path to the Swift account to use
+        for CDN management (example: /v1/AUTH_test).
     """
 
     def __init__(self, auth_url=None, auth_user=None, auth_key=None,
                  proxy=None, snet=False, retries=4, swift_proxy=None,
                  swift_proxy_storage_path=None, cache_path=None,
-                 eventlet=True):
+                 eventlet=True, swift_proxy_cdn_path=None):
         self.auth_url = auth_url
         self.auth_user = auth_user
         self.auth_key = auth_key
@@ -262,37 +265,52 @@ class Client(object):
         self.snet = snet
         self.attempts = retries + 1
         self.storage_url = None
-        self.auth_token = None
         self.storage_conn = None
         self.storage_path = None
+        self.cdn_url = None
+        self.cdn_conn = None
+        self.cdn_path = None
+        self.auth_token = None
         self.swift_proxy = swift_proxy
         if swift_proxy is True:
             self.swift_proxy = SwiftProxy({}, memcache=_LocalMemcache(),
                                           logger=_NullLogger())
         if swift_proxy:
             self.storage_path = swift_proxy_storage_path
+            self.cdn_path = swift_proxy_cdn_path
         self.cache_path = cache_path
         if self.cache_path:
             try:
                 data = open(self.cache_path, 'r').read().decode('base64')
-                (auth_url, auth_user, auth_key, self.storage_url,
-                 self.auth_token) = [v for v in data.split('\n')]
-                if auth_url != self.auth_url or auth_user != self.auth_user \
-                        or auth_key != self.auth_key:
-                    self.storage_url = None
-                    self.auth_token = None
+                data = data.split('\n')
+                if len(data) == 6:
+                    (auth_url, auth_user, auth_key, self.storage_url,
+                     self.cdn_url, self.auth_token) = data
+                    if auth_url != self.auth_url or \
+                            auth_user != self.auth_user or \
+                            auth_key != self.auth_key:
+                        self.storage_url = None
+                        self.cdn_url = None
+                        self.auth_token = None
             except Exception:
                 pass
         (self.BadStatusLine, self.HTTPConnection, self.HTTPException,
          self.HTTPSConnection, self.sleep) = _delayed_imports(eventlet)
 
-    def _connect(self, url=None):
+    def _connect(self, url=None, cdn=False):
         if not url:
-            if not self.storage_url:
-                self._auth()
-            url = self.storage_url
-        parsed = urlparse(url)
+            if cdn:
+                if not self.cdn_url:
+                    self._auth()
+                url = self.cdn_url
+            else:
+                if not self.storage_url:
+                    self._auth()
+                url = self.storage_url
+        parsed = urlparse(url) if url else None
         proxy_parsed = urlparse(self.proxy) if self.proxy else None
+        if not parsed and not proxy_parsed:
+            return None, None
         netloc = (proxy_parsed if self.proxy else parsed).netloc
         if parsed.scheme == 'http':
             conn = self.HTTPConnection(netloc)
@@ -354,6 +372,12 @@ class Client(object):
                     # Second item in the list is the netloc
                     parsed[1] = 'snet-' + parsed[1]
                     self.storage_url = urlunparse(parsed)
+                self.cdn_url = hdrs.get('x-cdn-management-url')
+                if self.cdn_url and self.snet:
+                    parsed = list(urlparse(self.cdn_url))
+                    # Second item in the list is the netloc
+                    parsed[1] = 'snet-' + parsed[1]
+                    self.cdn_url = urlunparse(parsed)
                 self.auth_token = hdrs.get('x-auth-token')
                 if not self.auth_token:
                     self.auth_token = hdrs.get('x-storage-token')
@@ -362,7 +386,8 @@ class Client(object):
                 if self.cache_path:
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
-                        self.storage_url, self.auth_token])
+                        self.storage_url, self.cdn_url,
+                        self.auth_token])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
@@ -375,7 +400,7 @@ class Client(object):
             'Failure and no ability to reset contents for reupload.')
 
     def _request(self, method, path, contents, headers, decode_json=False,
-                 stream=False):
+                 stream=False, cdn=False):
         reset_func = self._default_reset_func
         tell = getattr(contents, 'tell', None)
         seek = getattr(contents, 'seek', None)
@@ -392,9 +417,24 @@ class Client(object):
         attempt = 0
         while attempt < self.attempts:
             attempt += 1
-            if not self.swift_proxy and not self.storage_conn:
-                parsed, self.storage_conn = self._connect()
-                self.storage_path = parsed.path
+            if cdn:
+                conn = self.cdn_conn
+                conn_path = self.cdn_path
+            else:
+                conn = self.storage_conn
+                conn_path = self.storage_path
+            if not self.swift_proxy and not conn:
+                parsed, conn = self._connect(cdn=cdn)
+                if conn:
+                    if cdn:
+                        self.cdn_conn = conn
+                        self.cdn_path = conn_path = parsed.path
+                    else:
+                        self.storage_conn = conn
+                        self.storage_path = conn_path = parsed.path
+            if not conn:
+                raise self.HTTPException('%s %s failed' % (method, path),
+                                         0, 'No connection')
             hdrs = {'User-Agent': 'Swiftly v%s' % VERSION,
                     'X-Auth-Token': self.auth_token}
             if headers:
@@ -402,22 +442,20 @@ class Client(object):
             resp = None
             if not hasattr(contents, 'read'):
                 if self.swift_proxy:
-                    req = Request.blank(self.storage_path + path,
+                    req = Request.blank(conn_path + path,
                                         environ={'REQUEST_METHOD': method},
                                         headers=hdrs, body=contents)
                     resp = req.get_response(self.swift_proxy)
                 else:
-                    self.storage_conn.request(
-                        method, self.storage_path + path, contents, hdrs)
+                    conn.request(method, conn_path + path, contents, hdrs)
             else:
                 req = None
                 if self.swift_proxy:
-                    req = Request.blank(self.storage_path + path,
+                    req = Request.blank(conn_path + path,
                                         environ={'REQUEST_METHOD': method},
                                         headers=hdrs)
                 else:
-                    self.storage_conn.putrequest(
-                        method, self.storage_path + path)
+                    conn.putrequest(method, conn_path + path)
                 content_length = None
                 for h, v in hdrs.iteritems():
                     if h.lower() == 'content-length':
@@ -425,40 +463,38 @@ class Client(object):
                     if req:
                         req.headers[h] = v
                     else:
-                        self.storage_conn.putheader(h, v)
+                        conn.putheader(h, v)
                 if content_length is None:
                     if req:
                         req.headers['Transfer-Encoding'] = 'chunked'
                         req.body_file = contents
                         resp = req.get_response(self.swift_proxy)
                     else:
-                        self.storage_conn.putheader(
-                            'Transfer-Encoding', 'chunked')
-                        self.storage_conn.endheaders()
+                        conn.putheader('Transfer-Encoding', 'chunked')
+                        conn.endheaders()
                         chunk = contents.read(CHUNK_SIZE)
                         while chunk:
-                            self.storage_conn.send(
-                                '%x\r\n%s\r\n' % (len(chunk), chunk))
+                            conn.send('%x\r\n%s\r\n' % (len(chunk), chunk))
                             chunk = contents.read(CHUNK_SIZE)
-                        self.storage_conn.send('0\r\n\r\n')
+                        conn.send('0\r\n\r\n')
                 else:
                     if req:
                         req.body_file = contents
                         req.content_length = content_length
                         resp = req.get_response(self.swift_proxy)
                     else:
-                        self.storage_conn.endheaders()
+                        conn.endheaders()
                         left = content_length
                         while left > 0:
                             size = CHUNK_SIZE
                             if size > left:
                                 size = left
                             chunk = contents.read(size)
-                            self.storage_conn.send(chunk)
+                            conn.send(chunk)
                             left -= len(chunk)
             if not resp:
                 try:
-                    resp = self.storage_conn.getresponse()
+                    resp = conn.getresponse()
                     status = resp.status
                     reason = resp.reason
                     hdrs = self._response_headers(resp.getheaders())
@@ -483,8 +519,8 @@ class Client(object):
             if status == 401:
                 if stream:
                     resp.close()
-                self.storage_conn.close()
-                self.storage_conn = None
+                conn.close()
+                conn = None
                 self._auth()
                 attempt -= 1
             elif status and status // 100 != 5:
@@ -494,16 +530,16 @@ class Client(object):
                     else:
                         value = None
                 return (status, reason, hdrs, value)
-            if self.storage_conn:
-                self.storage_conn.close()
-                self.storage_conn = None
+            if conn:
+                conn.close()
+                conn = None
             if reset_func:
                 reset_func()
             self.sleep(2 ** attempt)
         raise self.HTTPException('%s %s failed' % (method, path),
                                  status, reason)
 
-    def head_account(self, headers=None):
+    def head_account(self, headers=None, query=None, cdn=False):
         """
         HEADs the account and returns the results. Useful headers
         returned are:
@@ -523,6 +559,11 @@ class Client(object):
         These values can be delayed depending the Swift cluster.
 
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -532,10 +573,15 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request('HEAD', '', '', headers)
+        if query:
+            query = '?' + query
+        else:
+            query = ''
+        return self._request('HEAD', query, '', headers, cdn=cdn)
 
     def get_account(self, headers=None, prefix=None, delimiter=None,
-                    marker=None, end_marker=None, limit=None):
+                    marker=None, end_marker=None, limit=None, query=None,
+                    cdn=False):
         """
         GETs the account and returns the results. This is done to list
         the containers for the account. Some useful headers are also
@@ -589,6 +635,11 @@ class Client(object):
         :param limit: Limits the size of the list returned per
                       request. The default and maximum depends on the
                       Swift cluster (usually 10,000).
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -598,7 +649,10 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        query = '?format=json'
+        if query:
+            query = '?' + query + '&format=json'
+        else:
+            query = '?format=json'
         if prefix:
             query += '&prefix=' + _quote(prefix)
         if delimiter:
@@ -609,9 +663,12 @@ class Client(object):
             query += '&end_marker=' + _quote(end_marker)
         if limit:
             query += '&limit=' + _quote(str(limit))
-        return self._request('GET', query, '', headers, decode_json=True)
+        if query:
+            query += '&' + query
+        return self._request(
+            'GET', query, '', headers, decode_json=True, cdn=cdn)
 
-    def post_account(self, headers=None):
+    def post_account(self, headers=None, query=None, cdn=False):
         """
         POSTs the account and returns the results. This is usually
         done to set X-Account-Meta-xxx headers. Note that any existing
@@ -620,6 +677,11 @@ class Client(object):
         string as its value.
 
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -629,10 +691,15 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request('POST', '', '', headers)
+        if query:
+            query = '?' + query
+        else:
+            query = ''
+        return self._request('POST', query, '', headers, cdn=cdn)
 
     def delete_account(self, headers=None,
-                       yes_i_mean_delete_the_account=False):
+                       yes_i_mean_delete_the_account=False, query=None,
+                       cdn=False):
         """
         DELETEs the account and returns the results.
 
@@ -647,6 +714,11 @@ class Client(object):
         :param yes_i_mean_delete_the_account: Set to True to verify you really
                                               mean to delete the entire
                                               account.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -659,7 +731,11 @@ class Client(object):
         if not yes_i_mean_delete_the_account:
             return (0, 'yes_i_mean_delete_the_account was not set to True', {},
                     '')
-        return self._request('DELETE', '', '', headers)
+        if query:
+            query = '?' + query
+        else:
+            query = ''
+        return self._request('DELETE', query, '', headers, cdn=cdn)
 
     def _container_path(self, container):
         if container.startswith('/'):
@@ -667,7 +743,7 @@ class Client(object):
         else:
             return '/' + _quote(container)
 
-    def head_container(self, container, headers=None):
+    def head_container(self, container, headers=None, query=None, cdn=False):
         """
         HEADs the container and returns the results. Useful headers
         returned are:
@@ -686,6 +762,11 @@ class Client(object):
 
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -695,12 +776,14 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request(
-            'HEAD', self._container_path(container), '', headers)
+        path = self._container_path(container)
+        if query:
+            path += '?' + query
+        return self._request('HEAD', path, '', headers, cdn=cdn)
 
     def get_container(self, container, headers=None, prefix=None,
                       delimiter=None, marker=None, end_marker=None,
-                      limit=None):
+                      limit=None, query=None, cdn=False):
         """
         GETs the container and returns the results. This is done to
         list the objects for the container. Some useful headers are
@@ -753,6 +836,11 @@ class Client(object):
         :param limit: Limits the size of the list returned per
                       request. The default and maximum depends on the
                       Swift cluster (usually 10,000).
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -762,7 +850,10 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        query = '?format=json'
+        if query:
+            query = '?' + query + '&format=json'
+        else:
+            query = '?format=json'
         if prefix:
             query += '&prefix=' + _quote(prefix)
         if delimiter:
@@ -773,10 +864,11 @@ class Client(object):
             query += '&end_marker=' + _quote(end_marker)
         if limit:
             query += '&limit=' + _quote(str(limit))
-        return self._request('GET', self._container_path(container) + query,
-                             '', headers, decode_json=True)
+        return self._request(
+            'GET', self._container_path(container) + query, '',
+            headers, decode_json=True, cdn=cdn)
 
-    def put_container(self, container, headers=None):
+    def put_container(self, container, headers=None, query=None, cdn=False):
         """
         PUTs the container and returns the results. This is usually
         done to create new containers and can also be used to set
@@ -787,6 +879,11 @@ class Client(object):
 
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -796,10 +893,12 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request(
-            'PUT', self._container_path(container), '', headers)
+        path = self._container_path(container)
+        if query:
+            path += '?' + query
+        return self._request('PUT', path, '', headers, cdn=cdn)
 
-    def post_container(self, container, headers=None):
+    def post_container(self, container, headers=None, query=None, cdn=False):
         """
         POSTs the container and returns the results. This is usually
         done to set X-Container-Meta-xxx headers. Note that any
@@ -809,6 +908,11 @@ class Client(object):
 
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -818,15 +922,22 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request(
-            'POST', self._container_path(container), '', headers)
+        path = self._container_path(container)
+        if query:
+            path += '?' + query
+        return self._request('POST', path, '', headers, cdn=cdn)
 
-    def delete_container(self, container, headers=None):
+    def delete_container(self, container, headers=None, query=None, cdn=False):
         """
         DELETEs the container and returns the results.
 
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -836,8 +947,10 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request(
-            'DELETE', self._container_path(container), '', headers)
+        path = self._container_path(container)
+        if query:
+            path += '?' + query
+        return self._request('DELETE', path, '', headers, cdn=cdn)
 
     def _object_path(self, container, obj):
         container = container.rstrip('/')
@@ -849,13 +962,18 @@ class Client(object):
         # them.
         return container + '/' + _quote(obj)
 
-    def head_object(self, container, obj, headers=None):
+    def head_object(self, container, obj, headers=None, query=None, cdn=False):
         """
         HEADs the object and returns the results.
 
         :param container: The name of the container.
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -865,10 +983,13 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request(
-            'HEAD', self._object_path(container, obj), '', headers)
+        path = self._object_path(container, obj)
+        if query:
+            path += '?' + query
+        return self._request('HEAD', path, '', headers, cdn=cdn)
 
-    def get_object(self, container, obj, headers=None, stream=True):
+    def get_object(self, container, obj, headers=None, stream=True, query=None,
+                   cdn=False):
         """
         GETs the object and returns the results.
 
@@ -884,6 +1005,11 @@ class Client(object):
                        data is read per call.
                        When streaming is on, be certain to fully read
                        the contents before issuing another request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -896,10 +1022,13 @@ class Client(object):
                 *stream* was False, *contents* is just a simple str of
                 the HTTP body.
         """
-        return self._request('GET', self._object_path(container, obj), '',
-                             headers, stream=stream)
+        path = self._object_path(container, obj)
+        if query:
+            path += '?' + query
+        return self._request('GET', path, '', headers, stream=stream, cdn=cdn)
 
-    def put_object(self, container, obj, contents, headers=None):
+    def put_object(self, container, obj, contents, headers=None, query=None,
+                   cdn=False):
         """
         PUTs the object and returns the results. This is used to
         create or overwrite objects. X-Object-Meta-xxx can optionally
@@ -920,6 +1049,11 @@ class Client(object):
                          functions, the PUT can be reattempted on any
                          server error.
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -929,10 +1063,12 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request(
-            'PUT', self._object_path(container, obj), contents, headers)
+        path = self._object_path(container, obj)
+        if query:
+            path += '?' + query
+        return self._request('PUT', path, contents, headers, cdn=cdn)
 
-    def post_object(self, container, obj, headers=None):
+    def post_object(self, container, obj, headers=None, query=None, cdn=False):
         """
         POSTs the object and returns the results. This is used to
         update the object's header values. Note that all headers must
@@ -946,6 +1082,11 @@ class Client(object):
         :param container: The name of the container.
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -955,16 +1096,24 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request(
-            'POST', self._object_path(container, obj), '', headers)
+        path = self._object_path(container, obj)
+        if query:
+            path += '?' + query
+        return self._request('POST', path, '', headers, cdn=cdn)
 
-    def delete_object(self, container, obj, headers=None):
+    def delete_object(self, container, obj, headers=None, query=None,
+                      cdn=False):
         """
         DELETEs the object and returns the results.
 
         :param container: The name of the container.
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
+        :param query: If set, this will be appended to the request
+                      path as a query string. Do not begin this query
+                      with ? or & as that will be done for you.
+        :param cdn: If set True, the CDN management interface will be
+                    used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -974,5 +1123,7 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request(
-            'DELETE', self._object_path(container, obj), '', headers)
+        path = self._object_path(container, obj)
+        if query:
+            path += '?' + query
+        return self._request('DELETE', path, '', headers, cdn=cdn)
