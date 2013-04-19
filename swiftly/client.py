@@ -258,7 +258,7 @@ class Client(object):
         for CDN management (example: /v1/AUTH_test).
     :param region: The region to access, if supported by auth
         (Example: DFW).
-    :param verbose: Set to a `func(msg, *args)` that will be called
+    :param verbose: Set to a ``func(msg, *args)`` that will be called
         with debug messages. Constructing a string for output can be
         done with msg % args.
     :param verbose_id: Set to a string you wish verbose messages to
@@ -268,7 +268,7 @@ class Client(object):
         Default (if needed): same as auth_user.
     :param auth_methods: Auth methods to use with the auth system,
         example:
-        `auth2key,auth2password,auth2password_force_tenant,auth1` If
+        ``auth2key,auth2password,auth2password_force_tenant,auth1`` If
         not specified, the best order will try to be determined; but
         if you notice it keeps making useless auth attempts and that
         drives you crazy, you can override that here. All the
@@ -402,6 +402,10 @@ class Client(object):
         return hdrs
 
     def auth(self):
+        """
+        Just performs the authentication step without making an
+        actual request to the Swift system.
+        """
         if not self.auth_url:
             return
         funcs = []
@@ -924,7 +928,7 @@ class Client(object):
         """
         Sends a DELETE request to the account and returns the results.
 
-        With `query['bulk-delete'] = ''` this might mean a bulk
+        With ``query['bulk-delete'] = ''`` this might mean a bulk
         delete request where the body of the request is new-line
         separated, url-encoded list of names to delete. Be careful
         with this! One wrong move and you might mark your account for
@@ -940,7 +944,7 @@ class Client(object):
         :param headers: Additional headers to send with the request.
         :param yes_i_mean_delete_the_account: Set to True to verify
             you really mean to delete the entire account. This is
-            required unless `body and 'bulk-delete' in query`.
+            required unless ``body and 'bulk-delete' in query``.
         :param query: Set to a dict of query values to send on the
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
