@@ -10,6 +10,10 @@ Swiftly
 
     Source code available at <http://github.com/gholt/swiftly>
 
+    Note: If you ``sudo easy_install swiftly`` on Mac OS X, you may need to run
+    ``sudo chmod -R og+r /Library/Python/2.7/site-packages`` in order to run
+    swiftly.
+
 Contents
 --------
 

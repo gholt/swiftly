@@ -108,9 +108,17 @@
         <span class="n">base_url</span><span class="p">,</span> <span class="n">object_path</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">expires</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_delayed_imports</span><span class="p">(</span><span class="n">eventlet</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_delayed_imports</span><span class="p">(</span><span class="n">eventlet</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
     <span class="n">BadStatusLine</span> <span class="o">=</span> <span class="n">HTTPConnection</span> <span class="o">=</span> <span class="n">HTTPException</span> <span class="o">=</span> <span class="n">HTTPSConnection</span> <span class="o">=</span> \
         <span class="n">sleep</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="n">eventlet</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">eventlet</span> <span class="kn">import</span> <span class="n">__version__</span>
+            <span class="c"># Eventlet 0.11.0 fixed the CPU bug</span>
+            <span class="k">if</span> <span class="n">__version__</span> <span class="o">&gt;=</span> <span class="s">&#39;0.11.0&#39;</span><span class="p">:</span>
+                <span class="n">eventlet</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">pass</span>
     <span class="k">if</span> <span class="n">eventlet</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">eventlet.green.httplib</span> <span class="kn">import</span> <span class="n">BadStatusLine</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> \
@@ -301,14 +309,17 @@
 <span class="sd">        URL and auth token are cached in the file for reuse. If there</span>
 <span class="sd">        is already cached values in the file, they are used without</span>
 <span class="sd">        authenticating first.</span>
-<span class="sd">    :param eventlet: Default: True. If true, Eventlet will be used if</span>
-<span class="sd">        installed.</span>
+<span class="sd">    :param eventlet: Default: None. If True, Eventlet will be used if</span>
+<span class="sd">        installed. If False, Eventlet will not be used even if</span>
+<span class="sd">        installed. If None, the default, Eventlet will be used if</span>
+<span class="sd">        installed and its version is at least 0.11.0 when a CPU usage</span>
+<span class="sd">        bug was fixed.</span>
 <span class="sd">    :param swift_proxy_cdn_path: If swift_proxy is set,</span>
 <span class="sd">        swift_proxy_cdn_path is the path to the Swift account to use</span>
 <span class="sd">        for CDN management (example: /v1/AUTH_test).</span>
 <span class="sd">    :param region: The region to access, if supported by auth</span>
 <span class="sd">        (Example: DFW).</span>
-<span class="sd">    :param verbose: Set to a `func(msg, *args)` that will be called</span>
+<span class="sd">    :param verbose: Set to a ``func(msg, *args)`` that will be called</span>
 <span class="sd">        with debug messages. Constructing a string for output can be</span>
 <span class="sd">        done with msg % args.</span>
 <span class="sd">    :param verbose_id: Set to a string you wish verbose messages to</span>
@@ -318,7 +329,7 @@
 <span class="sd">        Default (if needed): same as auth_user.</span>
 <span class="sd">    :param auth_methods: Auth methods to use with the auth system,</span>
 <span class="sd">        example:</span>
-<span class="sd">        `auth2key,auth2password,auth2password_force_tenant,auth1` If</span>
+<span class="sd">        ``auth2key,auth2password,auth2password_force_tenant,auth1`` If</span>
 <span class="sd">        not specified, the best order will try to be determined; but</span>
 <span class="sd">        if you notice it keeps making useless auth attempts and that</span>
 <span class="sd">        drives you crazy, you can override that here. All the</span>
@@ -328,7 +339,7 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">auth_url</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_user</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">auth_key</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">snet</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">swift_proxy</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">swift_proxy_storage_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cache_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                 <span class="n">eventlet</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">swift_proxy_cdn_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">eventlet</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">swift_proxy_cdn_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">verbose</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">verbose_id</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">auth_tenant</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                  <span class="n">auth_methods</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span> <span class="o">=</span> <span class="n">auth_url</span>
@@ -452,6 +463,10 @@
         <span class="k">return</span> <span class="n">hdrs</span>
 
 <div class="viewcode-block" id="Client.auth"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.auth">[docs]</a>    <span class="k">def</span> <span class="nf">auth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Just performs the authentication step without making an</span>
+<span class="sd">        actual request to the Swift system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="n">funcs</span> <span class="o">=</span> <span class="p">[]</span>
@@ -974,7 +989,7 @@
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Sends a DELETE request to the account and returns the results.</span>
 
-<span class="sd">        With `query[&#39;bulk-delete&#39;] = &#39;&#39;` this might mean a bulk</span>
+<span class="sd">        With ``query[&#39;bulk-delete&#39;] = &#39;&#39;`` this might mean a bulk</span>
 <span class="sd">        delete request where the body of the request is new-line</span>
 <span class="sd">        separated, url-encoded list of names to delete. Be careful</span>
 <span class="sd">        with this! One wrong move and you might mark your account for</span>
@@ -990,7 +1005,7 @@
 <span class="sd">        :param headers: Additional headers to send with the request.</span>
 <span class="sd">        :param yes_i_mean_delete_the_account: Set to True to verify</span>
 <span class="sd">            you really mean to delete the entire account. This is</span>
-<span class="sd">            required unless `body and &#39;bulk-delete&#39; in query`.</span>
+<span class="sd">            required unless ``body and &#39;bulk-delete&#39; in query``.</span>
 <span class="sd">        :param query: Set to a dict of query values to send on the</span>
 <span class="sd">            query string of the request.</span>
 <span class="sd">        :param cdn: If set True, the CDN management interface will be</span>

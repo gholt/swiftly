@@ -68,7 +68,7 @@ See the License for the specific language governing permissions and
 limitations under the License.</p>
 <dl class="class">
 <dt id="swiftly.client.Client">
-<em class="property">class </em><tt class="descclassname">swiftly.client.</tt><tt class="descname">Client</tt><big>(</big><em>auth_url=None</em>, <em>auth_user=None</em>, <em>auth_key=None</em>, <em>proxy=None</em>, <em>snet=False</em>, <em>retries=4</em>, <em>swift_proxy=None</em>, <em>swift_proxy_storage_path=None</em>, <em>cache_path=None</em>, <em>eventlet=True</em>, <em>swift_proxy_cdn_path=None</em>, <em>region=None</em>, <em>verbose=None</em>, <em>verbose_id=''</em>, <em>auth_tenant=None</em>, <em>auth_methods=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">swiftly.client.</tt><tt class="descname">Client</tt><big>(</big><em>auth_url=None</em>, <em>auth_user=None</em>, <em>auth_key=None</em>, <em>proxy=None</em>, <em>snet=False</em>, <em>retries=4</em>, <em>swift_proxy=None</em>, <em>swift_proxy_storage_path=None</em>, <em>cache_path=None</em>, <em>eventlet=None</em>, <em>swift_proxy_cdn_path=None</em>, <em>region=None</em>, <em>verbose=None</em>, <em>verbose_id=''</em>, <em>auth_tenant=None</em>, <em>auth_methods=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Client code to work with Swift.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -98,8 +98,11 @@ use (example: /v1/AUTH_test).</li>
 URL and auth token are cached in the file for reuse. If there
 is already cached values in the file, they are used without
 authenticating first.</li>
-<li><strong>eventlet</strong> &#8211; Default: True. If true, Eventlet will be used if
-installed.</li>
+<li><strong>eventlet</strong> &#8211; Default: None. If True, Eventlet will be used if
+installed. If False, Eventlet will not be used even if
+installed. If None, the default, Eventlet will be used if
+installed and its version is at least 0.11.0 when a CPU usage
+bug was fixed.</li>
 <li><strong>swift_proxy_cdn_path</strong> &#8211; If swift_proxy is set,
 swift_proxy_cdn_path is the path to the Swift account to use
 for CDN management (example: /v1/AUTH_test).</li>
