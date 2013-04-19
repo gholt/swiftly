@@ -1,7 +1,7 @@
 Swiftly
 =======
 
-    Copyright 2011 Gregory Holt
+    Copyright 2011-2013 Gregory Holt
 
     A work in progress. Currently provides a Client class and a command line
     tool for common Swift functions. Works both with access as an external, end
@@ -28,14 +28,14 @@ Client Class Usage
 
 Example as a standard end user::
 
-    from swiftly import Client
+    from swiftly.client import Client
     client = Client('http://127.0.0.1:8080/auth/v1.0',
                     'test:tester', 'testing')
     print client.head_account()
 
 Example as a administrator direct user::
 
-    from swiftly import Client
+    from swiftly.client import Client
     client = Client(swift_proxy=True,
                     swift_proxy_storage_path='/v1/AUTH_test')
     print client.head_account()
