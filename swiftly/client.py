@@ -862,7 +862,7 @@ class Client(object):
         return self._request(
             'PUT', '', body or '', headers, query=query, cdn=cdn)
 
-    def post_account(self, headers=None, query=None, cdn=False):
+    def post_account(self, headers=None, query=None, cdn=False, body=None):
         """
         POSTs the account and returns the results. This is usually
         done to set X-Account-Meta-xxx headers. Note that any existing
@@ -875,6 +875,8 @@ class Client(object):
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param body: No known Swift POSTs take a body; but the option
+            is there for the future.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -884,41 +886,53 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        return self._request('POST', '', '', headers, query=query, cdn=cdn)
+        return self._request(
+            'POST', '', body or '', headers, query=query, cdn=cdn)
 
     def delete_account(self, headers=None,
                        yes_i_mean_delete_the_account=False, query=None,
-                       cdn=False):
+                       cdn=False, body=None):
         """
-        DELETEs the account and returns the results.
+        Sends a DELETE request to the account and returns the results.
+        
+        With `query['bulk-delete'] = ''` this might mean a bulk
+        delete request where the body of the request is new-line
+        separated, url-encoded list of names to delete. Be careful
+        with this! One wrong move and you might mark your account for
+        deletion of you have the access to do so!
 
-        Some Swift clusters do not support this.
-
-        Those that do will mark the account as deleted and immediately begin
-        removing the objects from the cluster in the backgound.
+        For a plain DELETE to the account, on clusters that support
+        it and, assuming you have permissions to do so, the account
+        will be marked as deleted and immediately begin removing the
+        objects from the cluster in the backgound.
 
         THERE IS NO GOING BACK!
 
         :param headers: Additional headers to send with the request.
-        :param yes_i_mean_delete_the_account: Set to True to verify you really
-            mean to delete the entire account.
+        :param yes_i_mean_delete_the_account: Set to True to verify
+            you really mean to delete the entire account. This is
+            required unless `body and 'bulk-delete' in query`.
         :param query: Set to a dict of query values to send on the
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param body: Some account DELETE requests, like the bulk
+            delete request, take a body.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
             :reason: is the str for the HTTP status (ex: "Ok").
             :headers: is a dict with all lowercase keys of the HTTP
-                headers; if a header has multiple values, it will be a
-                list.
+                headers; if a header has multiple values, it will be
+                a list.
             :contents: is the str for the HTTP body.
         """
-        if not yes_i_mean_delete_the_account:
+        if not yes_i_mean_delete_the_account and (
+                not body or not query or 'bulk-delete' not in query):
             return (0, 'yes_i_mean_delete_the_account was not set to True', {},
                     '')
-        return self._request('DELETE', '', '', headers, query, cdn=cdn)
+        return self._request(
+            'DELETE', '', body or '', headers, query=query, cdn=cdn)
 
     def _container_path(self, container):
         if container.startswith('/'):
@@ -1074,7 +1088,8 @@ class Client(object):
         return self._request(
             'PUT', path, body or '', headers, query=query, cdn=cdn)
 
-    def post_container(self, container, headers=None, query=None, cdn=False):
+    def post_container(self, container, headers=None, query=None, cdn=False,
+                       body=None):
         """
         POSTs the container and returns the results. This is usually
         done to set X-Container-Meta-xxx headers. Note that any
@@ -1088,6 +1103,8 @@ class Client(object):
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param body: No known Swift POSTs take a body; but the option
+            is there for the future.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1098,9 +1115,11 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._container_path(container)
-        return self._request('POST', path, '', headers, query=query, cdn=cdn)
+        return self._request(
+            'POST', path, body or '', headers, query=query, cdn=cdn)
 
-    def delete_container(self, container, headers=None, query=None, cdn=False):
+    def delete_container(self, container, headers=None, query=None, cdn=False,
+                         body=None):
         """
         DELETEs the container and returns the results.
 
@@ -1110,6 +1129,8 @@ class Client(object):
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param body: Some container DELETE requests might take a body
+            in the future.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1120,7 +1141,8 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._container_path(container)
-        return self._request('DELETE', path, '', headers, query=query, cdn=cdn)
+        return self._request(
+            'DELETE', path, body or '', headers, query=query, cdn=cdn)
 
     def _object_path(self, container, obj):
         container = container.rstrip('/')
@@ -1229,7 +1251,8 @@ class Client(object):
         return self._request(
             'PUT', path, contents, headers, query=query, cdn=cdn)
 
-    def post_object(self, container, obj, headers=None, query=None, cdn=False):
+    def post_object(self, container, obj, headers=None, query=None, cdn=False,
+                    body=None):
         """
         POSTs the object and returns the results. This is used to
         update the object's header values. Note that all headers must
@@ -1247,6 +1270,8 @@ class Client(object):
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param body: No known Swift POSTs take a body; but the option
+            is there for the future.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1257,10 +1282,11 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._object_path(container, obj)
-        return self._request('POST', path, '', headers, query=query, cdn=cdn)
+        return self._request(
+            'POST', path, body or '', headers, query=query, cdn=cdn)
 
     def delete_object(self, container, obj, headers=None, query=None,
-                      cdn=False):
+                      cdn=False, body=None):
         """
         DELETEs the object and returns the results.
 
@@ -1271,6 +1297,8 @@ class Client(object):
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param body: Some object DELETE requests might take a body in
+            the future.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1281,38 +1309,5 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._object_path(container, obj)
-        return self._request('DELETE', path, '', headers, query=query, cdn=cdn)
-
-    def bulk_delete(self, names, headers=None, query=None, cdn=False):
-        """
-        Sends a Bulk Delete request for the names given. This is a
-        special DELETE request with a body of new-line separated,
-        url-encoded names (the names don't have to be encoded when
-        sent to this function). Each name is of the format
-        '/<container>[/<object>]'. Note that only empty containers
-        can be deleted. Also, most configurations will only allow up
-        to 1,000 names.
-
-        :param names: A list of '/<container>[/<object>]' names to
-            delete.
-        :param headers: Additional headers to send with the request.
-        :param query: Set to a dict of query values to send on the
-            query string of the request.
-        :param cdn: If set True, the CDN management interface will be
-            used.
-        :returns: A tuple of (status, reason, headers, contents).
-
-            :status: is an int for the HTTP status code.
-            :reason: is the str for the HTTP status (ex: "Ok").
-            :headers: is a dict with all lowercase keys of the HTTP
-                headers; if a header has multiple values, it will be a
-                list.
-            :contents: is the str for the HTTP body.
-        """
-        headers = dict(headers or {})
-        query = dict(query or {})
-        query['bulk-delete'] = ''
-        headers['content-type'] = 'text/plain'
-        body = '\n'.join(_quote(n) for n in names)
-        headers['content-length'] = str(len(body))
-        return self._request('DELETE', '', body, headers, query=query, cdn=cdn)
+        return self._request(
+            'DELETE', path, body or '', headers, query=query, cdn=cdn)

@@ -453,6 +453,18 @@ request on the account is performed.""".strip(),
             help='Add a query parameter to the request. This can be used '
                  'multiple times for multiple query parameters. Example: '
                  '-qmultipart-manifest=get')
+        self._post_parser.add_option(
+            '-i', '--input', dest='input_', metavar='PATH',
+            help='Indicates where to read the POST request body from; '
+                 'default is standard input. This is not normally used with '
+                 'Swift POST requests, so you must also specify -I if you '
+                 'want the body sent.')
+        self._post_parser.add_option(
+            '-I', dest='INPUT_', action='store_true',
+            help='Since Swift POSTs do not normally take input, you must '
+                 'specify this option if you wish them to read from the input '
+                 'specified by -i (or the default standard input). This is '
+                 'not known to be useful for anything yet.')
 
         self._delete_parser = _OptionParser(
             usage="""
@@ -477,6 +489,19 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'multiple times for multiple query parameters. Example: '
                  '-qmultipart-manifest=get')
         self._delete_parser.add_option(
+            '-i', '--input', dest='input_', metavar='PATH',
+            help='Indicates where to read the DELETE request body from; '
+                 'default is standard input. This is not normally used with '
+                 'DELETE requests, so you must also specify -I if you want '
+                 'the body sent.')
+        self._delete_parser.add_option(
+            '-I', dest='INPUT_', action='store_true',
+            help='Since DELETEs do not normally take input, you must specify '
+                 'this option if you wish them to read from the input '
+                 'specified by -i (or the default standard input). This is '
+                 'useful with -qbulk-delete requests. For example: swiftly '
+                 'delete -qbulk-delete -Ii <my-bulk-deletes-file>')
+        self._delete_parser.add_option(
             '--recursive', dest='recursive', action='store_true',
             help='Normally a delete for a non-empty container will error with '
                  'a 409 Conflict; --recursive will first delete all objects '
@@ -499,40 +524,6 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'objects from the cluster in the backgound. THERE IS NO '
                  'GOING BACK!')
         self._delete_parser.add_option(
-            '--ignore-404', dest='ignore_404', action='store_true',
-            help='Ignores 404 Not Found responses; the exit code will be 0 '
-                 'instead of 1.')
-
-        self._bulk_delete_parser = _OptionParser(
-            usage="""
-Usage: %prog [main_options] bulk_delete [options]
-
-For help on [main_options] run %prog with no args.
-
-Issues a special Bulk DELETE request. The input to this request must be a list
-of new-line separated, url-encoded names to delete. Each name is of the format
-'/<container>[/<object>]'. Note that only empty containers can be deleted.
-Also, most configurations will only allow up to 1,000 names.""".strip(),
-            stdout=self.stdout, stderr=self.stderr,
-            preamble='bulk_delete command: ')
-        self._bulk_delete_parser.add_option(
-            '-h', '--header', dest='header', action='append',
-            metavar='HEADER:VALUE',
-            help='Add a header to the request. This can be used multiple '
-                 'times for multiple headers. Examples: '
-                 '-hx-some-header:some-value -h "X-Some-Other-Header: Some '
-                 'other value"')
-        self._bulk_delete_parser.add_option(
-            '-q', '--query', dest='query', action='append',
-            metavar='NAME[=VALUE]',
-            help='Add a query parameter to the request. This can be used '
-                 'multiple times for multiple query parameters. Example: '
-                 '-qmultipart-manifest=get')
-        self._bulk_delete_parser.add_option(
-            '-i', '--input', dest='input_', metavar='PATH',
-            help='Indicates where to read the list of names from; default is '
-                 'standard input.')
-        self._bulk_delete_parser.add_option(
             '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses; the exit code will be 0 '
                  'instead of 1.')
@@ -1352,20 +1343,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     client.put_account(
                         headers=hdrs, query=options.query,
                         cdn=self._main_options.cdn, body=body)
-                if options.INPUT_:
-                    self.stderr.write(contents)
-                    self.stderr.write('\n')
-                    self.stderr.flush()
             elif '/' not in path.rstrip('/'):
                 body = stdin if options.INPUT_ else ''
                 status, reason, headers, contents = \
                     client.put_container(
                         path.rstrip('/'), headers=hdrs, query=options.query,
                         cdn=self._main_options.cdn, body=body)
-                if options.INPUT_:
-                    self.stderr.write(contents)
-                    self.stderr.write('\n')
-                    self.stderr.flush()
             else:
                 c, o = path.split('/', 1)
                 status, reason, headers, contents = \
@@ -1374,8 +1357,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         cdn=self._main_options.cdn)
         if status // 100 != 2:
             self.stderr.write('%s %s\n' % (status, reason))
+            if self._main_options.verbose and contents:
+                self._verbose('< ' + repr(contents))
             self.stderr.flush()
             return 1
+        if self._main_options.verbose and contents:
+            self._verbose('< ' + repr(contents))
         if options.input_ and not isdir(options.input_):
             size = getsize(options.input_)
         else:
@@ -1396,13 +1383,19 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._post_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
+        body = None
+        if options.INPUT_:
+            if options.input_:
+                body = open(options.input_, 'rb')
+            else:
+                body = self.stdin
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         if not args:
             with self._with_client() as client:
                 status, reason, headers, contents = \
                     client.post_account(
                         headers=hdrs, query=options.query,
-                        cdn=self._main_options.cdn)
+                        cdn=self._main_options.cdn, body=body)
         elif len(args) == 1:
             path = args[0].lstrip('/')
             with self._with_client() as client:
@@ -1410,19 +1403,25 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     status, reason, headers, contents = \
                         client.post_container(
                             path.rstrip('/'), headers=hdrs,
-                            query=options.query, cdn=self._main_options.cdn)
+                            query=options.query, cdn=self._main_options.cdn,
+                            body=body)
                 else:
                     status, reason, headers, contents = \
                         client.post_object(
                             *path.split('/', 1), headers=hdrs,
-                            query=options.query, cdn=self._main_options.cdn)
+                            query=options.query, cdn=self._main_options.cdn,
+                            body=body)
         else:
             self._post_parser.print_help()
             return 1
         if status // 100 != 2:
             self.stderr.write('%s %s\n' % (status, reason))
+            if self._main_options.verbose and contents:
+                self._verbose('< ' + repr(contents))
             self.stderr.flush()
             return 1
+        if self._main_options.verbose and contents:
+            self._verbose('< ' + repr(contents))
         return 0
 
     def _delete_recursive_helper(self, args):
@@ -1449,7 +1448,16 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         options.query = self._command_line_query_parameters(options.query)
         hdrs = self._command_line_headers(options.header)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
-        if not args:
+        if not args and options.INPUT_:
+            body = self.stdin
+            if options.input_:
+                body = open(options.input_, 'rb')
+            with self._with_client() as client:
+                status, reason, headers, contents = \
+                    client.delete_account(
+                        headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn, body=body)
+        elif not args:
             if options.recursive and not options.yes_empty_account:
                 self.stderr.write("""
 A delete --recursive directly on an account requires the
@@ -1517,6 +1525,11 @@ THERE IS NO GOING BACK!""".strip())
                             cdn=self._main_options.cdn,
                             yes_i_mean_delete_the_account=yn)
         elif len(args) == 1:
+            body = None
+            if options.INPUT_:
+                body = self.stdin
+                if options.input_:
+                    body = open(options.input_, 'rb')
             path = args[0].lstrip('/')
             if '/' not in path.rstrip('/'):
                 if options.recursive:
@@ -1561,20 +1574,21 @@ THERE IS NO GOING BACK!""".strip())
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
                                 query=options.query,
-                                cdn=self._main_options.cdn)
+                                cdn=self._main_options.cdn, body=body)
                 else:
                     with self._with_client() as client:
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
                                 query=options.query,
-                                cdn=self._main_options.cdn)
+                                cdn=self._main_options.cdn, body=body)
             else:
                 with self._with_client() as client:
                     status, reason, headers, contents = \
                         client.delete_object(
                             *path.split('/', 1), headers=hdrs,
-                            query=options.query, cdn=self._main_options.cdn)
+                            query=options.query, cdn=self._main_options.cdn,
+                            body=body)
         else:
             self._delete_parser.print_help()
             return 1
@@ -1582,62 +1596,10 @@ THERE IS NO GOING BACK!""".strip())
             if status == 404 and options.ignore_404:
                 return 0
             self.stderr.write('%s %s\n' % (status, reason))
+            if self._main_options.verbose and contents:
+                self._verbose('< ' + repr(contents))
             self.stderr.flush()
             return 1
-        return 0
-
-    @_client_command
-    def _bulk_delete(self, args):
-        try:
-            options, args = self._bulk_delete_parser.parse_args(args)
-        except UnboundLocalError:
-            # Happens sometimes with an error handler that doesn't raise its
-            # own exception. We'll catch the error below.
-            pass
-        if self._bulk_delete_parser.error_encountered:
-            return 1
-        if options.help:
-            self._bulk_delete_parser.print_help()
-            return 1
-        options.query = self._command_line_query_parameters(options.query)
-        hdrs = self._command_line_headers(options.header)
-        status, reason, headers, contents = 0, 'Unknown', {}, ''
-        if args:
-            self.stderr.write("""
-Bulk DELETE requests take no arguments but instead take a list of names from
-the input stream.""".strip())
-            self.stderr.write('\n')
-            self.stderr.flush()
-            self._bulk_delete_parser.print_help()
-            return 1
-        names = []
-        for name in (
-                open(options.input_, 'rb') if options.input_ else self.stdin):
-            name = unquote(name.strip())
-            if name:
-                if name[0] != '/':
-                    self.stderr.write('%r is not formatted properly.\n' % name)
-                    self.stderr.write("""
-The input to Bulk DELETE requests must be a list of new-line separated,
-url-encoded names to delete. Each name is of the format
-'/<container>[/<object>]'. Note that only empty containers can be deleted.
-Also, most configurations will only allow up to 1,000 names.\n""")
-                    self.stderr.flush()
-                    self._bulk_delete_parser.print_help()
-                    return 1
-                names.append(name)
-        with self._with_client() as client:
-            status, reason, headers, contents = \
-                client.bulk_delete(
-                    names, headers=hdrs, query=options.query,
-                    cdn=self._main_options.cdn)
-        self.stderr.write(contents)
-        self.stderr.write('\n')
-        self.stderr.flush()
-        if status // 100 != 2:
-            if status == 404 and options.ignore_404:
-                return 0
-            self.stderr.write('%s %s\n' % (status, reason))
-            self.stderr.flush()
-            return 1
+        if self._main_options.verbose and contents:
+            self._verbose('< ' + repr(contents))
         return 0
