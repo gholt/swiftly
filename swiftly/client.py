@@ -894,7 +894,7 @@ class Client(object):
                        cdn=False, body=None):
         """
         Sends a DELETE request to the account and returns the results.
-        
+
         With `query['bulk-delete'] = ''` this might mean a bulk
         delete request where the body of the request is new-line
         separated, url-encoded list of names to delete. Be careful
