@@ -89,6 +89,8 @@ def _delayed_imports(eventlet=True):
 def _quote(value, safe='/:'):
     if isinstance(value, unicode):
         value = value.encode('utf8')
+    elif not isinstance(value, basestring):
+        value = str(value)
     return quote(value, safe)
 
 
@@ -567,7 +569,11 @@ class Client(object):
             'Failure and no ability to reset contents for reupload.')
 
     def _request(self, method, path, contents, headers, decode_json=False,
-                 stream=False, cdn=False):
+                 stream=False, query=None, cdn=False):
+        if query:
+            path += '?' + '&'.join(
+                ('%s=%s' % (_quote(k), _quote(v)) if v else _quote(k))
+                for k, v in sorted(query.iteritems()))
         reset_func = self._default_reset_func
         tell = getattr(contents, 'tell', None)
         seek = getattr(contents, 'seek', None)
@@ -732,9 +738,8 @@ class Client(object):
         These values can be delayed depending the Swift cluster.
 
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -746,11 +751,7 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        if query:
-            query = '?' + query
-        else:
-            query = ''
-        return self._request('HEAD', query, '', headers, cdn=cdn)
+        return self._request('HEAD', '', '', headers, query=query, cdn=cdn)
 
     def get_account(self, headers=None, prefix=None, delimiter=None,
                     marker=None, end_marker=None, limit=None, query=None,
@@ -806,9 +807,8 @@ class Client(object):
         :param limit: Limits the size of the list returned per
             request. The default and maximum depends on the Swift
             cluster (usually 10,000).
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -820,22 +820,19 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        if query:
-            query = '?' + query + '&format=json'
-        else:
-            query = '?format=json'
+        query['format'] = 'json'
         if prefix:
-            query += '&prefix=' + _quote(prefix)
+            query['prefix'] = prefix
         if delimiter:
-            query += '&delimiter=' + _quote(delimiter)
+            query['delimiter'] = delimiter
         if marker:
-            query += '&marker=' + _quote(marker)
+            query['marker'] = marker
         if end_marker:
-            query += '&end_marker=' + _quote(end_marker)
+            query['end_marker'] = end_marker
         if limit:
-            query += '&limit=' + _quote(str(limit))
+            query['limit'] = limit
         return self._request(
-            'GET', query, '', headers, decode_json=True, cdn=cdn)
+            'GET', '', '', headers, decode_json=True, query=query, cdn=cdn)
 
     def post_account(self, headers=None, query=None, cdn=False):
         """
@@ -846,9 +843,8 @@ class Client(object):
         string as its value.
 
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -860,11 +856,7 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        if query:
-            query = '?' + query
-        else:
-            query = ''
-        return self._request('POST', query, '', headers, cdn=cdn)
+        return self._request('POST', '', '', headers, query=query, cdn=cdn)
 
     def delete_account(self, headers=None,
                        yes_i_mean_delete_the_account=False, query=None,
@@ -882,9 +874,8 @@ class Client(object):
         :param headers: Additional headers to send with the request.
         :param yes_i_mean_delete_the_account: Set to True to verify you really
             mean to delete the entire account.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -899,11 +890,7 @@ class Client(object):
         if not yes_i_mean_delete_the_account:
             return (0, 'yes_i_mean_delete_the_account was not set to True', {},
                     '')
-        if query:
-            query = '?' + query
-        else:
-            query = ''
-        return self._request('DELETE', query, '', headers, cdn=cdn)
+        return self._request('DELETE', '', '', headers, query, cdn=cdn)
 
     def _container_path(self, container):
         if container.startswith('/'):
@@ -930,9 +917,8 @@ class Client(object):
 
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -945,9 +931,7 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._container_path(container)
-        if query:
-            path += '?' + query
-        return self._request('HEAD', path, '', headers, cdn=cdn)
+        return self._request('HEAD', path, '', headers, query=query, cdn=cdn)
 
     def get_container(self, container, headers=None, prefix=None,
                       delimiter=None, marker=None, end_marker=None,
@@ -1002,9 +986,8 @@ class Client(object):
         :param limit: Limits the size of the list returned per
             request. The default and maximum depends on the Swift
             cluster (usually 10,000).
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1016,23 +999,20 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
-        if query:
-            query = '?' + query + '&format=json'
-        else:
-            query = '?format=json'
+        query['format'] = 'json'
         if prefix:
-            query += '&prefix=' + _quote(prefix)
+            query['prefix'] = prefix
         if delimiter:
-            query += '&delimiter=' + _quote(delimiter)
+            query['delimiter'] = delimiter
         if marker:
-            query += '&marker=' + _quote(marker)
+            query['marker'] = marker
         if end_marker:
-            query += '&end_marker=' + _quote(end_marker)
+            query['end_marker'] = end_marker
         if limit:
-            query += '&limit=' + _quote(str(limit))
+            query['limit'] = limit
         return self._request(
-            'GET', self._container_path(container) + query, '',
-            headers, decode_json=True, cdn=cdn)
+            'GET', self._container_path(container), '', headers,
+            decode_json=True, query=query, cdn=cdn)
 
     def put_container(self, container, headers=None, query=None, cdn=False):
         """
@@ -1045,9 +1025,8 @@ class Client(object):
 
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1060,9 +1039,7 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._container_path(container)
-        if query:
-            path += '?' + query
-        return self._request('PUT', path, '', headers, cdn=cdn)
+        return self._request('PUT', path, '', headers, query=query, cdn=cdn)
 
     def post_container(self, container, headers=None, query=None, cdn=False):
         """
@@ -1074,9 +1051,8 @@ class Client(object):
 
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1089,9 +1065,7 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._container_path(container)
-        if query:
-            path += '?' + query
-        return self._request('POST', path, '', headers, cdn=cdn)
+        return self._request('POST', path, '', headers, query=query, cdn=cdn)
 
     def delete_container(self, container, headers=None, query=None, cdn=False):
         """
@@ -1099,9 +1073,8 @@ class Client(object):
 
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1114,9 +1087,7 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._container_path(container)
-        if query:
-            path += '?' + query
-        return self._request('DELETE', path, '', headers, cdn=cdn)
+        return self._request('DELETE', path, '', headers, query=query, cdn=cdn)
 
     def _object_path(self, container, obj):
         container = container.rstrip('/')
@@ -1135,9 +1106,8 @@ class Client(object):
         :param container: The name of the container.
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1150,9 +1120,7 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._object_path(container, obj)
-        if query:
-            path += '?' + query
-        return self._request('HEAD', path, '', headers, cdn=cdn)
+        return self._request('HEAD', path, '', headers, query=query, cdn=cdn)
 
     def get_object(self, container, obj, headers=None, stream=True, query=None,
                    cdn=False):
@@ -1170,9 +1138,8 @@ class Client(object):
             much data is read per call. When streaming is on, be
             certain to fully read the contents before issuing another
             request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1188,9 +1155,8 @@ class Client(object):
                 the HTTP body.
         """
         path = self._object_path(container, obj)
-        if query:
-            path += '?' + query
-        return self._request('GET', path, '', headers, stream=stream, cdn=cdn)
+        return self._request(
+            'GET', path, '', headers, query=query, stream=stream, cdn=cdn)
 
     def put_object(self, container, obj, contents, headers=None, query=None,
                    cdn=False):
@@ -1213,9 +1179,8 @@ class Client(object):
             seek functions, the PUT can be reattempted on any server
             error.
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1228,9 +1193,8 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._object_path(container, obj)
-        if query:
-            path += '?' + query
-        return self._request('PUT', path, contents, headers, cdn=cdn)
+        return self._request(
+            'PUT', path, contents, headers, query=query, cdn=cdn)
 
     def post_object(self, container, obj, headers=None, query=None, cdn=False):
         """
@@ -1246,9 +1210,8 @@ class Client(object):
         :param container: The name of the container.
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1261,9 +1224,7 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._object_path(container, obj)
-        if query:
-            path += '?' + query
-        return self._request('POST', path, '', headers, cdn=cdn)
+        return self._request('POST', path, '', headers, query=query, cdn=cdn)
 
     def delete_object(self, container, obj, headers=None, query=None,
                       cdn=False):
@@ -1273,9 +1234,8 @@ class Client(object):
         :param container: The name of the container.
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
-        :param query: If set, this will be appended to the request
-            path as a query string. Do not begin this query with ? or
-            & as that will be done for you.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
         :returns: A tuple of (status, reason, headers, contents).
@@ -1288,6 +1248,4 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._object_path(container, obj)
-        if query:
-            path += '?' + query
-        return self._request('DELETE', path, '', headers, cdn=cdn)
+        return self._request('DELETE', path, '', headers, query=query, cdn=cdn)

@@ -217,9 +217,11 @@ Outputs the resulting headers from a HEAD request of the [path] given. If no
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
         self._head_parser.add_option(
-            '-q', '--query', dest='query', metavar='QUERY_STRING',
-            help='This will add the QUERY_STRING to the request. Do not begin '
-                 'QUERY_STRING with ? or & as this will be done for you.')
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Examples: '
+                 '-qmultipart-manifest=get -q bulk-delete')
         self._head_parser.add_option(
             '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses. Nothing will be output, '
@@ -245,9 +247,11 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
         self._get_parser.add_option(
-            '-q', '--query', dest='query', metavar='QUERY_STRING',
-            help='This will add the QUERY_STRING to the request. Do not begin '
-                 'QUERY_STRING with ? or & as this will be done for you.')
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Examples: '
+                 '-qmultipart-manifest=get -q bulk-delete')
         self._get_parser.add_option(
             '-l', '--limit', dest='limit',
             help='For account and container GETs, this limits the number of '
@@ -304,7 +308,7 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'For a container GET, performs a GET for every object '
                  'returned by that original container GET. Any headers set '
                  'with --header options are sent for every GET. Any query '
-                 'string set with --query is sent for every GET.')
+                 'parameter set with --query is sent for every GET.')
         self._get_parser.add_option(
             '-o', '--output', dest='output', metavar='PATH',
             help='Indicates where to send the output; default is standard '
@@ -372,9 +376,11 @@ http://greg.brim.net/page/17cc57f0.html""".strip(),
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
         self._put_parser.add_option(
-            '-q', '--query', dest='query', metavar='QUERY_STRING',
-            help='This will add the QUERY_STRING to the request. Do not begin '
-                 'QUERY_STRING with ? or & as this will be done for you.')
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Examples: '
+                 '-qmultipart-manifest=get -q bulk-delete')
         self._put_parser.add_option(
             '-i', '--input', dest='input_', metavar='PATH',
             help='Indicates where to read the contents from; default is '
@@ -432,9 +438,11 @@ request on the account is performed.""".strip(),
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
         self._post_parser.add_option(
-            '-q', '--query', dest='query', metavar='QUERY_STRING',
-            help='This will add the QUERY_STRING to the request. Do not begin '
-                 'QUERY_STRING with ? or & as this will be done for you.')
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Examples: '
+                 '-qmultipart-manifest=get -q bulk-delete')
 
         self._delete_parser = _OptionParser(
             usage="""
@@ -453,9 +461,11 @@ Issues a DELETE request of the [path] given.""".strip(),
                  '-hx-some-header:some-value -h "X-Some-Other-Header: Some '
                  'other value"')
         self._delete_parser.add_option(
-            '-q', '--query', dest='query', metavar='QUERY_STRING',
-            help='This will add the QUERY_STRING to the request. Do not begin '
-                 'QUERY_STRING with ? or & as this will be done for you.')
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Examples: '
+                 '-qmultipart-manifest=get -q bulk-delete')
         self._delete_parser.add_option(
             '--recursive', dest='recursive', action='store_true',
             help='Normally a delete for a non-empty container will error with '
@@ -693,6 +703,16 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 headers[h.strip().lower()] = v.strip()
         return headers
 
+    def _command_line_query_parameters(self, options_list):
+        query_parameters = {}
+        if options_list:
+            for n in options_list:
+                v = ''
+                if '=' in n:
+                    n, v = n.split('=', 1)
+                query_parameters[n.strip()] = v.strip()
+        return query_parameters
+
     def _output_headers(self, headers, mute=None, stdout=None):
         if headers:
             if not mute:
@@ -816,6 +836,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._head_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
+        options.query = self._command_line_query_parameters(options.query)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         mute = []
         if not args:
@@ -871,6 +892,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._get_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
+        options.query = self._command_line_query_parameters(options.query)
         if not stdout:
             stdout = self.stdout
         if options.output:
@@ -1112,6 +1134,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if not args or len(args) != 1 or options.help:
             self._put_parser.print_help()
             return 1
+        options.query = self._command_line_query_parameters(options.query)
         if options.segment_size and options.segment_size[0].lower() == 's':
             options.static_segments = True
             options.segment_size = options.segment_size[1:]
@@ -1259,10 +1282,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         return rv
                     path2info[rv[1]] = rv[2:]
                 if options.static_segments:
-                    if options.query:
-                        options.query += '&multipart-manifest=put'
-                    else:
-                        options.query = 'multipart-manifest=put'
+                    options.query['multipart-manifest'] = 'put'
                     stdin = json.dumps([
                         {'path': '/' + p, 'size_bytes': s, 'etag': e}
                         for p, (s, e) in sorted(path2info.iteritems())])
@@ -1358,6 +1378,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if options.help:
             self._delete_parser.print_help()
             return 1
+        options.query = self._command_line_query_parameters(options.query)
         hdrs = self._command_line_headers(options.header)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         if not args:
