@@ -117,10 +117,13 @@ Output from `swiftly`::
       --concurrency=INTEGER
                             Sets the the number of actions that can be done
                             simultaneously when possible (currently requires using
-                            --eventlet too). Default: 1
-      --eventlet            Uses Eventlet, if installed. This is disabled by
-                            default because Swiftly+Eventlet tends to use
-                            excessive CPU.
+                            Eventlet too). Default: 1
+      --eventlet            Enables Eventlet, if installed. This is disabled by
+                            default if Eventlet is not installed or is less than
+                            version 0.11.0 (because older Swiftly+Eventlet tends
+                            to use excessive CPU.
+      --no-eventlet         Disables Eventlet, even if installed and version
+                            0.11.0 or greater.
       -v, --verbose         Causes output to standard error indicating actions
                             being taken. These output lines will be prefixed with
                             VERBOSE and will also include the number of seconds
