@@ -479,6 +479,7 @@ class Client(object):
 
     def _auth2key(self):
         return self._auth2('RAX-KSKEY:apiKeyCredentials')
+
     def _auth2password(self):
         return self._auth2('passwordCredentials')
 

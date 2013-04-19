@@ -884,14 +884,14 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             path = args[0].lstrip('/')
             with self._with_client() as client:
                 if '/' not in path.rstrip('/'):
-                    status, reason, headers, contents = \
-                        client.head_container(path.rstrip('/'), headers=hdrs,
-                        query=options.query, cdn=self._main_options.cdn)
+                    status, reason, headers, contents = client.head_container(
+                        path.rstrip('/'), headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn)
                     mute.extend(MUTED_CONTAINER_HEADERS)
                 else:
-                    status, reason, headers, contents = \
-                        client.head_object(*path.split('/', 1), headers=hdrs,
-                        query=options.query, cdn=self._main_options.cdn)
+                    status, reason, headers, contents = client.head_object(
+                        *path.split('/', 1), headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn)
                     mute.extend(MUTED_OBJECT_HEADERS)
         else:
             self._head_parser.print_help()
@@ -1088,9 +1088,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                                 stdout=stdout)
             stdout = sub_command.stdin
         with self._with_client() as client:
-            status, reason, headers, contents = \
-                client.get_object(*path.split('/', 1), headers=hdrs,
-                query=options.query, cdn=self._main_options.cdn)
+            status, reason, headers, contents = client.get_object(
+                *path.split('/', 1), headers=hdrs, query=options.query,
+                cdn=self._main_options.cdn)
             if status // 100 != 2:
                 if status == 404 and options.ignore_404:
                     if sub_command:
