@@ -58,9 +58,17 @@ def generate_temp_url(method, url, seconds, key):
         base_url, object_path, sig, expires)
 
 
-def _delayed_imports(eventlet=True):
+def _delayed_imports(eventlet=None):
     BadStatusLine = HTTPConnection = HTTPException = HTTPSConnection = \
         sleep = None
+    if eventlet is None:
+        try:
+            from eventlet import __version__
+            # Eventlet 0.11.0 fixed the CPU bug
+            if __version__ >= '0.11.0':
+                eventlet = True
+        except ImportError:
+            pass
     if eventlet:
         try:
             from eventlet.green.httplib import BadStatusLine, HTTPException, \
@@ -251,8 +259,11 @@ class Client(object):
         URL and auth token are cached in the file for reuse. If there
         is already cached values in the file, they are used without
         authenticating first.
-    :param eventlet: Default: True. If true, Eventlet will be used if
-        installed.
+    :param eventlet: Default: None. If True, Eventlet will be used if
+        installed. If False, Eventlet will not be used even if
+        installed. If None, the default, Eventlet will be used if
+        installed and its version is at least 0.11.0 when a CPU usage
+        bug was fixed.
     :param swift_proxy_cdn_path: If swift_proxy is set,
         swift_proxy_cdn_path is the path to the Swift account to use
         for CDN management (example: /v1/AUTH_test).
@@ -278,7 +289,7 @@ class Client(object):
     def __init__(self, auth_url=None, auth_user=None, auth_key=None,
                  proxy=None, snet=False, retries=4, swift_proxy=None,
                  swift_proxy_storage_path=None, cache_path=None,
-                 eventlet=True, swift_proxy_cdn_path=None, region=None,
+                 eventlet=None, swift_proxy_cdn_path=None, region=None,
                  verbose=None, verbose_id='', auth_tenant=None,
                  auth_methods=None):
         self.auth_url = auth_url

@@ -45,9 +45,16 @@ MUTED_CONTAINER_HEADERS = ['accept-ranges', 'content-length', 'content-type',
 MUTED_OBJECT_HEADERS = ['accept-ranges', 'date']
 
 
-# TODO: Make Eventlet back on by default again since 0.11.0 fixed the CPU bug
-def _delayed_imports(eventlet=False):
+def _delayed_imports(eventlet=None):
     PIPE = Popen = None
+    if eventlet is None:
+        try:
+            from eventlet import __version__
+            # Eventlet 0.11.0 fixed the CPU bug
+            if __version__ >= '0.11.0':
+                eventlet = True
+        except ImportError:
+            pass
     if eventlet:
         try:
             from eventlet.green.subprocess import PIPE, Popen
@@ -169,6 +176,7 @@ class CLI(object):
             self.stderr = sys.stderr
         self.start_time = time()
         self.clients = Queue()
+        self.client_id = 0
 
         self._help_parser = _OptionParser(
             usage="""
@@ -624,11 +632,16 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             metavar='INTEGER',
             help='Sets the the number of actions that can be done '
                  'simultaneously when possible (currently requires using '
-                 '--eventlet too). Default: 1')
+                 'Eventlet too). Default: 1')
         self._main_parser.add_option(
             '--eventlet', dest='eventlet', action='store_true',
-            help='Uses Eventlet, if installed. This is disabled by default '
-                 'because Swiftly+Eventlet tends to use excessive CPU.')
+            help='Enables Eventlet, if installed. This is disabled by default '
+                 'if Eventlet is not installed or is less than version 0.11.0 '
+                 '(because older Swiftly+Eventlet tends to use excessive CPU.')
+        self._main_parser.add_option(
+            '--no-eventlet', dest='no_eventlet', action='store_true',
+            help='Disables Eventlet, even if installed and version 0.11.0 or '
+                 'greater.')
         self._main_parser.add_option(
             '-v', '--verbose', dest='verbose', action='store_true',
             help='Causes output to standard error indicating actions being '
@@ -710,14 +723,21 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         except Empty:
             pass
         if not client:
+            eventlet = None
+            self.client_id += 1
+            if self._main_options.eventlet:
+                eventlet = True
+            if self._main_options.no_eventlet:
+                eventlet = False
             if self._main_options.direct:
                 client = Client(
                     swift_proxy=True,
                     swift_proxy_storage_path=self._main_options.direct,
                     retries=int(self._main_options.retries),
-                    eventlet=self._main_options.eventlet,
+                    eventlet=eventlet,
                     region=self._main_options.region,
-                    verbose=self._verbose)
+                    verbose=self._verbose,
+                    verbose_id=str(self.client_id))
             elif all([self._main_options.auth_url,
                       self._main_options.auth_user,
                       self._main_options.auth_key]):
@@ -735,9 +755,10 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     snet=self._main_options.snet,
                     retries=int(self._main_options.retries),
                     cache_path=cache_path,
-                    eventlet=self._main_options.eventlet,
+                    eventlet=eventlet,
                     region=self._main_options.region,
-                    verbose=self._verbose)
+                    verbose=self._verbose,
+                    verbose_id=str(self.client_id))
         return client
 
     def _put_client(self, client):
@@ -1106,7 +1127,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             return 0
         sub_command = None
         if options.sub_command:
-            PIPE, Popen = _delayed_imports(self._main_options.eventlet)
+            eventlet = None
+            if self._main_options.eventlet:
+                eventlet = True
+            if self._main_options.no_eventlet:
+                eventlet = False
+            PIPE, Popen = _delayed_imports(eventlet)
             sub_command = Popen(options.sub_command, shell=True, stdin=PIPE,
                                 stdout=stdout)
             stdout = sub_command.stdin
