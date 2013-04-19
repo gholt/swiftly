@@ -3,10 +3,12 @@ Swiftly
 
     Copyright 2011-2013 Gregory Holt
 
-    A work in progress. Currently provides a Client class and a command line
-    tool for common Swift functions. Works both with access as an external, end
-    user to a Swift cluster and as an internal administrator of a cluster with
-    direct access to the rings and to all back end servers.
+    Currently provides a Client class and a command line tool for common Swift
+    functions. Works both with access as a standard external user and as an
+    internal administrator of a cluster with direct access to the rings and to
+    all back end servers.
+
+    Source code available at <http://github.com/gholt/swiftly>
 
 Contents
 --------
