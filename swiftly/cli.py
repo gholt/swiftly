@@ -24,6 +24,7 @@ from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
 from time import mktime, strptime, time
+from urllib import unquote
 import sys
 import textwrap
 
@@ -220,8 +221,8 @@ Outputs the resulting headers from a HEAD request of the [path] given. If no
             '-q', '--query', dest='query', action='append',
             metavar='NAME[=VALUE]',
             help='Add a query parameter to the request. This can be used '
-                 'multiple times for multiple query parameters. Examples: '
-                 '-qmultipart-manifest=get -q bulk-delete')
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
         self._head_parser.add_option(
             '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses. Nothing will be output, '
@@ -250,8 +251,8 @@ Outputs the resulting contents from a GET request of the [path] given. If no
             '-q', '--query', dest='query', action='append',
             metavar='NAME[=VALUE]',
             help='Add a query parameter to the request. This can be used '
-                 'multiple times for multiple query parameters. Examples: '
-                 '-qmultipart-manifest=get -q bulk-delete')
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
         self._get_parser.add_option(
             '-l', '--limit', dest='limit',
             help='For account and container GETs, this limits the number of '
@@ -379,8 +380,8 @@ http://greg.brim.net/page/17cc57f0.html""".strip(),
             '-q', '--query', dest='query', action='append',
             metavar='NAME[=VALUE]',
             help='Add a query parameter to the request. This can be used '
-                 'multiple times for multiple query parameters. Examples: '
-                 '-qmultipart-manifest=get -q bulk-delete')
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
         self._put_parser.add_option(
             '-i', '--input', dest='input_', metavar='PATH',
             help='Indicates where to read the contents from; default is '
@@ -441,8 +442,8 @@ request on the account is performed.""".strip(),
             '-q', '--query', dest='query', action='append',
             metavar='NAME[=VALUE]',
             help='Add a query parameter to the request. This can be used '
-                 'multiple times for multiple query parameters. Examples: '
-                 '-qmultipart-manifest=get -q bulk-delete')
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
 
         self._delete_parser = _OptionParser(
             usage="""
@@ -464,8 +465,8 @@ Issues a DELETE request of the [path] given.""".strip(),
             '-q', '--query', dest='query', action='append',
             metavar='NAME[=VALUE]',
             help='Add a query parameter to the request. This can be used '
-                 'multiple times for multiple query parameters. Examples: '
-                 '-qmultipart-manifest=get -q bulk-delete')
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
         self._delete_parser.add_option(
             '--recursive', dest='recursive', action='store_true',
             help='Normally a delete for a non-empty container will error with '
@@ -489,6 +490,40 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'objects from the cluster in the backgound. THERE IS NO '
                  'GOING BACK!')
         self._delete_parser.add_option(
+            '--ignore-404', dest='ignore_404', action='store_true',
+            help='Ignores 404 Not Found responses; the exit code will be 0 '
+                 'instead of 1.')
+
+        self._bulk_delete_parser = _OptionParser(
+            usage="""
+Usage: %prog [main_options] bulk_delete [options]
+
+For help on [main_options] run %prog with no args.
+
+Issues a special Bulk DELETE request. The input to this request must be a list
+of new-line separated, url-encoded names to delete. Each name is of the format
+'/<container>[/<object>]'. Note that only empty containers can be deleted.
+Also, most configurations will only allow up to 1,000 names.""".strip(),
+            stdout=self.stdout, stderr=self.stderr,
+            preamble='bulk_delete command: ')
+        self._bulk_delete_parser.add_option(
+            '-h', '--header', dest='header', action='append',
+            metavar='HEADER:VALUE',
+            help='Add a header to the request. This can be used multiple '
+                 'times for multiple headers. Examples: '
+                 '-hx-some-header:some-value -h "X-Some-Other-Header: Some '
+                 'other value"')
+        self._bulk_delete_parser.add_option(
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
+        self._bulk_delete_parser.add_option(
+            '-i', '--input', dest='input_', metavar='PATH',
+            help='Indicates where to read the list of names from; default is '
+                 'standard input.')
+        self._bulk_delete_parser.add_option(
             '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses; the exit code will be 0 '
                  'instead of 1.')
@@ -1510,6 +1545,62 @@ THERE IS NO GOING BACK!""".strip())
         else:
             self._delete_parser.print_help()
             return 1
+        if status // 100 != 2:
+            if status == 404 and options.ignore_404:
+                return 0
+            self.stderr.write('%s %s\n' % (status, reason))
+            self.stderr.flush()
+            return 1
+        return 0
+
+    @_client_command
+    def _bulk_delete(self, args):
+        try:
+            options, args = self._bulk_delete_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
+        if self._bulk_delete_parser.error_encountered:
+            return 1
+        if options.help:
+            self._bulk_delete_parser.print_help()
+            return 1
+        options.query = self._command_line_query_parameters(options.query)
+        hdrs = self._command_line_headers(options.header)
+        status, reason, headers, contents = 0, 'Unknown', {}, ''
+        if args:
+            self.stderr.write("""
+Bulk DELETE requests take no arguments but instead take a list of names from
+the input stream.""".strip())
+            self.stderr.write('\n')
+            self.stderr.flush()
+            self._bulk_delete_parser.print_help()
+            return 1
+        names = []
+        for name in (
+                open(options.input_, 'rb') if options.input_ else self.stdin):
+            name = unquote(name.strip())
+            if name:
+                if name[0] != '/':
+                    self.stderr.write('%r is not formatted properly.\n' % name)
+                    self.stderr.write("""
+The input to Bulk DELETE requests must be a list of new-line separated,
+url-encoded names to delete. Each name is of the format
+'/<container>[/<object>]'. Note that only empty containers can be deleted.
+Also, most configurations will only allow up to 1,000 names.\n""")
+                    self.stderr.flush()
+                    self._bulk_delete_parser.print_help()
+                    return 1
+                names.append(name)
+        with self._with_client() as client:
+            status, reason, headers, contents = \
+                client.bulk_delete(
+                    names, headers=hdrs, query=options.query,
+                    cdn=self._main_options.cdn)
+        self.stderr.write(contents)
+        self.stderr.write('\n')
+        self.stderr.flush()
         if status // 100 != 2:
             if status == 404 and options.ignore_404:
                 return 0

@@ -820,6 +820,7 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
+        query = dict(query or {})
         query['format'] = 'json'
         if prefix:
             query['prefix'] = prefix
@@ -999,6 +1000,7 @@ class Client(object):
                 list.
             :contents: is the str for the HTTP body.
         """
+        query = dict(query or {})
         query['format'] = 'json'
         if prefix:
             query['prefix'] = prefix
@@ -1249,3 +1251,37 @@ class Client(object):
         """
         path = self._object_path(container, obj)
         return self._request('DELETE', path, '', headers, query=query, cdn=cdn)
+
+    def bulk_delete(self, names, headers=None, query=None, cdn=False):
+        """
+        Sends a Bulk Delete request for the names given. This is a
+        special DELETE request with a body of new-line separated,
+        url-encoded names (the names don't have to be encoded when
+        sent to this function). Each name is of the format
+        '/<container>[/<object>]'. Note that only empty containers
+        can be deleted. Also, most configurations will only allow up
+        to 1,000 names.
+
+        :param names: A list of '/<container>[/<object>]' names to
+            delete.
+        :param headers: Additional headers to send with the request.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
+        :param cdn: If set True, the CDN management interface will be
+            used.
+        :returns: A tuple of (status, reason, headers, contents).
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
+        """
+        headers = dict(headers or {})
+        query = dict(query or {})
+        query['bulk-delete'] = ''
+        headers['content-type'] = 'text/plain'
+        body = '\n'.join(_quote(n) for n in names)
+        headers['content-length'] = str(len(body))
+        return self._request('DELETE', '', body, headers, query=query, cdn=cdn)
