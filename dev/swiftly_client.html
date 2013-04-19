@@ -105,7 +105,7 @@ swift_proxy_cdn_path is the path to the Swift account to use
 for CDN management (example: /v1/AUTH_test).</li>
 <li><strong>region</strong> &#8211; The region to access, if supported by auth
 (Example: DFW).</li>
-<li><strong>verbose</strong> &#8211; Set to a <cite>func(msg, *args)</cite> that will be called
+<li><strong>verbose</strong> &#8211; Set to a <tt class="docutils literal"><span class="pre">func(msg,</span> <span class="pre">*args)</span></tt> that will be called
 with debug messages. Constructing a string for output can be
 done with msg % args.</li>
 <li><strong>verbose_id</strong> &#8211; Set to a string you wish verbose messages to
@@ -115,7 +115,7 @@ multiple Clients are in use.</li>
 Default (if needed): same as auth_user.</li>
 <li><strong>auth_methods</strong> &#8211; Auth methods to use with the auth system,
 example:
-<cite>auth2key,auth2password,auth2password_force_tenant,auth1</cite> If
+<tt class="docutils literal"><span class="pre">auth2key,auth2password,auth2password_force_tenant,auth1</span></tt> If
 not specified, the best order will try to be determined; but
 if you notice it keeps making useless auth attempts and that
 drives you crazy, you can override that here. All the
@@ -128,13 +128,15 @@ available auth methods are listed in the example.</li>
 <dl class="method">
 <dt id="swiftly.client.Client.auth">
 <tt class="descname">auth</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.auth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.auth" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Just performs the authentication step without making an
+actual request to the Swift system.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="swiftly.client.Client.delete_account">
 <tt class="descname">delete_account</tt><big>(</big><em>headers=None</em>, <em>yes_i_mean_delete_the_account=False</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.delete_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.delete_account" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sends a DELETE request to the account and returns the results.</p>
-<p>With <cite>query[&#8216;bulk-delete&#8217;] = &#8216;&#8217;</cite> this might mean a bulk
+<p>With <tt class="docutils literal"><span class="pre">query['bulk-delete']</span> <span class="pre">=</span> <span class="pre">''</span></tt> this might mean a bulk
 delete request where the body of the request is new-line
 separated, url-encoded list of names to delete. Be careful
 with this! One wrong move and you might mark your account for
@@ -152,7 +154,7 @@ objects from the cluster in the backgound.</p>
 <li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
 <li><strong>yes_i_mean_delete_the_account</strong> &#8211; Set to True to verify
 you really mean to delete the entire account. This is
-required unless <cite>body and &#8216;bulk-delete&#8217; in query</cite>.</li>
+required unless <tt class="docutils literal"><span class="pre">body</span> <span class="pre">and</span> <span class="pre">'bulk-delete'</span> <span class="pre">in</span> <span class="pre">query</span></tt>.</li>
 <li><strong>query</strong> &#8211; Set to a dict of query values to send on the
 query string of the request.</li>
 <li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
