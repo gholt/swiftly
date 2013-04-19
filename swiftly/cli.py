@@ -557,10 +557,31 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             help='Key for auth system, example: testing You can also set this '
                  'with the environment variable SWIFTLY_AUTH_KEY.')
         self._main_parser.add_option(
+            '-T', '--auth-tenant', dest='auth_tenant',
+            default=environ.get('SWIFTLY_AUTH_TENANT', ''), metavar='TENANT',
+            help='Tenant name for auth system, example: test You can '
+                 'also set this with the environment variable '
+                 'SWIFTLY_AUTH_TENANT. If not specified and needed, the auth '
+                 'user will be used, but it\'s best to specify it if it\'s '
+                 'needed to avoid useless auth attempts.')
+        self._main_parser.add_option(
+            '--auth-methods', dest='auth_methods',
+            default=environ.get('SWIFTLY_AUTH_METHODS', ''),
+            metavar='name[,name[...]]',
+            help='Auth methods to use with the auth system, example: '
+                 'auth2key,auth2password,auth2password_force_tenant,auth1 You '
+                 'can also set this with the environment variable '
+                 'SWIFTLY_AUTH_METHODS. Swiftly will try to determine the '
+                 'best order for you; but if you notice it keeps making '
+                 'useless auth attempts and that drives you crazy, you can '
+                 'override that here. All the available auth methods are '
+                 'listed in the example.')
+        self._main_parser.add_option(
             '--region', dest='region',
             default=environ.get('SWIFTLY_REGION', ''), metavar='VALUE',
             help='Region to use, if supported by auth, example: DFW You can '
-                 'also set this with the environment variable SWIFTLY_REGION.')
+                 'also set this with the environment variable SWIFTLY_REGION. '
+                 'Default: default region specified by the auth response.')
         self._main_parser.add_option(
             '-D', '--direct', dest='direct',
             default=environ.get('SWIFTLY_DIRECT', ''), metavar='PATH',
@@ -708,6 +729,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     auth_url=self._main_options.auth_url,
                     auth_user=self._main_options.auth_user,
                     auth_key=self._main_options.auth_key,
+                    auth_tenant=self._main_options.auth_tenant,
+                    auth_methods=self._main_options.auth_methods,
                     proxy=self._main_options.proxy,
                     snet=self._main_options.snet,
                     retries=int(self._main_options.retries),

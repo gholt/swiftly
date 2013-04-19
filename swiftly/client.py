@@ -264,18 +264,30 @@ class Client(object):
     :param verbose_id: Set to a string you wish verbose messages to
         be prepended with; can help in identifying output when
         multiple Clients are in use.
+    :param auth_tenant: The tenant to authenticate as, if needed.
+        Default (if needed): same as auth_user.
+    :param auth_methods: Auth methods to use with the auth system,
+        example:
+        `auth2key,auth2password,auth2password_force_tenant,auth1` If
+        not specified, the best order will try to be determined; but
+        if you notice it keeps making useless auth attempts and that
+        drives you crazy, you can override that here. All the
+        available auth methods are listed in the example.
     """
 
     def __init__(self, auth_url=None, auth_user=None, auth_key=None,
                  proxy=None, snet=False, retries=4, swift_proxy=None,
                  swift_proxy_storage_path=None, cache_path=None,
                  eventlet=True, swift_proxy_cdn_path=None, region=None,
-                 verbose=None, verbose_id=''):
+                 verbose=None, verbose_id='', auth_tenant=None,
+                 auth_methods=None):
         self.auth_url = auth_url
         if self.auth_url:
             self.auth_url = self.auth_url.rstrip('/')
         self.auth_user = auth_user
         self.auth_key = auth_key
+        self.auth_tenant = auth_tenant or ''
+        self.auth_methods = auth_methods
         self.proxy = proxy
         self.snet = snet
         self.attempts = retries + 1
@@ -305,12 +317,13 @@ class Client(object):
             try:
                 data = open(self.cache_path, 'r').read().decode('base64')
                 data = data.split('\n')
-                if len(data) == 7:
-                    (auth_url, auth_user, auth_key, region,
+                if len(data) == 8:
+                    (auth_url, auth_user, auth_key, auth_tenant, region,
                      self.storage_url, self.cdn_url, self.auth_token) = data
                     if auth_url != self.auth_url or \
                             auth_user != self.auth_user or \
                             auth_key != self.auth_key or \
+                            auth_tenant != self.auth_tenant or \
                             (self.region and region != self.region):
                         self.storage_url = None
                         self.cdn_url = None
@@ -391,10 +404,20 @@ class Client(object):
     def auth(self):
         if not self.auth_url:
             return
-        if '1.0' in self.auth_url:
-            funcs = [self._auth1, self._auth2key, self._auth2password]
-        else:
-            funcs = [self._auth2key, self._auth2password, self._auth1]
+        funcs = []
+        if self.auth_methods:
+            for method in self.auth_methods.split(','):
+                funcs.append(getattr(self, '_' + method))
+        if not funcs:
+            if '1.0' in self.auth_url:
+                funcs = [self._auth1, self._auth2key, self._auth2password]
+                if not self.auth_tenant:
+                     funcs.append(self._auth2password_force_tenant)
+            else:
+                funcs = [self._auth2key, self._auth2password]
+                if not self.auth_tenant:
+                     funcs.append(self._auth2password_force_tenant)
+                funcs.append(self._auth1)
         info = []
         for func in funcs:
             status, reason = func()
@@ -466,8 +489,8 @@ class Client(object):
                         self.cache_path)
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
-                        self.region, self.storage_url, self.cdn_url or '',
-                        self.auth_token])
+                        self.auth_tenant, self.region, self.storage_url,
+                        self.cdn_url or '', self.auth_token])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
@@ -483,7 +506,10 @@ class Client(object):
     def _auth2password(self):
         return self._auth2('passwordCredentials')
 
-    def _auth2(self, cred_type):
+    def _auth2password_force_tenant(self):
+        return self._auth2('passwordCredentials', force_tenant=True)
+
+    def _auth2(self, cred_type, force_tenant=False):
         status = 0
         reason = 'Unknown'
         attempt = 0
@@ -492,13 +518,16 @@ class Client(object):
             self._verbose(
                 'Attempting auth v2 %s with %s', cred_type, self.auth_url)
             parsed, conn = self._connect(self.auth_url)
+            data = {'auth': {cred_type: {'username': self.auth_user}}}
             if cred_type == 'RAX-KSKEY:apiKeyCredentials':
-                body = json.dumps({'auth': {cred_type: {
-                    'username': self.auth_user, 'apiKey': self.auth_key}}})
+                data['auth'][cred_type]['apiKey'] = self.auth_key
             else:
-                body = json.dumps({'auth': {cred_type: {
-                    'username': self.auth_user, 'password': self.auth_key}}})
+                data['auth'][cred_type]['password'] = self.auth_key
+            if self.auth_tenant or force_tenant:
+                data['auth']['tenantName'] = self.auth_tenant or self.auth_user
+            body = json.dumps(data)
             self._verbose('> POST %s', parsed.path + '/tokens')
+            self._verbose('> %s', body)
             conn.request(
                 'POST', parsed.path + '/tokens', body,
                 {'Content-Type': 'application/json',
@@ -554,8 +583,8 @@ class Client(object):
                         self.cache_path)
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
-                        self.region, self.storage_url, self.cdn_url or '',
-                        self.auth_token])
+                        self.auth_tenant, self.region, self.storage_url,
+                        self.cdn_url or '', self.auth_token])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
