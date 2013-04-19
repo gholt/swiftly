@@ -1,7 +1,7 @@
 Swiftly
 =======
 
-    Copyright 2011 Gregory Holt
+    Copyright 2011-2013 Gregory Holt
 
     A work in progress. Currently provides a Client class and a command line
     tool for common Swift functions. Works both with access as an external, end

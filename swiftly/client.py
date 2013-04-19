@@ -1,7 +1,7 @@
 """
 Client API to Swift
 
-Copyright 2011 Gregory Holt
+Copyright 2011-2013 Gregory Holt
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -246,24 +246,22 @@ class Client(object):
         swift_proxy_storage_path is the path to the Swift account to
         use (example: /v1/AUTH_test).
     :param cache_path: Default: None. If set to a path, the storage
-                       URL and auth token are cached in the file for
-                       reuse. If there is already cached values in
-                       the file, they are used without authenticating
-                       first.
+        URL and auth token are cached in the file for reuse. If there
+        is already cached values in the file, they are used without
+        authenticating first.
     :param eventlet: Default: True. If true, Eventlet will be used if
-                     installed.
+        installed.
     :param swift_proxy_cdn_path: If swift_proxy is set,
-                                 swift_proxy_cdn_path is the path to
-                                 the Swift account to use for CDN
-                                 management (example: /v1/AUTH_test).
+        swift_proxy_cdn_path is the path to the Swift account to use
+        for CDN management (example: /v1/AUTH_test).
     :param region: The region to access, if supported by auth
-                   (Example: DFW).
-    :param verbose: Set to a func(msg, *args) that will be called
-                    with debug messages. Constructing a string for
-                    output can be done with msg % args.
+        (Example: DFW).
+    :param verbose: Set to a `func(msg, *args)` that will be called
+        with debug messages. Constructing a string for output can be
+        done with msg % args.
     :param verbose_id: Set to a string you wish verbose messages to
-                       be prepended with; can help in identifying
-                       output when multiple Clients are in use.
+        be prepended with; can help in identifying output when
+        multiple Clients are in use.
     """
 
     def __init__(self, auth_url=None, auth_user=None, auth_key=None,
@@ -735,10 +733,10 @@ class Client(object):
 
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -778,43 +776,41 @@ class Client(object):
 
         :param headers: Additional headers to send with the request.
         :param prefix: The prefix container names must match to be
-                       listed.
+            listed.
         :param delimiter: The delimiter for the listing. Delimiters
-                          indicate how far to progress through
-                          container names before "rolling them up".
-                          For instance, a delimiter='.' query on an
-                          account with the containers::
+            indicate how far to progress through container names
+            before "rolling them up". For instance, a delimiter='.'
+            query on an account with the containers::
 
-                           one.one
-                           one.two
-                           two
-                           three.one
+                one.one
+                one.two
+                two
+                three.one
 
-                          would return the JSON value of::
+            would return the JSON value of::
 
-                           [{'subdir': 'one.'},
-                            {'count': 0, 'bytes': 0, 'name': 'two'},
-                            {'subdir': 'three.'}]
+                [{'subdir': 'one.'},
+                 {'count': 0, 'bytes': 0, 'name': 'two'},
+                 {'subdir': 'three.'}]
 
-                          Using this with prefix can allow you to
-                          traverse a psuedo hierarchy.
+            Using this with prefix can allow you to traverse a psuedo
+            hierarchy.
         :param marker: Only container names after this marker will be
-                       returned. Swift returns a limited number of
-                       containers per request (often 10,000). To get
-                       the next batch of names, you issue another
-                       query with the marker set to the last name you
-                       received. You can continue to issue requests
-                       until you receive no more names.
+            returned. Swift returns a limited number of containers
+            per request (often 10,000). To get the next batch of
+            names, you issue another query with the marker set to the
+            last name you received. You can continue to issue
+            requests until you receive no more names.
         :param end_marker: Only container names before this marker will be
-                           returned.
+            returned.
         :param limit: Limits the size of the list returned per
-                      request. The default and maximum depends on the
-                      Swift cluster (usually 10,000).
+            request. The default and maximum depends on the Swift
+            cluster (usually 10,000).
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -851,10 +847,10 @@ class Client(object):
 
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -885,13 +881,12 @@ class Client(object):
 
         :param headers: Additional headers to send with the request.
         :param yes_i_mean_delete_the_account: Set to True to verify you really
-                                              mean to delete the entire
-                                              account.
+            mean to delete the entire account.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -936,10 +931,10 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -977,43 +972,41 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :param prefix: The prefix object names must match to be
-                       listed.
+            listed.
         :param delimiter: The delimiter for the listing. Delimiters
-                          indicate how far to progress through object
-                          names before "rolling them up". For
-                          instance, a delimiter='/' query on an
-                          container with the objects::
+            indicate how far to progress through object names before
+            "rolling them up". For instance, a delimiter='/' query on
+            an container with the objects::
 
-                           one/one
-                           one/two
-                           two
-                           three/one
+                one/one
+                one/two
+                two
+                three/one
 
-                          would return the JSON value of::
+            would return the JSON value of::
 
-                           [{'subdir': 'one/'},
-                            {'count': 0, 'bytes': 0, 'name': 'two'},
-                            {'subdir': 'three/'}]
+                [{'subdir': 'one/'},
+                 {'count': 0, 'bytes': 0, 'name': 'two'},
+                 {'subdir': 'three/'}]
 
-                          Using this with prefix can allow you to
-                          traverse a psuedo hierarchy.
+            Using this with prefix can allow you to traverse a psuedo
+            hierarchy.
         :param marker: Only object names after this marker will be
-                       returned. Swift returns a limited number of
-                       objects per request (often 10,000). To get the
-                       next batch of names, you issue another query
-                       with the marker set to the last name you
-                       received. You can continue to issue requests
-                       until you receive no more names.
+            returned. Swift returns a limited number of objects per
+            request (often 10,000). To get the next batch of names,
+            you issue another query with the marker set to the last
+            name you received. You can continue to issue requests
+            until you receive no more names.
         :param end_marker: Only object names before this marker will be
-                           returned.
+            returned.
         :param limit: Limits the size of the list returned per
-                      request. The default and maximum depends on the
-                      Swift cluster (usually 10,000).
+            request. The default and maximum depends on the Swift
+            cluster (usually 10,000).
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1053,10 +1046,10 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1082,10 +1075,10 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1107,10 +1100,10 @@ class Client(object):
         :param container: The name of the container.
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1143,10 +1136,10 @@ class Client(object):
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1170,19 +1163,18 @@ class Client(object):
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
         :param stream: Indicates whether to stream the contents or
-                       preread them fully and return them as a str.
-                       Default: True to stream the contents.
-                       When streaming, contents will have the standard
-                       file-like-object read function, which accepts
-                       an optional size parameter to limit how much
-                       data is read per call.
-                       When streaming is on, be certain to fully read
-                       the contents before issuing another request.
+            preread them fully and return them as a str. Default:
+            True to stream the contents. When streaming, contents
+            will have the standard file-like-object read function,
+            which accepts an optional size parameter to limit how
+            much data is read per call. When streaming is on, be
+            certain to fully read the contents before issuing another
+            request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1216,17 +1208,16 @@ class Client(object):
         :param container: The name of the container.
         :param obj: The name of the object.
         :param contents: The contents of the object to store. This can
-                         be a simple str, or a file-like-object with
-                         at least a read function. If the
-                         file-like-object also has tell and seek
-                         functions, the PUT can be reattempted on any
-                         server error.
+            be a simple str, or a file-like-object with at least a
+            read function. If the file-like-object also has tell and
+            seek functions, the PUT can be reattempted on any server
+            error.
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1256,10 +1247,10 @@ class Client(object):
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1283,10 +1274,10 @@ class Client(object):
         :param obj: The name of the object.
         :param headers: Additional headers to send with the request.
         :param query: If set, this will be appended to the request
-                      path as a query string. Do not begin this query
-                      with ? or & as that will be done for you.
+            path as a query string. Do not begin this query with ? or
+            & as that will be done for you.
         :param cdn: If set True, the CDN management interface will be
-                    used.
+            used.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.

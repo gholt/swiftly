@@ -1,7 +1,7 @@
 """
 Command Line Client to Swift
 
-Copyright 2011 Gregory Holt
+Copyright 2011-2013 Gregory Holt
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
