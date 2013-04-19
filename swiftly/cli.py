@@ -334,7 +334,7 @@ Outputs the resulting contents from a GET request of the [path] given. If no
 
         self._put_parser = _OptionParser(
             usage="""
-Usage: %prog [main_options] put [options] <path>
+Usage: %prog [main_options] put [options] [path]
 
 For help on [main_options] run %prog with no args.
 
@@ -389,6 +389,15 @@ http://greg.brim.net/page/17cc57f0.html""".strip(),
                  'the directory will be uploaded as similarly named objects '
                  'and empty directories will create text/directory marker '
                  'objects.')
+        self._put_parser.add_option(
+            '-I', dest='INPUT_', action='store_true',
+            help='Since account and container PUTs do not normally take '
+                 'input, you must specify this option if you wish them to '
+                 'read from the input specified by -i (or the default '
+                 'standard input). This is useful with '
+                 '-qextract-archive=<format> bulk upload requests. For '
+                 'example: tar zc . | swiftly put -qextract-archive=tar.gz -I '
+                 'container')
         self._put_parser.add_option(
             '-n', '--newer', dest='newer', action='store_true',
             help='For PUTs with an --input option, first performs a HEAD on '
@@ -1166,7 +1175,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         if self._put_parser.error_encountered:
             return 1
-        if not args or len(args) != 1 or options.help:
+        if len(args) > 1 or options.help:
             self._put_parser.print_help()
             return 1
         options.query = self._command_line_query_parameters(options.query)
@@ -1189,6 +1198,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self.stderr.flush()
             return 1
         if options.input_ and isdir(options.input_):
+            if not args:
+                self.stderr.write(
+                    'Uploading a directory structure requires at least a '
+                    'container name.\n')
+                self.stderr.flush()
+                return 1
             subargs = [args[0].split('/', 1)[0]]
             if options.header:
                 for h in options.header:
@@ -1250,14 +1265,17 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 if _get_return_code(rv):
                     return rv
             return 0
-        path = args[0].lstrip('/')
+        path = args[0].lstrip('/') if args else ''
         hdrs = {}
         if not stdin:
             stdin = self.stdin
         if options.empty:
             hdrs['content-length'] = '0'
             stdin = ''
-        elif options.input_ and not isdir(options.input_):
+        elif options.INPUT_:
+            if options.input_:
+                stdin = open(options.input_, 'rb')
+        elif options.input_ and not isdir(options.input_) and args:
             l_mtime = getmtime(options.input_)
             if (options.newer or options.different) and \
                     '/' in path.rstrip('/'):
@@ -1328,11 +1346,26 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         with self._with_client() as client:
-            if '/' not in path.rstrip('/'):
+            if not path.rstrip('/'):
+                body = stdin if options.INPUT_ else ''
+                status, reason, headers, contents = \
+                    client.put_account(
+                        headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn, body=body)
+                if options.INPUT_:
+                    self.stderr.write(contents)
+                    self.stderr.write('\n')
+                    self.stderr.flush()
+            elif '/' not in path.rstrip('/'):
+                body = stdin if options.INPUT_ else ''
                 status, reason, headers, contents = \
                     client.put_container(
                         path.rstrip('/'), headers=hdrs, query=options.query,
-                        cdn=self._main_options.cdn)
+                        cdn=self._main_options.cdn, body=body)
+                if options.INPUT_:
+                    self.stderr.write(contents)
+                    self.stderr.write('\n')
+                    self.stderr.flush()
             else:
                 c, o = path.split('/', 1)
                 status, reason, headers, contents = \

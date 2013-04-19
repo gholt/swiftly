@@ -836,6 +836,32 @@ class Client(object):
         return self._request(
             'GET', '', '', headers, decode_json=True, query=query, cdn=cdn)
 
+    def put_account(self, headers=None, query=None, cdn=False, body=None):
+        """
+        PUTs the account and returns the results. This is usually
+        done with the extract-archive bulk upload request and has no
+        other use I know of (but the call is left open in case there
+        ever is).
+
+        :param headers: Additional headers to send with the request.
+        :param query: Set to a dict of query values to send on the
+            query string of the request.
+        :param cdn: If set True, the CDN management interface will be
+            used.
+        :param body: Some account PUT requests, like the
+            extract-archive bulk upload request, take a body.
+        :returns: A tuple of (status, reason, headers, contents).
+
+            :status: is an int for the HTTP status code.
+            :reason: is the str for the HTTP status (ex: "Ok").
+            :headers: is a dict with all lowercase keys of the HTTP
+                headers; if a header has multiple values, it will be a
+                list.
+            :contents: is the str for the HTTP body.
+        """
+        return self._request(
+            'PUT', '', body or '', headers, query=query, cdn=cdn)
+
     def post_account(self, headers=None, query=None, cdn=False):
         """
         POSTs the account and returns the results. This is usually
@@ -1017,7 +1043,8 @@ class Client(object):
             'GET', self._container_path(container), '', headers,
             decode_json=True, query=query, cdn=cdn)
 
-    def put_container(self, container, headers=None, query=None, cdn=False):
+    def put_container(self, container, headers=None, query=None, cdn=False,
+                      body=None):
         """
         PUTs the container and returns the results. This is usually
         done to create new containers and can also be used to set
@@ -1032,6 +1059,8 @@ class Client(object):
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param body: Some container PUT requests, like the
+            extract-archive bulk upload request, take a body.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1042,7 +1071,8 @@ class Client(object):
             :contents: is the str for the HTTP body.
         """
         path = self._container_path(container)
-        return self._request('PUT', path, '', headers, query=query, cdn=cdn)
+        return self._request(
+            'PUT', path, body or '', headers, query=query, cdn=cdn)
 
     def post_container(self, container, headers=None, query=None, cdn=False):
         """
