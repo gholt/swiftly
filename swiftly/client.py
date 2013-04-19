@@ -412,11 +412,11 @@ class Client(object):
             if '1.0' in self.auth_url:
                 funcs = [self._auth1, self._auth2key, self._auth2password]
                 if not self.auth_tenant:
-                     funcs.append(self._auth2password_force_tenant)
+                    funcs.append(self._auth2password_force_tenant)
             else:
                 funcs = [self._auth2key, self._auth2password]
                 if not self.auth_tenant:
-                     funcs.append(self._auth2password_force_tenant)
+                    funcs.append(self._auth2password_force_tenant)
                 funcs.append(self._auth1)
         info = []
         for func in funcs:
