@@ -601,8 +601,9 @@ class Client(object):
                     else:
                         self.storage_conn = conn
                         self.storage_path = conn_path = parsed.path
-                raise self.HTTPException('%s %s failed' % (method, path),
-                                         0, 'No connection')
+                else:
+                    raise self.HTTPException('%s %s failed' % (method, path),
+                                             0, 'No connection')
             hdrs = {'User-Agent': 'Swiftly v%s' % VERSION,
                     'X-Auth-Token': self.auth_token}
             if headers:

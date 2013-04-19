@@ -69,6 +69,17 @@ def _client_command(func):
     return func
 
 
+def _get_return_code(rv):
+    # Most funcs just return a return code, but some funcs return a list with
+    # the return code as the first item and additional items for use with
+    # nested calls.
+    try:
+        rc = rv[0]
+    except TypeError:
+        rc = rv
+    return rc
+
+
 class _OptionParser(OptionParser):
 
     def __init__(self, usage=None, option_list=None, option_class=Option,
@@ -327,28 +338,32 @@ contents for the object are read from standard input.
 
 Special Note About Segmented Objects:
 
-For object uploads exceeding the -s [size] (default: 5G) the object
-will be uploaded in segments. At this time, auto-segmenting only
-works for objects uploaded from source files -- objects sourced from
-standard input cannot exceed the maximum object size for the cluster.
+For object uploads exceeding the -s [size] (default: 5G) the object will be
+uploaded in segments. At this time, auto-segmenting only works for objects
+uploaded from source files -- objects sourced from standard input cannot exceed
+the maximum object size for the cluster.
 
-A segmented object is one that has its contents in several other
-objects. On download, these other objects are concatenated into a
-single object stream.
+A segmented object is one that has its contents in several other objects. On
+download, these other objects are concatenated into a single object stream.
 
-Segmented objects can be useful to greatly exceed the maximum single
-object size, speed up uploading large objects with concurrent segment
-uploading, and provide the option to replace, insert, and delete
-segments within a whole object without having to alter or reupload
-any of the other segments.
+Segmented objects can be useful to greatly exceed the maximum single object
+size, speed up uploading large objects with concurrent segment uploading, and
+provide the option to replace, insert, and delete segments within a whole
+object without having to alter or reupload any of the other segments.
 
-The main object of a segmented object is called the "manifest
-object". This object just has an X-Object-Manifest header that points
-to another path where the segments for the object contents are
-stored. For Swiftly, this header value is auto-generated as the same
-name as the manifest object, but with "_segments" added to the
-container name. This keeps the segments out of the main container
-listing, which is often useful.""".strip(),
+The main object of a segmented object is called the "manifest object". This
+object just has an X-Object-Manifest header that points to another path where
+the segments for the object contents are stored. For Swiftly, this header value
+is auto-generated as the same name as the manifest object, but with "_segments"
+added to the container name. This keeps the segments out of the main container
+listing, which is often useful.
+
+By default, Swift's dynamic large object support is used since it was
+implemented first. However, if you prefix the [size] with an 's', as in '-s
+s1048576' Swiftly will use static large object support. These static large
+objects are very similar as described above, except the manifest contains a
+static list of the object segments. For more information on the tradeoffs, see
+http://greg.brim.net/page/17cc57f0.html""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='put command: ')
         self._put_parser.add_option(
             '-h', '--header', dest='header', action='append',
@@ -601,13 +616,15 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._main_parser.print_help()
             return 1
         if not getattr(func, '__is_client_command__', False):
-            return func(args[1:])
-        client = self._get_client()
-        if not client:
-            self._main_parser.print_help()
-            return 1
-        self._put_client(client)
-        return func(args[1:])
+            rv = func(args[1:])
+        else:
+            client = self._get_client()
+            if not client:
+                self._main_parser.print_help()
+                return 1
+            self._put_client(client)
+            rv = func(args[1:])
+        return _get_return_code(rv)
 
     def _verbose(self, msg, *args):
         if self._main_options.verbose:
@@ -1075,12 +1092,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     def _put_recursive_helper(self, args, stdin=None):
         rv = self._put(args, stdin)
-        if rv:
+        if _get_return_code(rv):
             self.stderr.write(
                 'aborting after error with %s\n' % args[0])
             self.stderr.flush()
             return rv
-        return 0
+        return rv
 
     @_client_command
     def _put(self, args, stdin=None):
@@ -1095,6 +1112,11 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if not args or len(args) != 1 or options.help:
             self._put_parser.print_help()
             return 1
+        if options.segment_size and options.segment_size[0].lower() == 's':
+            options.static_segments = True
+            options.segment_size = options.segment_size[1:]
+        else:
+            options.static_segments = False
         g5 = 5 * 1024 * 1024 * 1024
         try:
             options.segment_size = int(options.segment_size or g5)
@@ -1115,7 +1137,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     subargs.append('-h')
                     subargs.append(h)
             rv = self._put(subargs)
-            if rv:
+            if _get_return_code(rv):
                 self.stderr.write(
                     'aborting after error with %s\n' % subargs[0])
                 self.stderr.flush()
@@ -1138,7 +1160,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         'x-object-meta-mtime:%d' % getmtime(options.input_))
                     subargs.append('-e')
                     for rv in conc.get_results().values():
-                        if rv:
+                        if _get_return_code(rv):
                             conc.join()
                             return rv
                     conc.spawn(subargs[0], self._put_recursive_helper, subargs)
@@ -1160,14 +1182,14 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         if options.different:
                             subargs.append('-d')
                         for rv in conc.get_results().values():
-                            if rv:
+                            if _get_return_code(rv):
                                 conc.join()
                                 return rv
                         conc.spawn(subargs[0], self._put_recursive_helper,
                                    subargs)
             conc.join()
             for rv in conc.get_results().values():
-                if rv:
+                if _get_return_code(rv):
                     return rv
             return 0
         path = args[0].lstrip('/')
@@ -1198,10 +1220,10 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     except ValueError:
                         pass
                 if options.newer and l_mtime <= r_mtime:
-                    return 0
+                    return 0, path, r_size, headers.get('etag')
                 if options.different and l_mtime == r_mtime and \
                         getsize(options.input_) == r_size:
-                    return 0
+                    return 0, path, r_size, headers.get('etag')
             hdrs['x-object-meta-mtime'] = '%d' % l_mtime
             size = getsize(options.input_)
             if size <= options.segment_size:
@@ -1211,7 +1233,6 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 hdrs['content-length'] = '0'
                 prefix = '%s_segments/%s' % tuple(args[0].split('/', 1))
                 prefix = '%s/%s/%s/' % (prefix, l_mtime, size)
-                hdrs['x-object-manifest'] = prefix
                 conc = Concurrency(int(self._main_options.concurrency))
                 start = 0
                 segment = 0
@@ -1224,7 +1245,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     substdin = open(options.input_, 'rb')
                     substdin.seek(start)
                     for rv in conc.get_results().values():
-                        if rv:
+                        if _get_return_code(rv):
                             conc.join()
                             return rv
                     conc.spawn(subargs[0], self._put_recursive_helper,
@@ -1232,9 +1253,23 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     segment += 1
                     start += options.segment_size
                 conc.join()
+                path2info = {}
                 for rv in conc.get_results().values():
-                    if rv:
+                    if _get_return_code(rv):
                         return rv
+                    path2info[rv[1]] = rv[2:]
+                if options.static_segments:
+                    if options.query:
+                        options.query += '&multipart-manifest=put'
+                    else:
+                        options.query = 'multipart-manifest=put'
+                    stdin = json.dumps([
+                        {'path': '/' + p, 'size_bytes': s, 'etag': e}
+                        for p, (s, e) in sorted(path2info.iteritems())])
+                    hdrs['content-type'] = 'application/json'
+                    hdrs['content-length'] = str(len(stdin))
+                else:
+                    hdrs['x-object-manifest'] = prefix
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         with self._with_client() as client:
@@ -1253,7 +1288,11 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self.stderr.write('%s %s\n' % (status, reason))
             self.stderr.flush()
             return 1
-        return 0
+        if options.input_ and not isdir(options.input_):
+            size = getsize(options.input_)
+        else:
+            size = int(hdrs.get('content-length') or 0)
+        return 0, path, size, headers.get('etag')
 
     @_client_command
     def _post(self, args):
