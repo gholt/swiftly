@@ -570,8 +570,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             help='Tenant name for auth system, example: test You can '
                  'also set this with the environment variable '
                  'SWIFTLY_AUTH_TENANT. If not specified and needed, the auth '
-                 'user will be used, but it\'s best to specify it if it\'s '
-                 'needed to avoid useless auth attempts.')
+                 'user will be used.')
         self._main_parser.add_option(
             '--auth-methods', dest='auth_methods',
             default=environ.get('SWIFTLY_AUTH_METHODS', ''),
