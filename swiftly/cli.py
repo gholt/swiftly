@@ -1147,7 +1147,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         self._verbose('Waiting on sub-command for %s', path)
                         self._verbose(
                             'Sub-command returned %s with object %s',
-                            (sub_command.wait(), path))
+                            sub_command.wait(), path)
                     return 0
                 self.stderr.write('%s %s\n' % (status, reason))
                 self.stderr.flush()
@@ -1158,7 +1158,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     self._verbose('Waiting on sub-command for %s', path)
                     self._verbose(
                         'Sub-command returned %s with object %s',
-                        (sub_command.wait(), path))
+                        sub_command.wait(), path)
                 return 1
             if options.headers:
                 self._output_headers(headers, MUTED_OBJECT_HEADERS,
@@ -1193,7 +1193,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._verbose('Waiting on sub-command for %s', path)
             self._verbose(
                 'Sub-command returned %s with object %s',
-                (sub_command.wait(), path))
+                sub_command.wait(), path)
         return 0
 
     def _put_recursive_helper(self, args, stdin=None):
