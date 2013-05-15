@@ -575,20 +575,45 @@ class Client(object):
                 self.regions_default = \
                     body['access']['user']['RAX-AUTH:defaultRegion']
                 region = self.region or self.regions_default
+                storage_match1 = storage_match2 = storage_match3 = None
+                cdn_match1 = cdn_match2 = cdn_match3 = None
                 for service in body['access']['serviceCatalog']:
                     if service['type'] == 'object-store':
                         for endpoint in service['endpoints']:
-                            self.regions.append(endpoint['region'])
-                            if endpoint['region'] == region:
-                                self.storage_url = endpoint.get(
+                            if 'region' in endpoint:
+                                self.regions.append(endpoint['region'])
+                                if endpoint['region'] == region:
+                                    storage_match1 = endpoint.get(
+                                        'internalURL'
+                                        if self.snet else 'publicURL')
+                                elif endpoint['region'].lower() == \
+                                        region.lower():
+                                    storage_match2 = endpoint.get(
+                                        'internalURL'
+                                        if self.snet else 'publicURL')
+                            if not storage_match3:
+                                storage_match3 = endpoint.get(
                                     'internalURL'
                                     if self.snet else 'publicURL')
                     elif service['type'] == 'rax:object-cdn':
                         for endpoint in service['endpoints']:
-                            if endpoint['region'] == region:
-                                self.cdn_url = endpoint.get(
+                            if 'region' in endpoint:
+                                if endpoint['region'] == region:
+                                    cdn_match1 = endpoint.get(
+                                        'internalURL'
+                                        if self.snet else 'publicURL')
+                                elif endpoint['region'].lower() == \
+                                        region.lower():
+                                    cdn_match2 = endpoint.get(
+                                        'internalURL'
+                                        if self.snet else 'publicURL')
+                            if not cdn_match3:
+                                cdn_match3 = endpoint.get(
                                     'internalURL'
                                     if self.snet else 'publicURL')
+                self.storage_url = \
+                    storage_match1 or storage_match2 or storage_match3
+                self.cdn_url = cdn_match1 or cdn_match2 or cdn_match3
                 self.auth_token = body['access']['token']['id']
                 if not self.storage_url:
                     status = 500
