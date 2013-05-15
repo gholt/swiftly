@@ -1,17 +1,40 @@
-Checkout master branch
+git checkout master
+git pull
 Update swiftly/__init__.py VERSION string to an even-ending version
-Commit the changes
+git add swiftly/__init__.py
+git commit -m 'Releasing <version>'
 
-Checkout debian branch
+rm -rf doc/build/*
+python setup.py build_sphinx
+git checkout gh-pages
+mv doc/build/html <version>
+git add <version>
+git commit -m 'Generated <version> docs'
+
+git checkout debian
+git merge master
 Update debian/changelog
-Commit the changes
+git add debian/changelog
+git commit -m 'Releasing <version>'
 
-Checkout rpm branch
+git checkout rpm
+git merge master
 Update rpmbuild/SPECS/swiftly.spec Version: line and %changelog area
-Commit the changes
+git add rpmbuild/SPECS/swiftly.spec
+git commit -m 'Releasing <version>'
 
-Checkout master branch
+git checkout master
 Update swiftly/__init__.py VERSION string to an odd-ending version
-Commit the changes
+git add swiftly/__init__.py
+git commit -m 'Moving to <version> development'
 
-Push it all
+rm -rf doc/build/*
+python setup.py build_sphinx
+git checkout gh-pages
+rm -rf dev
+mv doc/build/html dev
+git add dev
+git commit -m 'Updated dev docs'
+
+git checkout master
+git push
