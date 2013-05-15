@@ -310,6 +310,8 @@ class Client(object):
         self.cdn_path = None
         self.auth_token = None
         self.region = region
+        self.regions = []
+        self.regions_default = None
         self.verbose = verbose
         self.verbose_id = verbose_id
         self._verbose_id = self.verbose_id
@@ -569,11 +571,14 @@ class Client(object):
                     status = 500
                     reason = str(err)
                     break
-                region = self.region or \
+                self.regions = []
+                self.regions_default = \
                     body['access']['user']['RAX-AUTH:defaultRegion']
+                region = self.region or self.regions_default
                 for service in body['access']['serviceCatalog']:
                     if service['type'] == 'object-store':
                         for endpoint in service['endpoints']:
+                            self.regions.append(endpoint['region'])
                             if endpoint['region'] == region:
                                 self.storage_url = endpoint.get(
                                     'internalURL'
@@ -589,8 +594,9 @@ class Client(object):
                     status = 500
                     reason = (
                         'No storage url resolved from response for region %r '
-                        'key %r.' %
-                        (region, 'internalURL' if self.snet else 'publicURL'))
+                        'key %r. Available regions were: %s' %
+                        (region, 'internalURL' if self.snet else 'publicURL',
+                         ' '.join(self.regions)))
                     break
                 if self.cache_path:
                     self._verbose(

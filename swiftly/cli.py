@@ -854,10 +854,19 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self.stdout.write('CDN Management URL: ')
                 self.stdout.write(client.cdn_url)
                 self.stdout.write('\n')
-            self.stdout.write('Auth Token:  ')
+            self.stdout.write('Auth Token: ')
             self.stdout.write(client.auth_token)
             self.stdout.write('\n')
-            self.stdout.flush()
+            if client.regions:
+                self.stdout.write('Regions: ')
+                self.stdout.write(' '.join(client.regions))
+                self.stdout.write('\n')
+                self.stdout.flush()
+            if client.regions_default:
+                self.stdout.write('Default Region: ')
+                self.stdout.write(client.regions_default)
+                self.stdout.write('\n')
+                self.stdout.flush()
         return 0
 
     @_client_command
