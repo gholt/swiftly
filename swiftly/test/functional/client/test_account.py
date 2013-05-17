@@ -115,7 +115,10 @@ class TestAcountClientOnly(unittest.TestCase):
         except HTTPException, err:
             exc = err
         self.assertTrue(exc is not None)
-        self.assertEquals(exc.args[1], 401)
+        self.assertEquals(
+            str(exc),
+            "Auth failure ['401 Unauthorized', '400 Bad Request', "
+            "'400 Bad Request', '400 Bad Request'].")
 
 
 if __name__ == '__main__':
