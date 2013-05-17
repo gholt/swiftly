@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>swiftly.cli &mdash; Swiftly 1.7 documentation</title>
+    <title>swiftly.cli &mdash; Swiftly 1.9 documentation</title>
     
     <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '1.7',
+        VERSION:     '1.9',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <link rel="top" title="Swiftly 1.7 documentation" href="../../index.html" />
+    <link rel="top" title="Swiftly 1.9 documentation" href="../../index.html" />
     <link rel="up" title="swiftly" href="../swiftly.html" /> 
   </head>
   <body>
@@ -36,7 +36,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly 1.7 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.9 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
       </ul>
@@ -426,7 +426,7 @@
 <span class="s">s1048576&#39; Swiftly will use static large object support. These static large</span>
 <span class="s">objects are very similar as described above, except the manifest contains a</span>
 <span class="s">static list of the object segments. For more information on the tradeoffs, see</span>
-<span class="s">http://greg.brim.net/page/17cc57f0.html&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+<span class="s">http://greg.brim.net/post/2013/05/16/1834.html&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
             <span class="n">stdout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="n">preamble</span><span class="o">=</span><span class="s">&#39;put command: &#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_put_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
             <span class="s">&#39;-h&#39;</span><span class="p">,</span> <span class="s">&#39;--header&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;header&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
@@ -620,8 +620,7 @@
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Tenant name for auth system, example: test You can &#39;</span>
                  <span class="s">&#39;also set this with the environment variable &#39;</span>
                  <span class="s">&#39;SWIFTLY_AUTH_TENANT. If not specified and needed, the auth &#39;</span>
-                 <span class="s">&#39;user will be used, but it</span><span class="se">\&#39;</span><span class="s">s best to specify it if it</span><span class="se">\&#39;</span><span class="s">s &#39;</span>
-                 <span class="s">&#39;needed to avoid useless auth attempts.&#39;</span><span class="p">)</span>
+                 <span class="s">&#39;user will be used.&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_main_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
             <span class="s">&#39;--auth-methods&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;auth_methods&#39;</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_AUTH_METHODS&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span>
@@ -904,10 +903,19 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;CDN Management URL: &#39;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;Auth Token:  &#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;Auth Token: &#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">auth_token</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">regions</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;Regions: &#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">regions</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">regions_default</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;Default Region: &#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">regions_default</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
         <span class="k">return</span> <span class="mi">0</span>
 
     <span class="nd">@_client_command</span>
@@ -1197,7 +1205,7 @@
                         <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;Waiting on sub-command for </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
                             <span class="s">&#39;Sub-command returned </span><span class="si">%s</span><span class="s"> with object </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span>
-                            <span class="p">(</span><span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">))</span>
+                            <span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">)</span>
                     <span class="k">return</span> <span class="mi">0</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
@@ -1208,7 +1216,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;Waiting on sub-command for </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
                         <span class="s">&#39;Sub-command returned </span><span class="si">%s</span><span class="s"> with object </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span>
-                        <span class="p">(</span><span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">))</span>
+                        <span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">)</span>
                 <span class="k">return</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">headers</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_output_headers</span><span class="p">(</span><span class="n">headers</span><span class="p">,</span> <span class="n">MUTED_OBJECT_HEADERS</span><span class="p">,</span>
@@ -1243,7 +1251,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;Waiting on sub-command for </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
                 <span class="s">&#39;Sub-command returned </span><span class="si">%s</span><span class="s"> with object </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span>
-                <span class="p">(</span><span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">))</span>
+                <span class="n">sub_command</span><span class="o">.</span><span class="n">wait</span><span class="p">(),</span> <span class="n">path</span><span class="p">)</span>
         <span class="k">return</span> <span class="mi">0</span>
 
     <span class="k">def</span> <span class="nf">_put_recursive_helper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -1735,7 +1743,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly 1.7 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.9 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" >swiftly</a> &raquo;</li> 
       </ul>
