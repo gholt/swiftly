@@ -1,3 +1,37 @@
+swiftly (1.8-1) lucid; urgency=low
+
+  * More auth systems support: Now supports Rackspace's v2.0 auth and
+    Keystone's v2.0 auth in addition to the v1.0 auth support from before. This
+    does its best to auto-detect what is needed, but you can also
+    use --auth-methods to provide specific guidance. This also adds
+    the --auth-tenant option for specifying the tenant to auth as; needed for
+    some Keystone systems or to access a tenant other than your own.
+
+  * Region support with --region and showing available regions with the auth
+    command.
+
+  * CDN management support with the --cdn option. This will direct requests to
+    the CDN management url provided by auth, if available.
+
+  * New tempurl command for easily creating Swift TempURLs.
+
+  * Support for query parameters with the --query option.
+
+  * Operations that before did not take request bodies, like puts and deletes,
+    now can with the --input and -I options. This is useful with archive puts
+    and bulk deletes, for examples, and will hopefully transparently support
+    any similar future Swift features.
+
+  * Support for static large objects as well as the previously supported
+    dynamic large objects.
+
+  * Eventlet now auto-enabled if Eventlet is version 0.11.0 or higher (when a
+    CPU usage bug was fixed). You can override with --no-eventlet if desired.
+
+  * Refactored verbosity level handling.
+
+ -- Greg Holt <greg@brim.net>  Fri, 17 May 2013 00:21:00 +0000
+
 swiftly (1.6-1) lucid; urgency=low
 
   * Fix for changed memcache class in swift.
