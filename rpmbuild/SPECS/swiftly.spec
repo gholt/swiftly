@@ -4,7 +4,7 @@
 %endif
 
 Name:           swiftly
-Version:        1.6
+Version:        1.8
 Release:        1
 Summary:        Client for Swift
 
@@ -39,6 +39,8 @@ rm -rf %{buildroot}
 %{python_sitelib}/%{name}-%{version}-*.egg-info
 
 %changelog
+* Fri May 17 2013 Gregory Holt <greg@brim.net> - 1.8-1
+- Releasing Swiftly 1.8
 * Thu Mar 14 2013 Gregory Holt <gholt@rackspace.com> - 1.6-1
 - Fix for change in swift's memcache client class
 * Tue Dec  5 2012 Gregory Holt <gholt@rackspace.com> - 1.3-1
