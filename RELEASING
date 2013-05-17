@@ -3,12 +3,15 @@ git pull
 Update swiftly/__init__.py VERSION string to an even-ending version
 git add swiftly/__init__.py
 git commit -m 'Releasing <version>'
+git tag <version>
 
 rm -rf doc/build/*
 python setup.py build_sphinx
 git checkout gh-pages
 mv doc/build/html <version>
 git add <version>
+Update index.html to point to new release docs
+git add index.html
 git commit -m 'Generated <version> docs'
 
 git checkout debian
@@ -38,3 +41,4 @@ git commit -m 'Updated dev docs'
 
 git checkout master
 git push
+git push --tags
