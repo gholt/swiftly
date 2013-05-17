@@ -1,7 +1,7 @@
 """
 Command Line Client to Swift
 
-Copyright 2011 Gregory Holt
+Copyright 2011-2013 Gregory Holt
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,12 +23,13 @@ from optparse import Option, OptionParser
 from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
-from time import mktime, strptime
+from time import mktime, strptime, time
+from urllib import unquote
 import sys
 import textwrap
 
 from swiftly import VERSION
-from swiftly.client import Client, CHUNK_SIZE
+from swiftly.client import Client, CHUNK_SIZE, generate_temp_url
 from swiftly.concurrency import Concurrency
 
 try:
@@ -44,9 +45,16 @@ MUTED_CONTAINER_HEADERS = ['accept-ranges', 'content-length', 'content-type',
 MUTED_OBJECT_HEADERS = ['accept-ranges', 'date']
 
 
-# TODO: Make Eventlet back on by default again since 0.11.0 fixed the CPU bug
-def _delayed_imports(eventlet=False):
+def _delayed_imports(eventlet=None):
     PIPE = Popen = None
+    if eventlet is None:
+        try:
+            from eventlet import __version__
+            # Eventlet 0.11.0 fixed the CPU bug
+            if __version__ >= '0.11.0':
+                eventlet = True
+        except ImportError:
+            pass
     if eventlet:
         try:
             from eventlet.green.subprocess import PIPE, Popen
@@ -67,6 +75,17 @@ def _client_command(func):
     func.__is_command__ = True
     func.__is_client_command__ = True
     return func
+
+
+def _get_return_code(rv):
+    # Most funcs just return a return code, but some funcs return a list with
+    # the return code as the first item and additional items for use with
+    # nested calls.
+    try:
+        rc = rv[0]
+    except TypeError:
+        rc = rv
+    return rc
 
 
 class _OptionParser(OptionParser):
@@ -155,7 +174,9 @@ class CLI(object):
         self.stderr = stderr
         if not self.stderr:
             self.stderr = sys.stderr
+        self.start_time = time()
         self.clients = Queue()
+        self.client_id = 0
 
         self._help_parser = _OptionParser(
             usage="""
@@ -176,6 +197,18 @@ For help on [main_options] run %prog with no args.
 Outputs auth information.""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='auth command: ')
 
+        self._tempurl_parser = _OptionParser(
+            usage="""
+Usage: %prog [main_options] tempurl <method> <path> [seconds]
+
+For help on [main_options] run %prog with no args.
+
+Outputs a TempURL using the information given.
+The <path> should be to an object or object-prefix.
+[seconds] defaults to 3600""".strip(),
+            stdout=self.stdout, stderr=self.stderr,
+            preamble='tempurl command: ')
+
         self._head_parser = _OptionParser(
             usage="""
 Usage: %prog [main_options] head [options] [path]
@@ -192,6 +225,12 @@ Outputs the resulting headers from a HEAD request of the [path] given. If no
                  'times for multiple headers. Examples: '
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
+        self._head_parser.add_option(
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
         self._head_parser.add_option(
             '--ignore-404', dest='ignore_404', action='store_true',
             help='Ignores 404 Not Found responses. Nothing will be output, '
@@ -216,6 +255,12 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'times for multiple headers. Examples: '
                  '-hif-match:6f432df40167a4af05ca593acc6b3e4c -h '
                  '"If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"')
+        self._get_parser.add_option(
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
         self._get_parser.add_option(
             '-l', '--limit', dest='limit',
             help='For account and container GETs, this limits the number of '
@@ -254,7 +299,10 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'output will be bytes-used, object-count, and '
                  'container-name. For a container GET, the items output will '
                  'be bytes-used, last-modified-time, etag, content-type, and '
-                 'object-name.')
+                 'object-name. Note that this is mostly useless for --cdn '
+                 'queries; for those it is best to just use --raw and parse '
+                 'the results yourself (perhaps through "python -m '
+                 'json.tool").')
         self._get_parser.add_option(
             '-r', '--raw', dest='raw', action="store_true",
             help='For account and container GETs, this will return the raw '
@@ -268,7 +316,8 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'for every container returned by the original account GET. '
                  'For a container GET, performs a GET for every object '
                  'returned by that original container GET. Any headers set '
-                 'with --header options are also sent for every object GET.')
+                 'with --header options are sent for every GET. Any query '
+                 'parameter set with --query is sent for every GET.')
         self._get_parser.add_option(
             '-o', '--output', dest='output', metavar='PATH',
             help='Indicates where to send the output; default is standard '
@@ -293,7 +342,7 @@ Outputs the resulting contents from a GET request of the [path] given. If no
 
         self._put_parser = _OptionParser(
             usage="""
-Usage: %prog [main_options] put [options] <path>
+Usage: %prog [main_options] put [options] [path]
 
 For help on [main_options] run %prog with no args.
 
@@ -302,28 +351,32 @@ contents for the object are read from standard input.
 
 Special Note About Segmented Objects:
 
-For object uploads exceeding the -s [size] (default: 5G) the object
-will be uploaded in segments. At this time, auto-segmenting only
-works for objects uploaded from source files -- objects sourced from
-standard input cannot exceed the maximum object size for the cluster.
+For object uploads exceeding the -s [size] (default: 5G) the object will be
+uploaded in segments. At this time, auto-segmenting only works for objects
+uploaded from source files -- objects sourced from standard input cannot exceed
+the maximum object size for the cluster.
 
-A segmented object is one that has its contents in several other
-objects. On download, these other objects are concatenated into a
-single object stream.
+A segmented object is one that has its contents in several other objects. On
+download, these other objects are concatenated into a single object stream.
 
-Segmented objects can be useful to greatly exceed the maximum single
-object size, speed up uploading large objects with concurrent segment
-uploading, and provide the option to replace, insert, and delete
-segments within a whole object without having to alter or reupload
-any of the other segments.
+Segmented objects can be useful to greatly exceed the maximum single object
+size, speed up uploading large objects with concurrent segment uploading, and
+provide the option to replace, insert, and delete segments within a whole
+object without having to alter or reupload any of the other segments.
 
-The main object of a segmented object is called the "manifest
-object". This object just has an X-Object-Manifest header that points
-to another path where the segments for the object contents are
-stored. For Swiftly, this header value is auto-generated as the same
-name as the manifest object, but with "_segments" added to the
-container name. This keeps the segments out of the main container
-listing, which is often useful.""".strip(),
+The main object of a segmented object is called the "manifest object". This
+object just has an X-Object-Manifest header that points to another path where
+the segments for the object contents are stored. For Swiftly, this header value
+is auto-generated as the same name as the manifest object, but with "_segments"
+added to the container name. This keeps the segments out of the main container
+listing, which is often useful.
+
+By default, Swift's dynamic large object support is used since it was
+implemented first. However, if you prefix the [size] with an 's', as in '-s
+s1048576' Swiftly will use static large object support. These static large
+objects are very similar as described above, except the manifest contains a
+static list of the object segments. For more information on the tradeoffs, see
+http://greg.brim.net/post/2013/05/16/1834.html""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='put command: ')
         self._put_parser.add_option(
             '-h', '--header', dest='header', action='append',
@@ -332,12 +385,27 @@ listing, which is often useful.""".strip(),
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
         self._put_parser.add_option(
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
+        self._put_parser.add_option(
             '-i', '--input', dest='input_', metavar='PATH',
             help='Indicates where to read the contents from; default is '
                  'standard input. If the PATH is a directory, all files in '
                  'the directory will be uploaded as similarly named objects '
                  'and empty directories will create text/directory marker '
                  'objects.')
+        self._put_parser.add_option(
+            '-I', dest='INPUT_', action='store_true',
+            help='Since account and container PUTs do not normally take '
+                 'input, you must specify this option if you wish them to '
+                 'read from the input specified by -i (or the default '
+                 'standard input). This is useful with '
+                 '-qextract-archive=<format> bulk upload requests. For '
+                 'example: tar zc . | swiftly put -qextract-archive=tar.gz -I '
+                 'container')
         self._put_parser.add_option(
             '-n', '--newer', dest='newer', action='store_true',
             help='For PUTs with an --input option, first performs a HEAD on '
@@ -387,6 +455,24 @@ request on the account is performed.""".strip(),
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '
                  '-hx-object-meta-color:blue -h "Content-Type: text/html"')
+        self._post_parser.add_option(
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
+        self._post_parser.add_option(
+            '-i', '--input', dest='input_', metavar='PATH',
+            help='Indicates where to read the POST request body from; '
+                 'default is standard input. This is not normally used with '
+                 'Swift POST requests, so you must also specify -I if you '
+                 'want the body sent.')
+        self._post_parser.add_option(
+            '-I', dest='INPUT_', action='store_true',
+            help='Since Swift POSTs do not normally take input, you must '
+                 'specify this option if you wish them to read from the input '
+                 'specified by -i (or the default standard input). This is '
+                 'not known to be useful for anything yet.')
 
         self._delete_parser = _OptionParser(
             usage="""
@@ -404,6 +490,25 @@ Issues a DELETE request of the [path] given.""".strip(),
                  'times for multiple headers. Examples: '
                  '-hx-some-header:some-value -h "X-Some-Other-Header: Some '
                  'other value"')
+        self._delete_parser.add_option(
+            '-q', '--query', dest='query', action='append',
+            metavar='NAME[=VALUE]',
+            help='Add a query parameter to the request. This can be used '
+                 'multiple times for multiple query parameters. Example: '
+                 '-qmultipart-manifest=get')
+        self._delete_parser.add_option(
+            '-i', '--input', dest='input_', metavar='PATH',
+            help='Indicates where to read the DELETE request body from; '
+                 'default is standard input. This is not normally used with '
+                 'DELETE requests, so you must also specify -I if you want '
+                 'the body sent.')
+        self._delete_parser.add_option(
+            '-I', dest='INPUT_', action='store_true',
+            help='Since DELETEs do not normally take input, you must specify '
+                 'this option if you wish them to read from the input '
+                 'specified by -i (or the default standard input). This is '
+                 'useful with -qbulk-delete requests. For example: swiftly '
+                 'delete -qbulk-delete -Ii <my-bulk-deletes-file>')
         self._delete_parser.add_option(
             '--recursive', dest='recursive', action='store_true',
             help='Normally a delete for a non-empty container will error with '
@@ -460,6 +565,31 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             help='Key for auth system, example: testing You can also set this '
                  'with the environment variable SWIFTLY_AUTH_KEY.')
         self._main_parser.add_option(
+            '-T', '--auth-tenant', dest='auth_tenant',
+            default=environ.get('SWIFTLY_AUTH_TENANT', ''), metavar='TENANT',
+            help='Tenant name for auth system, example: test You can '
+                 'also set this with the environment variable '
+                 'SWIFTLY_AUTH_TENANT. If not specified and needed, the auth '
+                 'user will be used.')
+        self._main_parser.add_option(
+            '--auth-methods', dest='auth_methods',
+            default=environ.get('SWIFTLY_AUTH_METHODS', ''),
+            metavar='name[,name[...]]',
+            help='Auth methods to use with the auth system, example: '
+                 'auth2key,auth2password,auth2password_force_tenant,auth1 You '
+                 'can also set this with the environment variable '
+                 'SWIFTLY_AUTH_METHODS. Swiftly will try to determine the '
+                 'best order for you; but if you notice it keeps making '
+                 'useless auth attempts and that drives you crazy, you can '
+                 'override that here. All the available auth methods are '
+                 'listed in the example.')
+        self._main_parser.add_option(
+            '--region', dest='region',
+            default=environ.get('SWIFTLY_REGION', ''), metavar='VALUE',
+            help='Region to use, if supported by auth, example: DFW You can '
+                 'also set this with the environment variable SWIFTLY_REGION. '
+                 'Default: default region specified by the auth response.')
+        self._main_parser.add_option(
             '-D', '--direct', dest='direct',
             default=environ.get('SWIFTLY_DIRECT', ''), metavar='PATH',
             help='Uses direct connect method to access Swift. Requires access '
@@ -494,19 +624,29 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                  'also set this with the environment variable '
                  'SWIFTLY_CACHE_AUTH (set to "true" or "false").')
         self._main_parser.add_option(
+            '--cdn', dest='cdn', action='store_true',
+            help='Directs requests to the CDN management interface.')
+        self._main_parser.add_option(
             '--concurrency', dest='concurrency', default='1',
             metavar='INTEGER',
             help='Sets the the number of actions that can be done '
                  'simultaneously when possible (currently requires using '
-                 '--eventlet too). Default: 1')
+                 'Eventlet too). Default: 1')
         self._main_parser.add_option(
             '--eventlet', dest='eventlet', action='store_true',
-            help='Uses Eventlet, if installed. This is disabled by default '
-                 'because Swiftly+Eventlet tends to use excessive CPU.')
+            help='Enables Eventlet, if installed. This is disabled by default '
+                 'if Eventlet is not installed or is less than version 0.11.0 '
+                 '(because older Swiftly+Eventlet tends to use excessive CPU.')
+        self._main_parser.add_option(
+            '--no-eventlet', dest='no_eventlet', action='store_true',
+            help='Disables Eventlet, even if installed and version 0.11.0 or '
+                 'greater.')
         self._main_parser.add_option(
             '-v', '--verbose', dest='verbose', action='store_true',
             help='Causes output to standard error indicating actions being '
-                 'taken.')
+                 'taken. These output lines will be prefixed with VERBOSE and '
+                 'will also include the number of seconds elapsed since '
+                 'Swiftly started.')
         self._main_parser.commands = 'Commands:\n'
         for key in sorted(dir(self)):
             attr = getattr(self, key)
@@ -554,17 +694,25 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._main_parser.print_help()
             return 1
         if not getattr(func, '__is_client_command__', False):
-            return func(args[1:])
-        client = self._get_client()
-        if not client:
-            self._main_parser.print_help()
-            return 1
-        self._put_client(client)
-        return func(args[1:])
+            rv = func(args[1:])
+        else:
+            client = self._get_client()
+            if not client:
+                self._main_parser.print_help()
+                return 1
+            self._put_client(client)
+            rv = func(args[1:])
+        return _get_return_code(rv)
 
-    def _verbose(self, msg):
+    def _verbose(self, msg, *args):
         if self._main_options.verbose:
-            self.stderr.write(msg)
+            try:
+                self.stderr.write(
+                    'VERBOSE %.02f ' % (time() - self.start_time))
+                self.stderr.write(msg % args)
+            except TypeError, err:
+                raise TypeError('%s: %r %d args' % (err, msg, len(args)))
+            self.stderr.write('\n')
             self.stderr.flush()
 
     def _get_client(self):
@@ -574,17 +722,24 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         except Empty:
             pass
         if not client:
+            eventlet = None
+            self.client_id += 1
+            if self._main_options.eventlet:
+                eventlet = True
+            if self._main_options.no_eventlet:
+                eventlet = False
             if self._main_options.direct:
-                self._verbose('Connecting direct client.\n')
                 client = Client(
                     swift_proxy=True,
                     swift_proxy_storage_path=self._main_options.direct,
                     retries=int(self._main_options.retries),
-                    eventlet=self._main_options.eventlet)
+                    eventlet=eventlet,
+                    region=self._main_options.region,
+                    verbose=self._verbose,
+                    verbose_id=str(self.client_id))
             elif all([self._main_options.auth_url,
                       self._main_options.auth_user,
                       self._main_options.auth_key]):
-                self._verbose('Connecting client.\n')
                 cache_path = None
                 if self._main_options.cache_auth:
                     cache_path = \
@@ -593,11 +748,16 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     auth_url=self._main_options.auth_url,
                     auth_user=self._main_options.auth_user,
                     auth_key=self._main_options.auth_key,
+                    auth_tenant=self._main_options.auth_tenant,
+                    auth_methods=self._main_options.auth_methods,
                     proxy=self._main_options.proxy,
                     snet=self._main_options.snet,
                     retries=int(self._main_options.retries),
                     cache_path=cache_path,
-                    eventlet=self._main_options.eventlet)
+                    eventlet=eventlet,
+                    region=self._main_options.region,
+                    verbose=self._verbose,
+                    verbose_id=str(self.client_id))
         return client
 
     def _put_client(self, client):
@@ -620,6 +780,16 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     h, v = h.split(':', 1)
                 headers[h.strip().lower()] = v.strip()
         return headers
+
+    def _command_line_query_parameters(self, options_list):
+        query_parameters = {}
+        if options_list:
+            for n in options_list:
+                v = ''
+                if '=' in n:
+                    n, v = n.split('=', 1)
+                query_parameters[n.strip()] = v.strip()
+        return query_parameters
 
     def _output_headers(self, headers, mute=None, stdout=None):
         if headers:
@@ -675,17 +845,66 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self.stdout.flush()
             return 0
         with self._with_client() as client:
-            self._verbose('HEADing the account.\n')
+            client.auth()
+            self.stdout.write('Storage URL: ')
+            self.stdout.write(client.storage_url)
+            self.stdout.write('\n')
+            if client.cdn_url:
+                self.stdout.write('CDN Management URL: ')
+                self.stdout.write(client.cdn_url)
+                self.stdout.write('\n')
+            self.stdout.write('Auth Token: ')
+            self.stdout.write(client.auth_token)
+            self.stdout.write('\n')
+            if client.regions:
+                self.stdout.write('Regions: ')
+                self.stdout.write(' '.join(client.regions))
+                self.stdout.write('\n')
+                self.stdout.flush()
+            if client.regions_default:
+                self.stdout.write('Default Region: ')
+                self.stdout.write(client.regions_default)
+                self.stdout.write('\n')
+                self.stdout.flush()
+        return 0
+
+    @_client_command
+    def _tempurl(self, args):
+        try:
+            options, args = self._tempurl_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
+        if self._tempurl_parser.error_encountered:
+            return 1
+        if not args or len(args) < 2 or options.help:
+            self._tempurl_parser.print_help()
+            return 1
+        method = args.pop(0)
+        path = args.pop(0).lstrip('/')
+        seconds = int(args.pop(0)) if args else 3600
+        if args:
+            self._tempurl_parser.print_help()
+            return 1
+        if '/' not in path:
+            self._tempurl_parser.print_help()
+            return 1
+        with self._with_client() as client:
             status, reason, headers, contents = client.head_account()
             if status // 100 != 2:
                 self.stderr.write('%s %s\n' % (status, reason))
                 self.stderr.flush()
                 return 1
-            self.stdout.write('Storage URL: ')
-            self.stdout.write(client.storage_url)
-            self.stdout.write('\n')
-            self.stdout.write('Auth Token:  ')
-            self.stdout.write(client.auth_token)
+            key = headers.get('x-account-meta-temp-url-key')
+            if not key:
+                self.stderr.write(
+                    'There is no X-Account-Meta-Temp-URL-Key set for this '
+                    'account.\n')
+                self.stderr.flush()
+                return 1
+            url = client.storage_url + '/' + path
+            self.stdout.write(generate_temp_url(method, url, seconds, key))
             self.stdout.write('\n')
             self.stdout.flush()
         return 0
@@ -704,25 +923,27 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._head_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
+        options.query = self._command_line_query_parameters(options.query)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         mute = []
         if not args:
             with self._with_client() as client:
-                self._verbose('HEADing the account.\n')
-                status, reason, headers, contents = \
-                    client.head_account(headers=hdrs)
+                status, reason, headers, contents = client.head_account(
+                    headers=hdrs, query=options.query,
+                    cdn=self._main_options.cdn)
             mute.extend(MUTED_ACCOUNT_HEADERS)
         elif len(args) == 1:
             path = args[0].lstrip('/')
             with self._with_client() as client:
-                self._verbose('HEADing %s.\n' % path)
                 if '/' not in path.rstrip('/'):
-                    status, reason, headers, contents = \
-                        client.head_container(path.rstrip('/'), headers=hdrs)
+                    status, reason, headers, contents = client.head_container(
+                        path.rstrip('/'), headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn)
                     mute.extend(MUTED_CONTAINER_HEADERS)
                 else:
-                    status, reason, headers, contents = \
-                        client.head_object(*path.split('/', 1), headers=hdrs)
+                    status, reason, headers, contents = client.head_object(
+                        *path.split('/', 1), headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn)
                     mute.extend(MUTED_OBJECT_HEADERS)
         else:
             self._head_parser.print_help()
@@ -758,6 +979,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._get_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
+        options.query = self._command_line_query_parameters(options.query)
         if not stdout:
             stdout = self.stdout
         if options.output:
@@ -783,23 +1005,15 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             end_marker = options.end_marker
             with self._with_client() as client:
                 if not path:
-                    if not marker:
-                        self._verbose('Retrieving account listing.\n')
-                    else:
-                        self._verbose('Retrieving account listing starting '
-                                      'after %s.\n' % marker)
                     status, reason, headers, contents = client.get_account(
                         headers=hdrs, limit=limit, marker=marker,
-                        end_marker=end_marker)
+                        end_marker=end_marker, query=options.query,
+                        cdn=self._main_options.cdn)
                 else:
-                    if not marker:
-                        self._verbose('Retrieving %s listing.\n' % path)
-                    else:
-                        self._verbose('Retrieving %s listing starting after '
-                                      '%s.\n' % (path, marker))
                     status, reason, headers, contents = client.get_container(
                         path, headers=hdrs, limit=limit, delimiter=delimiter,
-                        prefix=prefix, marker=marker, end_marker=end_marker)
+                        prefix=prefix, marker=marker, end_marker=end_marker,
+                        query=options.query, cdn=self._main_options.cdn)
             if status // 100 != 2:
                 if status == 404 and options.ignore_404:
                     return 0
@@ -816,8 +1030,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             if options.output and options.output.endswith('/'):
                 conc_value = int(self._main_options.concurrency)
             elif options.all_objects:
-                self._verbose('Disabling some concurrency because of single '
-                              'stream output.\n')
+                self._verbose(
+                    'Disabling some concurrency because of single stream '
+                    'output.')
             conc = Concurrency(conc_value)
             while contents:
                 if options.all_objects:
@@ -892,20 +1107,19 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     contents[-1].get('name', contents[-1].get('subdir', ''))
                 with self._with_client() as client:
                     if not path:
-                        self._verbose('Retrieving account listing starting '
-                                      'after %s.\n' % marker)
                         status, reason, headers, contents = client.get_account(
                             headers=hdrs, limit=limit, delimiter=delimiter,
                             prefix=prefix, end_marker=end_marker,
-                            marker=marker)
+                            marker=marker, query=options.query,
+                            cdn=self._main_options.cdn)
                     else:
-                        self._verbose('Retrieving %s listing starting after '
-                                      '%s.\n' % (path, marker))
                         status, reason, headers, contents = \
                             client.get_container(
                                 path, headers=hdrs, limit=limit,
                                 delimiter=delimiter, prefix=prefix,
-                                end_marker=end_marker, marker=marker)
+                                end_marker=end_marker, marker=marker,
+                                query=options.query,
+                                cdn=self._main_options.cdn)
                 if status // 100 != 2:
                     if status == 404 and options.ignore_404:
                         return 0
@@ -921,22 +1135,27 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             return 0
         sub_command = None
         if options.sub_command:
-            PIPE, Popen = _delayed_imports(self._main_options.eventlet)
+            eventlet = None
+            if self._main_options.eventlet:
+                eventlet = True
+            if self._main_options.no_eventlet:
+                eventlet = False
+            PIPE, Popen = _delayed_imports(eventlet)
             sub_command = Popen(options.sub_command, shell=True, stdin=PIPE,
                                 stdout=stdout)
             stdout = sub_command.stdin
         with self._with_client() as client:
-            self._verbose('GETting %s.\n' % path)
-            status, reason, headers, contents = \
-                client.get_object(*path.split('/', 1), headers=hdrs)
+            status, reason, headers, contents = client.get_object(
+                *path.split('/', 1), headers=hdrs, query=options.query,
+                cdn=self._main_options.cdn)
             if status // 100 != 2:
                 if status == 404 and options.ignore_404:
                     if sub_command:
                         stdout.close()
-                        self._verbose('Waiting on sub-command for %s\n' % path)
+                        self._verbose('Waiting on sub-command for %s', path)
                         self._verbose(
-                            'Sub-command returned %s with object %s\n' %
-                            (sub_command.wait(), path))
+                            'Sub-command returned %s with object %s',
+                            sub_command.wait(), path)
                     return 0
                 self.stderr.write('%s %s\n' % (status, reason))
                 self.stderr.flush()
@@ -944,10 +1163,10 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     contents.read()
                 if sub_command:
                     stdout.close()
-                    self._verbose('Waiting on sub-command for %s\n' % path)
+                    self._verbose('Waiting on sub-command for %s', path)
                     self._verbose(
-                        'Sub-command returned %s with object %s\n' %
-                        (sub_command.wait(), path))
+                        'Sub-command returned %s with object %s',
+                        sub_command.wait(), path)
                 return 1
             if options.headers:
                 self._output_headers(headers, MUTED_OBJECT_HEADERS,
@@ -979,20 +1198,20 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 utime(options.output, (mtime, mtime))
         if sub_command:
             stdout.close()
-            self._verbose('Waiting on sub-command for %s\n' % path)
+            self._verbose('Waiting on sub-command for %s', path)
             self._verbose(
-                'Sub-command returned %s with object %s\n' %
-                (sub_command.wait(), path))
+                'Sub-command returned %s with object %s',
+                sub_command.wait(), path)
         return 0
 
     def _put_recursive_helper(self, args, stdin=None):
         rv = self._put(args, stdin)
-        if rv:
+        if _get_return_code(rv):
             self.stderr.write(
                 'aborting after error with %s\n' % args[0])
             self.stderr.flush()
             return rv
-        return 0
+        return rv
 
     @_client_command
     def _put(self, args, stdin=None):
@@ -1004,9 +1223,15 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             pass
         if self._put_parser.error_encountered:
             return 1
-        if not args or len(args) != 1 or options.help:
+        if len(args) > 1 or options.help:
             self._put_parser.print_help()
             return 1
+        options.query = self._command_line_query_parameters(options.query)
+        if options.segment_size and options.segment_size[0].lower() == 's':
+            options.static_segments = True
+            options.segment_size = options.segment_size[1:]
+        else:
+            options.static_segments = False
         g5 = 5 * 1024 * 1024 * 1024
         try:
             options.segment_size = int(options.segment_size or g5)
@@ -1021,13 +1246,19 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self.stderr.flush()
             return 1
         if options.input_ and isdir(options.input_):
+            if not args:
+                self.stderr.write(
+                    'Uploading a directory structure requires at least a '
+                    'container name.\n')
+                self.stderr.flush()
+                return 1
             subargs = [args[0].split('/', 1)[0]]
             if options.header:
                 for h in options.header:
                     subargs.append('-h')
                     subargs.append(h)
             rv = self._put(subargs)
-            if rv:
+            if _get_return_code(rv):
                 self.stderr.write(
                     'aborting after error with %s\n' % subargs[0])
                 self.stderr.flush()
@@ -1050,7 +1281,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         'x-object-meta-mtime:%d' % getmtime(options.input_))
                     subargs.append('-e')
                     for rv in conc.get_results().values():
-                        if rv:
+                        if _get_return_code(rv):
                             conc.join()
                             return rv
                     conc.spawn(subargs[0], self._put_recursive_helper, subargs)
@@ -1072,24 +1303,27 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         if options.different:
                             subargs.append('-d')
                         for rv in conc.get_results().values():
-                            if rv:
+                            if _get_return_code(rv):
                                 conc.join()
                                 return rv
                         conc.spawn(subargs[0], self._put_recursive_helper,
                                    subargs)
             conc.join()
             for rv in conc.get_results().values():
-                if rv:
+                if _get_return_code(rv):
                     return rv
             return 0
-        path = args[0].lstrip('/')
+        path = args[0].lstrip('/') if args else ''
         hdrs = {}
         if not stdin:
             stdin = self.stdin
         if options.empty:
             hdrs['content-length'] = '0'
             stdin = ''
-        elif options.input_ and not isdir(options.input_):
+        elif options.INPUT_:
+            if options.input_:
+                stdin = open(options.input_, 'rb')
+        elif options.input_ and not isdir(options.input_) and args:
             l_mtime = getmtime(options.input_)
             if (options.newer or options.different) and \
                     '/' in path.rstrip('/'):
@@ -1097,7 +1331,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 r_size = -1
                 with self._with_client() as client:
                     status, reason, headers, contents = \
-                        client.head_object(*path.split('/', 1))
+                        client.head_object(
+                            *path.split('/', 1), query=options.query,
+                            cdn=self._main_options.cdn)
                 if status // 100 == 2:
                     try:
                         r_mtime = int(headers.get('x-object-meta-mtime', 0))
@@ -1108,10 +1344,10 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     except ValueError:
                         pass
                 if options.newer and l_mtime <= r_mtime:
-                    return 0
+                    return 0, path, r_size, headers.get('etag')
                 if options.different and l_mtime == r_mtime and \
                         getsize(options.input_) == r_size:
-                    return 0
+                    return 0, path, r_size, headers.get('etag')
             hdrs['x-object-meta-mtime'] = '%d' % l_mtime
             size = getsize(options.input_)
             if size <= options.segment_size:
@@ -1121,7 +1357,6 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 hdrs['content-length'] = '0'
                 prefix = '%s_segments/%s' % tuple(args[0].split('/', 1))
                 prefix = '%s/%s/%s/' % (prefix, l_mtime, size)
-                hdrs['x-object-manifest'] = prefix
                 conc = Concurrency(int(self._main_options.concurrency))
                 start = 0
                 segment = 0
@@ -1134,7 +1369,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     substdin = open(options.input_, 'rb')
                     substdin.seek(start)
                     for rv in conc.get_results().values():
-                        if rv:
+                        if _get_return_code(rv):
                             conc.join()
                             return rv
                     conc.spawn(subargs[0], self._put_recursive_helper,
@@ -1142,25 +1377,54 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     segment += 1
                     start += options.segment_size
                 conc.join()
+                path2info = {}
                 for rv in conc.get_results().values():
-                    if rv:
+                    if _get_return_code(rv):
                         return rv
+                    path2info[rv[1]] = rv[2:]
+                if options.static_segments:
+                    options.query['multipart-manifest'] = 'put'
+                    stdin = json.dumps([
+                        {'path': '/' + p, 'size_bytes': s, 'etag': e}
+                        for p, (s, e) in sorted(path2info.iteritems())])
+                    hdrs['content-type'] = 'application/json'
+                    hdrs['content-length'] = str(len(stdin))
+                else:
+                    hdrs['x-object-manifest'] = prefix
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         with self._with_client() as client:
-            self._verbose('PUTting %s.\n' % path)
-            if '/' not in path.rstrip('/'):
+            if not path.rstrip('/'):
+                body = stdin if options.INPUT_ else ''
                 status, reason, headers, contents = \
-                    client.put_container(path.rstrip('/'), headers=hdrs)
+                    client.put_account(
+                        headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn, body=body)
+            elif '/' not in path.rstrip('/'):
+                body = stdin if options.INPUT_ else ''
+                status, reason, headers, contents = \
+                    client.put_container(
+                        path.rstrip('/'), headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn, body=body)
             else:
                 c, o = path.split('/', 1)
                 status, reason, headers, contents = \
-                    client.put_object(c, o, stdin, headers=hdrs)
+                    client.put_object(
+                        c, o, stdin, headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn)
         if status // 100 != 2:
             self.stderr.write('%s %s\n' % (status, reason))
+            if self._main_options.verbose and contents:
+                self._verbose('< ' + repr(contents))
             self.stderr.flush()
             return 1
-        return 0
+        if self._main_options.verbose and contents:
+            self._verbose('< ' + repr(contents))
+        if options.input_ and not isdir(options.input_):
+            size = getsize(options.input_)
+        else:
+            size = int(hdrs.get('content-length') or 0)
+        return 0, path, size, headers.get('etag')
 
     @_client_command
     def _post(self, args):
@@ -1176,28 +1440,45 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._post_parser.print_help()
             return 1
         hdrs = self._command_line_headers(options.header)
+        body = None
+        if options.INPUT_:
+            if options.input_:
+                body = open(options.input_, 'rb')
+            else:
+                body = self.stdin
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         if not args:
             with self._with_client() as client:
                 status, reason, headers, contents = \
-                    client.post_account(headers=hdrs)
+                    client.post_account(
+                        headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn, body=body)
         elif len(args) == 1:
             path = args[0].lstrip('/')
             with self._with_client() as client:
-                self._verbose('POSting %s.\n' % path)
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = \
-                        client.post_container(path.rstrip('/'), headers=hdrs)
+                        client.post_container(
+                            path.rstrip('/'), headers=hdrs,
+                            query=options.query, cdn=self._main_options.cdn,
+                            body=body)
                 else:
                     status, reason, headers, contents = \
-                        client.post_object(*path.split('/', 1), headers=hdrs)
+                        client.post_object(
+                            *path.split('/', 1), headers=hdrs,
+                            query=options.query, cdn=self._main_options.cdn,
+                            body=body)
         else:
             self._post_parser.print_help()
             return 1
         if status // 100 != 2:
             self.stderr.write('%s %s\n' % (status, reason))
+            if self._main_options.verbose and contents:
+                self._verbose('< ' + repr(contents))
             self.stderr.flush()
             return 1
+        if self._main_options.verbose and contents:
+            self._verbose('< ' + repr(contents))
         return 0
 
     def _delete_recursive_helper(self, args):
@@ -1221,9 +1502,19 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if options.help:
             self._delete_parser.print_help()
             return 1
+        options.query = self._command_line_query_parameters(options.query)
         hdrs = self._command_line_headers(options.header)
         status, reason, headers, contents = 0, 'Unknown', {}, ''
-        if not args:
+        if not args and options.INPUT_:
+            body = self.stdin
+            if options.input_:
+                body = open(options.input_, 'rb')
+            with self._with_client() as client:
+                status, reason, headers, contents = \
+                    client.delete_account(
+                        headers=hdrs, query=options.query,
+                        cdn=self._main_options.cdn, body=body)
+        elif not args:
             if options.recursive and not options.yes_empty_account:
                 self.stderr.write("""
 A delete --recursive directly on an account requires the
@@ -1254,13 +1545,11 @@ THERE IS NO GOING BACK!""".strip())
                 marker = None
                 while True:
                     with self._with_client() as client:
-                        if not marker:
-                            self._verbose('Retrieving account listing.\n')
-                        else:
-                            self._verbose('Retrieving account listing '
-                                          'starting after %s.\n' % marker)
                         status, reason, headers, contents = \
-                            client.get_account(headers=hdrs, marker=marker)
+                            client.get_account(
+                                headers=hdrs, marker=marker,
+                                query=options.query,
+                                cdn=self._main_options.cdn)
                     if status // 100 != 2:
                         if status == 404 and options.ignore_404:
                             return 0
@@ -1287,28 +1576,28 @@ THERE IS NO GOING BACK!""".strip())
             if options.yes_delete_account:
                 with self._with_client() as client:
                     yn = options.yes_delete_account
-                    self._verbose('DELETEing the account.\n')
                     status, reason, headers, contents = \
-                        client.delete_account(headers=hdrs,
-                                              yes_i_mean_delete_the_account=yn)
+                        client.delete_account(
+                            headers=hdrs, query=options.query,
+                            cdn=self._main_options.cdn,
+                            yes_i_mean_delete_the_account=yn)
         elif len(args) == 1:
+            body = None
+            if options.INPUT_:
+                body = self.stdin
+                if options.input_:
+                    body = open(options.input_, 'rb')
             path = args[0].lstrip('/')
             if '/' not in path.rstrip('/'):
                 if options.recursive:
                     marker = None
                     while True:
                         with self._with_client() as client:
-                            if not marker:
-                                self._verbose(
-                                    'Retrieving %s listing.\n' % path)
-                            else:
-                                self._verbose(
-                                    'Retrieving %s listing starting after '
-                                    '%s.\n' % (path.rstrip('/'), marker))
                             status, reason, headers, contents = \
                                 client.get_container(
                                     path.rstrip('/'), headers=hdrs,
-                                    marker=marker)
+                                    marker=marker, query=options.query,
+                                    cdn=self._main_options.cdn)
                         if status // 100 != 2:
                             if status == 404 and options.ignore_404:
                                 return 0
@@ -1338,21 +1627,25 @@ THERE IS NO GOING BACK!""".strip())
                             if rv:
                                 return rv
                     with self._with_client() as client:
-                        self._verbose('DELETEing %s\n' % path.rstrip('/'))
                         status, reason, headers, contents = \
-                            client.delete_container(path.rstrip('/'),
-                                                    headers=hdrs)
+                            client.delete_container(
+                                path.rstrip('/'), headers=hdrs,
+                                query=options.query,
+                                cdn=self._main_options.cdn, body=body)
                 else:
                     with self._with_client() as client:
-                        self._verbose('DELETEing %s\n' % path.rstrip('/'))
                         status, reason, headers, contents = \
-                            client.delete_container(path.rstrip('/'),
-                                                    headers=hdrs)
+                            client.delete_container(
+                                path.rstrip('/'), headers=hdrs,
+                                query=options.query,
+                                cdn=self._main_options.cdn, body=body)
             else:
                 with self._with_client() as client:
-                    self._verbose('DELETEing %s\n' % path)
                     status, reason, headers, contents = \
-                        client.delete_object(*path.split('/', 1), headers=hdrs)
+                        client.delete_object(
+                            *path.split('/', 1), headers=hdrs,
+                            query=options.query, cdn=self._main_options.cdn,
+                            body=body)
         else:
             self._delete_parser.print_help()
             return 1
@@ -1360,6 +1653,10 @@ THERE IS NO GOING BACK!""".strip())
             if status == 404 and options.ignore_404:
                 return 0
             self.stderr.write('%s %s\n' % (status, reason))
+            if self._main_options.verbose and contents:
+                self._verbose('< ' + repr(contents))
             self.stderr.flush()
             return 1
+        if self._main_options.verbose and contents:
+            self._verbose('< ' + repr(contents))
         return 0

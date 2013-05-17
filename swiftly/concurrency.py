@@ -1,7 +1,7 @@
 """
 Concurrency API for Swiftly.
 
-Copyright 2011 Gregory Holt
+Copyright 2011-2013 Gregory Holt
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -52,8 +52,8 @@ class Concurrency(object):
         results of the func.
 
         :param ident: An identifier to find the results of the func from
-                      get_results. This identifier can be anything unique to
-                      the Concurrency instance.
+            get_results. This identifier can be anything unique to
+            the Concurrency instance.
         :param func: The function to execute in the concurrently.
         :param args: The args to give the func.
         :param kwargs: The keyword args to the give the func.
