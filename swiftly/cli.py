@@ -376,7 +376,7 @@ implemented first. However, if you prefix the [size] with an 's', as in '-s
 s1048576' Swiftly will use static large object support. These static large
 objects are very similar as described above, except the manifest contains a
 static list of the object segments. For more information on the tradeoffs, see
-http://greg.brim.net/page/17cc57f0.html""".strip(),
+http://greg.brim.net/post/2013/05/16/1834.html""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='put command: ')
         self._put_parser.add_option(
             '-h', '--header', dest='header', action='append',

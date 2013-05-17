@@ -393,7 +393,7 @@ Output from `swiftly help put`::
     s1048576' Swiftly will use static large object support. These static large
     objects are very similar as described above, except the manifest contains a
     static list of the object segments. For more information on the tradeoffs, see
-    http://greg.brim.net/page/17cc57f0.html
+    http://greg.brim.net/post/2013/05/16/1834.html
     
     Options:
       -?, --help            Shows this help text.
