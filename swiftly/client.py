@@ -573,8 +573,8 @@ class Client(object):
                     break
                 self.regions = []
                 self.regions_default = \
-                    body['access']['user']['RAX-AUTH:defaultRegion']
-                region = self.region or self.regions_default
+                    body['access']['user'].get('RAX-AUTH:defaultRegion')
+                region = self.region or self.regions_default or ''
                 storage_match1 = storage_match2 = storage_match3 = None
                 cdn_match1 = cdn_match2 = cdn_match3 = None
                 for service in body['access']['serviceCatalog']:
