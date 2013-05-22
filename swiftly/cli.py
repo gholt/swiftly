@@ -776,9 +776,11 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             yield client
         except (self.Timeout, Exception), err:
             if path:
-                self.stderr.write('EXCEPTION with %s %s\n' % (path, err))
+                self.stderr.write('EXCEPTION with %s %s %s\n' %
+                                  (path, err.__class__.__name__, err))
             else:
-                self.stderr.write('EXCEPTION %s\n' % (err,))
+                self.stderr.write('EXCEPTION %s %s\n' %
+                                  (err.__class__.__name__, err))
             self.stderr.flush()
             client.reset()
         self._put_client(client)
