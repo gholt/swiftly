@@ -16,17 +16,11 @@ limitations under the License.
 
 import unittest
 from StringIO import StringIO
-from urlparse import urlparse
 from uuid import uuid4
 
 from swiftly.cli import CLI
 from swiftly.test.functional import AUTH_URL, AUTH_USER, AUTH_KEY, \
     SWIFT_PROXY_STORAGE_PATH
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
 
 
 class TestPost(unittest.TestCase):
