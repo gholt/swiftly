@@ -45,7 +45,7 @@ MUTED_OBJECT_HEADERS = ['accept-ranges', 'date']
 
 
 def _delayed_imports(eventlet=None):
-    PIPE = Popen = None
+    PIPE = Popen = Timeout = None
     if eventlet is None:
         try:
             from eventlet import __version__
@@ -56,12 +56,14 @@ def _delayed_imports(eventlet=None):
             pass
     if eventlet:
         try:
+            from eventlet import Timeout
             from eventlet.green.subprocess import PIPE, Popen
         except ImportError:
             pass
-    if PIPE is None or Popen is None:
+    if PIPE is None or Popen is None or Timeout is None:
         from subprocess import PIPE, Popen
-    return PIPE, Popen
+        Timeout = Exception
+    return PIPE, Popen, Timeout
 
 
 def _command(func):
@@ -176,6 +178,8 @@ class CLI(object):
         self.start_time = time()
         self.clients = Queue()
         self.client_id = 0
+        # The following are _delayed_imports that might end up from Eventlet
+        self.PIPE = self.Popen = self.Timeout = None
 
         self._help_parser = _OptionParser(
             usage="""
@@ -692,6 +696,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if not func or not getattr(func, '__is_command__', False):
             self._main_parser.print_help()
             return 1
+        self.eventlet = None
+        if self._main_options.eventlet:
+            self.eventlet = True
+        if self._main_options.no_eventlet:
+            self.eventlet = False
+        self.PIPE, self.Popen, self.Timeout = _delayed_imports(self.eventlet)
         if not getattr(func, '__is_client_command__', False):
             rv = func(args[1:])
         else:
@@ -721,18 +731,13 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         except Empty:
             pass
         if not client:
-            eventlet = None
             self.client_id += 1
-            if self._main_options.eventlet:
-                eventlet = True
-            if self._main_options.no_eventlet:
-                eventlet = False
             if self._main_options.direct:
                 client = Client(
                     swift_proxy=True,
                     swift_proxy_storage_path=self._main_options.direct,
                     retries=int(self._main_options.retries),
-                    eventlet=eventlet,
+                    eventlet=self.eventlet,
                     region=self._main_options.region,
                     verbose=self._verbose,
                     verbose_id=str(self.client_id))
@@ -753,7 +758,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     snet=self._main_options.snet,
                     retries=int(self._main_options.retries),
                     cache_path=cache_path,
-                    eventlet=eventlet,
+                    eventlet=self.eventlet,
                     region=self._main_options.region,
                     verbose=self._verbose,
                     verbose_id=str(self.client_id))
@@ -769,7 +774,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             raise Exception('No client!')
         try:
             yield client
-        except Exception, err:
+        except (self.Timeout, Exception), err:
             if path:
                 self.stderr.write('EXCEPTION with %s %s\n' % (path, err))
             else:
@@ -1150,14 +1155,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             return 0
         sub_command = None
         if options.sub_command:
-            eventlet = None
-            if self._main_options.eventlet:
-                eventlet = True
-            if self._main_options.no_eventlet:
-                eventlet = False
-            PIPE, Popen = _delayed_imports(eventlet)
-            sub_command = Popen(options.sub_command, shell=True, stdin=PIPE,
-                                stdout=stdout)
+            sub_command = self.Popen(
+                options.sub_command, shell=True, stdin=self.PIPE,
+                stdout=stdout)
             stdout = sub_command.stdin
         early_return = None
         with self._with_client(path) as client:
