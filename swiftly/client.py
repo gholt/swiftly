@@ -414,11 +414,28 @@ class Client(object):
                 hdrs[h] = v
         return hdrs
 
+    def reset(self):
+        """
+        Resets the client, closing any connections and discarding any
+        state. This can be useful if some exceptional condition
+        occurred and the request/response state can no longer be
+        certain.
+        """
+        for conn in (self.storage_conn, self.cdn_conn):
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+        self.storage_conn = None
+        self.cdn_conn = None
+
     def auth(self):
         """
         Just performs the authentication step without making an
         actual request to the Swift system.
         """
+        self.reset()
         if not self.auth_url:
             return
         funcs = []
@@ -554,14 +571,12 @@ class Client(object):
                 status = resp.status
                 reason = resp.reason
                 self._verbose('< %s %s', status, reason)
-                hdrs = self._response_headers(resp.getheaders())
                 body = resp.read()
                 resp.close()
                 conn.close()
             except Exception, err:
                 status = 0
                 reason = str(err)
-                hdrs = {}
             if status == 401:
                 break
             if status // 100 == 2:

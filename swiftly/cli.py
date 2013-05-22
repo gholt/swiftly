@@ -24,7 +24,6 @@ from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
 from time import mktime, strptime, time
-from urllib import unquote
 import sys
 import textwrap
 
@@ -764,11 +763,19 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         self.clients.put(client)
 
     @contextmanager
-    def _with_client(self):
+    def _with_client(self, path=None):
         client = self._get_client()
         if not client:
             raise Exception('No client!')
-        yield client
+        try:
+            yield client
+        except Exception, err:
+            if path:
+                self.stderr.write('EXCEPTION with %s %s\n' % (path, err))
+            else:
+                self.stderr.write('EXCEPTION %s\n' % (err,))
+            self.stderr.flush()
+            client.reset()
         self._put_client(client)
 
     def _command_line_headers(self, options_list):
@@ -934,7 +941,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             mute.extend(MUTED_ACCOUNT_HEADERS)
         elif len(args) == 1:
             path = args[0].lstrip('/')
-            with self._with_client() as client:
+            with self._with_client(path) as client:
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = client.head_container(
                         path.rstrip('/'), headers=hdrs, query=options.query,
@@ -1003,7 +1010,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             prefix = options.prefix
             marker = options.marker
             end_marker = options.end_marker
-            with self._with_client() as client:
+            early_return = None
+            with self._with_client(path) as client:
                 if not path:
                     status, reason, headers, contents = client.get_account(
                         headers=hdrs, limit=limit, marker=marker,
@@ -1014,14 +1022,17 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         path, headers=hdrs, limit=limit, delimiter=delimiter,
                         prefix=prefix, marker=marker, end_marker=end_marker,
                         query=options.query, cdn=self._main_options.cdn)
-            if status // 100 != 2:
-                if status == 404 and options.ignore_404:
-                    return 0
-                self.stderr.write('%s %s\n' % (status, reason))
-                self.stderr.flush()
-                if hasattr(contents, 'read'):
-                    contents.read()
-                return 1
+                if status // 100 != 2:
+                    if status == 404 and options.ignore_404:
+                        early_return = 0
+                    else:
+                        early_return = 1
+                        self.stderr.write('%s %s\n' % (status, reason))
+                        self.stderr.flush()
+                        if hasattr(contents, 'read'):
+                            contents.read()
+            if early_return is not None:
+                return early_return
             if options.headers and not options.all_objects:
                 self._output_headers(headers, mute, stdout=stdout)
                 stdout.write('\n')
@@ -1105,7 +1116,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     break
                 marker = \
                     contents[-1].get('name', contents[-1].get('subdir', ''))
-                with self._with_client() as client:
+                early_return = None
+                with self._with_client(path) as client:
                     if not path:
                         status, reason, headers, contents = client.get_account(
                             headers=hdrs, limit=limit, delimiter=delimiter,
@@ -1120,14 +1132,17 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                                 end_marker=end_marker, marker=marker,
                                 query=options.query,
                                 cdn=self._main_options.cdn)
-                if status // 100 != 2:
-                    if status == 404 and options.ignore_404:
-                        return 0
-                    self.stderr.write('%s %s\n' % (status, reason))
-                    self.stderr.flush()
-                    if hasattr(contents, 'read'):
-                        contents.read()
-                    return 1
+                    if status // 100 != 2:
+                        if status == 404 and options.ignore_404:
+                            early_return = 0
+                        else:
+                            early_return = 1
+                            self.stderr.write('%s %s\n' % (status, reason))
+                            self.stderr.flush()
+                            if hasattr(contents, 'read'):
+                                contents.read()
+                if early_return is not None:
+                    return early_return
             conc.join()
             for rv in conc.get_results().values():
                 if rv:
@@ -1144,48 +1159,46 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             sub_command = Popen(options.sub_command, shell=True, stdin=PIPE,
                                 stdout=stdout)
             stdout = sub_command.stdin
-        with self._with_client() as client:
+        early_return = None
+        with self._with_client(path) as client:
             status, reason, headers, contents = client.get_object(
                 *path.split('/', 1), headers=hdrs, query=options.query,
                 cdn=self._main_options.cdn)
             if status // 100 != 2:
                 if status == 404 and options.ignore_404:
-                    if sub_command:
-                        stdout.close()
-                        self._verbose('Waiting on sub-command for %s', path)
-                        self._verbose(
-                            'Sub-command returned %s with object %s',
-                            sub_command.wait(), path)
-                    return 0
-                self.stderr.write('%s %s\n' % (status, reason))
-                self.stderr.flush()
-                if hasattr(contents, 'read'):
-                    contents.read()
-                if sub_command:
-                    stdout.close()
-                    self._verbose('Waiting on sub-command for %s', path)
-                    self._verbose(
-                        'Sub-command returned %s with object %s',
-                        sub_command.wait(), path)
-                return 1
-            if options.headers:
-                self._output_headers(headers, MUTED_OBJECT_HEADERS,
-                                     stdout=stdout)
-                stdout.write('\n')
-            if headers.get('content-type') == 'text/directory' and \
-                    headers.get('content-length') == '0':
-                contents.read()
-                if options.output and not options.output.endswith('/'):
-                    stdout.close()
-                    unlink(options.output)
-                    makedirs(options.output)
+                    early_return = 0
+                else:
+                    early_return = 1
+                    self.stderr.write('%s %s\n' % (status, reason))
+                    self.stderr.flush()
+                    if hasattr(contents, 'read'):
+                        contents.read()
             else:
-                # TODO: Exception handling around these and other reads
-                chunk = contents.read(CHUNK_SIZE)
-                while chunk:
-                    stdout.write(chunk)
+                if options.headers:
+                    self._output_headers(headers, MUTED_OBJECT_HEADERS,
+                                         stdout=stdout)
+                    stdout.write('\n')
+                if headers.get('content-type') == 'text/directory' and \
+                        headers.get('content-length') == '0':
+                    contents.read()
+                    if options.output and not options.output.endswith('/'):
+                        stdout.close()
+                        unlink(options.output)
+                        makedirs(options.output)
+                else:
                     chunk = contents.read(CHUNK_SIZE)
-                stdout.flush()
+                    while chunk:
+                        stdout.write(chunk)
+                        chunk = contents.read(CHUNK_SIZE)
+                    stdout.flush()
+        if early_return is not None:
+            if sub_command:
+                stdout.close()
+                self._verbose('Waiting on sub-command for %s', path)
+                self._verbose(
+                    'Sub-command returned %s with object %s',
+                    sub_command.wait(), path)
+            return early_return
         if options.output and not options.output.endswith('/'):
             stdout.close()
             mtime = 0
@@ -1329,7 +1342,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     '/' in path.rstrip('/'):
                 r_mtime = 0
                 r_size = -1
-                with self._with_client() as client:
+                with self._with_client(path) as client:
                     status, reason, headers, contents = \
                         client.head_object(
                             *path.split('/', 1), query=options.query,
@@ -1393,7 +1406,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     hdrs['x-object-manifest'] = prefix
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
-        with self._with_client() as client:
+        with self._with_client(path) as client:
             if not path.rstrip('/'):
                 body = stdin if options.INPUT_ else ''
                 status, reason, headers, contents = \
@@ -1455,7 +1468,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         cdn=self._main_options.cdn, body=body)
         elif len(args) == 1:
             path = args[0].lstrip('/')
-            with self._with_client() as client:
+            with self._with_client(path) as client:
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = \
                         client.post_container(
@@ -1592,7 +1605,7 @@ THERE IS NO GOING BACK!""".strip())
                 if options.recursive:
                     marker = None
                     while True:
-                        with self._with_client() as client:
+                        with self._with_client(path) as client:
                             status, reason, headers, contents = \
                                 client.get_container(
                                     path.rstrip('/'), headers=hdrs,
@@ -1626,21 +1639,21 @@ THERE IS NO GOING BACK!""".strip())
                         for rv in conc.get_results().values():
                             if rv:
                                 return rv
-                    with self._with_client() as client:
+                    with self._with_client(path) as client:
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
                                 query=options.query,
                                 cdn=self._main_options.cdn, body=body)
                 else:
-                    with self._with_client() as client:
+                    with self._with_client(path) as client:
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
                                 query=options.query,
                                 cdn=self._main_options.cdn, body=body)
             else:
-                with self._with_client() as client:
+                with self._with_client(path) as client:
                     status, reason, headers, contents = \
                         client.delete_object(
                             *path.split('/', 1), headers=hdrs,
