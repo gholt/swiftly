@@ -785,7 +785,10 @@ class Client(object):
                     value = _IterReader(resp.app_iter)
                 else:
                     value = resp.body
-            self._verbose('< %s', resp.status)
+            if resp:
+                self._verbose('< %s', resp.status)
+            else:
+                self._verbose('< None (probably timed out)')
             if status == 401:
                 if stream:
                     resp.close()
