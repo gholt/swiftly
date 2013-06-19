@@ -1180,7 +1180,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     self._output_headers(headers, MUTED_OBJECT_HEADERS,
                                          stdout=stdout)
                     stdout.write('\n')
-                if headers.get('content-type') == 'text/directory' and \
+                if headers.get('content-type') in [
+                        'text/directory', 'application/directory'] and \
                         headers.get('content-length') == '0':
                     contents.read()
                     if options.output and not options.output.endswith('/'):
