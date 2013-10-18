@@ -26,6 +26,7 @@ from Queue import Empty, Queue
 from time import mktime, strptime, time
 import sys
 import textwrap
+import uuid
 
 from swiftly import VERSION
 from swiftly.client import Client, CHUNK_SIZE, generate_temp_url
@@ -342,6 +343,20 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'and only storing matching lines locally (--sub-command '
                  '"gunzip | grep keyword" or --sub-command "zgrep keyword" if '
                  'your system has that).')
+
+        self._ping_parser = _OptionParser(
+            usage="""
+Usage: %prog [main_options] ping [options] [path]
+
+For help on [main_options] run %prog with no args.
+""".strip(),
+            stdout=self.stdout, stderr=self.stderr, preamble='ping command: ')
+        self._ping_parser.add_option(
+            '-v', '--verbose', dest='ping_verbose', action='store_true',
+            help='Outputs additional information as ping works.')
+        self._ping_parser.add_option(
+            '-c', '--count', dest='ping_count', default=1,
+            help='Count of objects to create; default 1.')
 
         self._put_parser = _OptionParser(
             usage="""
@@ -1218,6 +1233,134 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._verbose(
                 'Sub-command returned %s with object %s',
                 sub_command.wait(), path)
+        return 0
+
+    def _ping_status(self, heading, helper_data):
+        status, reason, headers, contents = 200, 'OK', {}, ''
+        if helper_data[2]:
+            status, reason, headers, contents = helper_data[2]
+            if status // 100 != 2:
+                self.stderr.write('%s %s %s\n' % (
+                    status, reason, headers.get('x-trans-id')))
+                self.stderr.flush()
+                return 1
+        now = time()
+        if helper_data[0].ping_verbose:
+            self.stdout.write('% 6.02fs %s %s\n' % (
+                now - helper_data[1], heading,
+                headers.get('x-trans-id') or ''))
+            self.stdout.flush()
+        helper_data[1] = now
+        return 0
+
+    def _ping_objects(self, heading, helper_data, conc, container, objects,
+                      func):
+        begin = time()
+        for obj in objects:
+            for rv in conc.get_results().values():
+                if _get_return_code(rv):
+                    conc.join()
+                    return rv
+            conc.spawn(obj, func, container, obj)
+        conc.join()
+        for rv in conc.get_results().values():
+            if _get_return_code(rv):
+                return rv
+        elapsed = time() - begin
+        helper_data[2] = None
+        self._ping_status(
+            'object %s x%d at %d concurrency, %.02f/s' %
+            (heading, len(objects), conc.concurrency, len(objects) / elapsed),
+            helper_data)
+
+    def _ping_object_put(self, container, obj):
+        with self._with_client() as client:
+            status, reason, headers, contents = client.put_object(
+                container, obj, 'swiftly-ping')
+            if status // 100 != 2:
+                self.stderr.write('%s %s %s\n' % (
+                    status, reason, headers.get('x-trans-id')))
+                self.stderr.flush()
+                return 1
+
+    def _ping_object_get(self, container, obj):
+        with self._with_client() as client:
+            status, reason, headers, contents = client.get_object(
+                container, obj, stream=False)
+            if status // 100 != 2:
+                self.stderr.write('%s %s %s\n' % (
+                    status, reason, headers.get('x-trans-id')))
+                self.stderr.flush()
+                return 1
+
+    def _ping_object_delete(self, container, obj):
+        with self._with_client() as client:
+            status, reason, headers, contents = client.delete_object(
+                container, obj)
+            if status // 100 != 2:
+                self.stderr.write('%s %s %s\n' % (
+                    status, reason, headers.get('x-trans-id')))
+                self.stderr.flush()
+                return 1
+
+    @_client_command
+    def _ping(self, args, stdin=None):
+        try:
+            options, args = self._ping_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
+        if self._ping_parser.error_encountered:
+            return 1
+        if len(args) > 1 or options.help:
+            self._ping_parser.print_help()
+            return 1
+        try:
+            options.ping_count = int(options.ping_count or 1)
+        except ValueError:
+            self.stderr.write(
+                'invalid segment size %s\n' % options.ping_count)
+            self.stderr.flush()
+            return 1
+        prefix = (args[0] if len(args) else 'swiftly-ping') + '-'
+        begin = time()
+        helper_data = [options, begin, None]
+        with self._with_client() as client:
+            helper_data[2] = client.auth()
+            if self._ping_status('auth', helper_data):
+                return 1
+            helper_data[2] = client.head_account()
+            if self._ping_status('account head', helper_data):
+                return 1
+            container = prefix + uuid.uuid4().hex
+            helper_data[2] = client.put_container(container)
+            if self._ping_status('container put', helper_data):
+                return 1
+        objects = [uuid.uuid4().hex for x in xrange(options.ping_count)]
+        conc = Concurrency(int(self._main_options.concurrency))
+        if self._ping_objects(
+                'put', helper_data, conc, container, objects,
+                self._ping_object_put):
+            return 1
+        if self._ping_objects(
+                'get', helper_data, conc, container, objects,
+                self._ping_object_get):
+            return 1
+        if self._ping_objects(
+                'delete', helper_data, conc, container, objects,
+                self._ping_object_delete):
+            return 1
+        with self._with_client() as client:
+            helper_data[2] = client.delete_container(container)
+            if self._ping_status('container delete', helper_data):
+                return 1
+        end = time()
+        if options.ping_verbose:
+            self.stdout.write('% 6.02fs total\n' % (end - begin))
+        else:
+            self.stdout.write('%.02fs\n' % (end - begin))
+        self.stdout.flush()
         return 0
 
     def _put_recursive_helper(self, args, stdin=None):
