@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>swiftly.client &mdash; Swiftly 1.9 documentation</title>
+    <title>swiftly.client &mdash; Swiftly 1.11 documentation</title>
     
     <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '1.9',
+        VERSION:     '1.11',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <link rel="top" title="Swiftly 1.9 documentation" href="../../index.html" />
+    <link rel="top" title="Swiftly 1.11 documentation" href="../../index.html" />
     <link rel="up" title="swiftly" href="../swiftly.html" /> 
   </head>
   <body>
@@ -36,7 +36,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly 1.9 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.11 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
       </ul>
@@ -464,11 +464,31 @@
                 <span class="n">hdrs</span><span class="p">[</span><span class="n">h</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
         <span class="k">return</span> <span class="n">hdrs</span>
 
+<div class="viewcode-block" id="Client.get_account_hash"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.get_account_hash">[docs]</a>    <span class="k">def</span> <span class="nf">get_account_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_path</span><span class="p">)</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Client.reset"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the client, closing any connections and discarding any</span>
+<span class="sd">        state. This can be useful if some exceptional condition</span>
+<span class="sd">        occurred and the request/response state can no longer be</span>
+<span class="sd">        certain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">conn</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdn_conn</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">conn</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                    <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">storage_conn</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cdn_conn</span> <span class="o">=</span> <span class="bp">None</span>
+</div>
 <div class="viewcode-block" id="Client.auth"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.auth">[docs]</a>    <span class="k">def</span> <span class="nf">auth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Just performs the authentication step without making an</span>
 <span class="sd">        actual request to the Swift system.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="n">funcs</span> <span class="o">=</span> <span class="p">[]</span>
@@ -604,14 +624,12 @@
                 <span class="n">status</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span>
                 <span class="n">reason</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">reason</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&lt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
-                <span class="n">hdrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_response_headers</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">getheaders</span><span class="p">())</span>
                 <span class="n">body</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
                 <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
             <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
                 <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">reason</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
-                <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{}</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">401</span><span class="p">:</span>
                 <span class="k">break</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
@@ -623,8 +641,8 @@
                     <span class="k">break</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">regions</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">regions_default</span> <span class="o">=</span> \
-                    <span class="n">body</span><span class="p">[</span><span class="s">&#39;access&#39;</span><span class="p">][</span><span class="s">&#39;user&#39;</span><span class="p">][</span><span class="s">&#39;RAX-AUTH:defaultRegion&#39;</span><span class="p">]</span>
-                <span class="n">region</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">regions_default</span>
+                    <span class="n">body</span><span class="p">[</span><span class="s">&#39;access&#39;</span><span class="p">][</span><span class="s">&#39;user&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;RAX-AUTH:defaultRegion&#39;</span><span class="p">)</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">regions_default</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span>
                 <span class="n">storage_match1</span> <span class="o">=</span> <span class="n">storage_match2</span> <span class="o">=</span> <span class="n">storage_match3</span> <span class="o">=</span> <span class="bp">None</span>
                 <span class="n">cdn_match1</span> <span class="o">=</span> <span class="n">cdn_match2</span> <span class="o">=</span> <span class="n">cdn_match3</span> <span class="o">=</span> <span class="bp">None</span>
                 <span class="k">for</span> <span class="n">service</span> <span class="ow">in</span> <span class="n">body</span><span class="p">[</span><span class="s">&#39;access&#39;</span><span class="p">][</span><span class="s">&#39;serviceCatalog&#39;</span><span class="p">]:</span>
@@ -820,7 +838,10 @@
                     <span class="n">value</span> <span class="o">=</span> <span class="n">_IterReader</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">app_iter</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">body</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&lt; </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">resp</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&lt; </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&lt; None (probably timed out)&#39;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">401</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
                     <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
@@ -1469,7 +1490,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly 1.9 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.11 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" >swiftly</a> &raquo;</li> 
       </ul>
