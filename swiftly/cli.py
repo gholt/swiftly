@@ -24,9 +24,15 @@ from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
 from time import mktime, strptime, time
+import collections
 import sys
 import textwrap
 import uuid
+
+try:
+    from swift.common.ring import ring
+except ImportError:
+    ring = None
 
 from swiftly import VERSION
 from swiftly.client import Client, CHUNK_SIZE, generate_temp_url
@@ -357,6 +363,16 @@ For help on [main_options] run %prog with no args.
         self._ping_parser.add_option(
             '-c', '--count', dest='ping_count', default=1,
             help='Count of objects to create; default 1.')
+        self._ping_parser.add_option(
+            '-o', '--object-ring', dest='object_ring',
+            help='The current object ring of the cluster being pinged. This '
+                 'will enable output of which nodes are involved in the '
+                 'object requests and their implied behavior. Use of this '
+                 'also requires the main Swift code is installed and '
+                 'importable.')
+        self._ping_parser.add_option(
+            '-l', '--limit', dest='limit',
+            help='Limits the node output tables to LIMIT nodes.')
 
         self._put_parser = _OptionParser(
             usage="""
@@ -1275,6 +1291,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     def _ping_object_put(self, container, obj):
         with self._with_client() as client:
+            begin = time()
             status, reason, headers, contents = client.put_object(
                 container, obj, 'swiftly-ping')
             if status // 100 != 2:
@@ -1282,9 +1299,17 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     status, reason, headers.get('x-trans-id')))
                 self.stderr.flush()
                 return 1
+            if self.object_ring:
+                elapsed = time() - begin
+                for node in self.object_ring.get_nodes(
+                        client.get_account_from_storage_url(),
+                        container, obj)[1]:
+                    self.ping_ring_object_puts[node['ip']].append(
+                        (elapsed, headers.get('x-trans-id')))
 
     def _ping_object_get(self, container, obj):
         with self._with_client() as client:
+            begin = time()
             status, reason, headers, contents = client.get_object(
                 container, obj, stream=False)
             if status // 100 != 2:
@@ -1292,9 +1317,17 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     status, reason, headers.get('x-trans-id')))
                 self.stderr.flush()
                 return 1
+            if self.object_ring:
+                elapsed = time() - begin
+                for node in self.object_ring.get_nodes(
+                        client.get_account_from_storage_url(),
+                        container, obj)[1]:
+                    self.ping_ring_object_gets[node['ip']].append(
+                        (elapsed, headers.get('x-trans-id')))
 
     def _ping_object_delete(self, container, obj):
         with self._with_client() as client:
+            begin = time()
             status, reason, headers, contents = client.delete_object(
                 container, obj)
             if status // 100 != 2:
@@ -1302,6 +1335,42 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     status, reason, headers.get('x-trans-id')))
                 self.stderr.flush()
                 return 1
+            if self.object_ring:
+                elapsed = time() - begin
+                for node in self.object_ring.get_nodes(
+                        client.get_account_from_storage_url(),
+                        container, obj)[1]:
+                    self.ping_ring_object_deletes[node['ip']].append(
+                        (elapsed, headers.get('x-trans-id')))
+
+    def _ping_ring_output(self, options, timings_dict, label):
+            worsts = {}
+            for ip, timings in timings_dict.iteritems():
+                worst = [0, None]
+                for timing in timings:
+                    if timing[0] > worst[0]:
+                        worst = timing
+                worsts[ip] = worst
+            self.stdout.write(
+                'Worst %s times for up to %d nodes with implied usage:\n' %
+                (label, options.limit))
+            for ip, (elapsed, xid) in sorted(
+                    worsts.iteritems(), key=lambda x: x[1][0],
+                    reverse=True)[:options.limit]:
+                self.stdout.write(
+                    '    %20s % 6.02fs %s\n' % (ip, elapsed, xid))
+            self.stdout.flush()
+            averages = {}
+            for ip, timings in timings_dict.iteritems():
+                averages[ip] = sum(t[0] for t in timings) / len(timings)
+            self.stdout.write(
+                'Average %s times for up to %d nodes with implied usage:\n' %
+                (label, options.limit))
+            for ip, elapsed in sorted(
+                    averages.iteritems(), key=lambda x: x[1],
+                    reverse=True)[:options.limit]:
+                self.stdout.write('    %20s % 6.02fs\n' % (ip, elapsed))
+            self.stdout.flush()
 
     @_client_command
     def _ping(self, args, stdin=None):
@@ -1319,8 +1388,31 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         try:
             options.ping_count = int(options.ping_count or 1)
         except ValueError:
+            self.stderr.write('invalid ping count %s\n' % options.ping_count)
+            self.stderr.flush()
+            return 1
+        self.object_ring = None
+        try:
+            if options.object_ring:
+                if ring:
+                    self.object_ring = ring.Ring(options.object_ring)
+                else:
+                    self.stderr.write(
+                        'Object ring usage specified but swift.common.ring is '
+                        'not installed or importable.\n')
+                    self.stderr.flush()
+        except Exception, err:
             self.stderr.write(
-                'invalid segment size %s\n' % options.ping_count)
+                'Object ring usage specified but an error occurred trying to '
+                'load the ring: %s\n' % err)
+            self.stderr.flush()
+        self.ping_ring_object_puts = collections.defaultdict(lambda: [])
+        self.ping_ring_object_gets = collections.defaultdict(lambda: [])
+        self.ping_ring_object_deletes = collections.defaultdict(lambda: [])
+        try:
+            options.limit = int(options.limit or 10)
+        except ValueError:
+            self.stderr.write('invalid limit %s\n' % options.ping_count)
             self.stderr.flush()
             return 1
         prefix = (args[0] if len(args) else 'swiftly-ping') + '-'
@@ -1361,6 +1453,23 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         else:
             self.stdout.write('%.02fs\n' % (end - begin))
         self.stdout.flush()
+        ping_ring_overall = collections.defaultdict(lambda: [])
+        if self.ping_ring_object_puts:
+            self._ping_ring_output(options, self.ping_ring_object_puts, 'PUT')
+            for ip, timings in self.ping_ring_object_puts.iteritems():
+                ping_ring_overall[ip].extend(timings)
+        if self.ping_ring_object_gets:
+            self._ping_ring_output(options, self.ping_ring_object_gets, 'GET')
+            for ip, timings in self.ping_ring_object_gets.iteritems():
+                ping_ring_overall[ip].extend(timings)
+        if self.ping_ring_object_deletes:
+            self._ping_ring_output(
+                options, self.ping_ring_object_deletes, 'DELETE')
+            for ip, timings in self.ping_ring_object_deletes.iteritems():
+                ping_ring_overall[ip].extend(timings)
+        if ping_ring_overall:
+            self._ping_ring_output(
+                options, ping_ring_overall, 'overall')
         return 0
 
     def _put_recursive_helper(self, args, stdin=None):

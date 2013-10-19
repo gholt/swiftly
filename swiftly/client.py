@@ -414,6 +414,9 @@ class Client(object):
                 hdrs[h] = v
         return hdrs
 
+    def get_account_from_storage_url(self):
+        return self.storage_url.rsplit('/', 1)[1]
+
     def reset(self):
         """
         Resets the client, closing any connections and discarding any
