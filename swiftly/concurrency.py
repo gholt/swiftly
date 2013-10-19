@@ -35,8 +35,9 @@ class Concurrency(object):
     """
 
     def __init__(self, concurrency=10):
-        if concurrency and GreenPool:
-            self._pool = GreenPool(concurrency)
+        self.concurrency = concurrency
+        if self.concurrency and GreenPool:
+            self._pool = GreenPool(self.concurrency)
         else:
             self._pool = None
         self._queue = Queue()

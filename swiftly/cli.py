@@ -24,9 +24,15 @@ from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
 from time import mktime, strptime, time
-from urllib import unquote
+import collections
 import sys
 import textwrap
+import uuid
+
+try:
+    from swift.common.ring import ring
+except ImportError:
+    ring = None
 
 from swiftly import VERSION
 from swiftly.client import Client, CHUNK_SIZE, generate_temp_url
@@ -46,7 +52,7 @@ MUTED_OBJECT_HEADERS = ['accept-ranges', 'date']
 
 
 def _delayed_imports(eventlet=None):
-    PIPE = Popen = None
+    PIPE = Popen = Timeout = None
     if eventlet is None:
         try:
             from eventlet import __version__
@@ -57,12 +63,14 @@ def _delayed_imports(eventlet=None):
             pass
     if eventlet:
         try:
+            from eventlet import Timeout
             from eventlet.green.subprocess import PIPE, Popen
         except ImportError:
             pass
-    if PIPE is None or Popen is None:
+    if PIPE is None or Popen is None or Timeout is None:
         from subprocess import PIPE, Popen
-    return PIPE, Popen
+        Timeout = Exception
+    return PIPE, Popen, Timeout
 
 
 def _command(func):
@@ -177,6 +185,8 @@ class CLI(object):
         self.start_time = time()
         self.clients = Queue()
         self.client_id = 0
+        # The following are _delayed_imports that might end up from Eventlet
+        self.PIPE = self.Popen = self.Timeout = None
 
         self._help_parser = _OptionParser(
             usage="""
@@ -339,6 +349,33 @@ Outputs the resulting contents from a GET request of the [path] given. If no
                  'and only storing matching lines locally (--sub-command '
                  '"gunzip | grep keyword" or --sub-command "zgrep keyword" if '
                  'your system has that).')
+
+        self._ping_parser = _OptionParser(
+            usage="""
+Usage: %prog [main_options] ping [options] [path]
+
+For help on [main_options] run %prog with no args.
+
+Runs a ping test against the account.
+The [path] will be used as a prefix to the random container name used (default:
+swiftly-ping).""".strip(),
+            stdout=self.stdout, stderr=self.stderr, preamble='ping command: ')
+        self._ping_parser.add_option(
+            '-v', '--verbose', dest='ping_verbose', action='store_true',
+            help='Outputs additional information as ping works.')
+        self._ping_parser.add_option(
+            '-c', '--count', dest='ping_count', default=1,
+            help='Count of objects to create; default 1.')
+        self._ping_parser.add_option(
+            '-o', '--object-ring', dest='object_ring',
+            help='The current object ring of the cluster being pinged. This '
+                 'will enable output of which nodes are involved in the '
+                 'object requests and their implied behavior. Use of this '
+                 'also requires the main Swift code is installed and '
+                 'importable.')
+        self._ping_parser.add_option(
+            '-l', '--limit', dest='limit',
+            help='Limits the node output tables to LIMIT nodes.')
 
         self._put_parser = _OptionParser(
             usage="""
@@ -693,6 +730,12 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if not func or not getattr(func, '__is_command__', False):
             self._main_parser.print_help()
             return 1
+        self.eventlet = None
+        if self._main_options.eventlet:
+            self.eventlet = True
+        if self._main_options.no_eventlet:
+            self.eventlet = False
+        self.PIPE, self.Popen, self.Timeout = _delayed_imports(self.eventlet)
         if not getattr(func, '__is_client_command__', False):
             rv = func(args[1:])
         else:
@@ -722,18 +765,13 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         except Empty:
             pass
         if not client:
-            eventlet = None
             self.client_id += 1
-            if self._main_options.eventlet:
-                eventlet = True
-            if self._main_options.no_eventlet:
-                eventlet = False
             if self._main_options.direct:
                 client = Client(
                     swift_proxy=True,
                     swift_proxy_storage_path=self._main_options.direct,
                     retries=int(self._main_options.retries),
-                    eventlet=eventlet,
+                    eventlet=self.eventlet,
                     region=self._main_options.region,
                     verbose=self._verbose,
                     verbose_id=str(self.client_id))
@@ -754,7 +792,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     snet=self._main_options.snet,
                     retries=int(self._main_options.retries),
                     cache_path=cache_path,
-                    eventlet=eventlet,
+                    eventlet=self.eventlet,
                     region=self._main_options.region,
                     verbose=self._verbose,
                     verbose_id=str(self.client_id))
@@ -764,11 +802,21 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         self.clients.put(client)
 
     @contextmanager
-    def _with_client(self):
+    def _with_client(self, path=None):
         client = self._get_client()
         if not client:
             raise Exception('No client!')
-        yield client
+        try:
+            yield client
+        except (self.Timeout, Exception), err:
+            if path:
+                self.stderr.write('EXCEPTION with %s %s %s\n' %
+                                  (path, err.__class__.__name__, err))
+            else:
+                self.stderr.write('EXCEPTION %s %s\n' %
+                                  (err.__class__.__name__, err))
+            self.stderr.flush()
+            client.reset()
         self._put_client(client)
 
     def _command_line_headers(self, options_list):
@@ -934,7 +982,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             mute.extend(MUTED_ACCOUNT_HEADERS)
         elif len(args) == 1:
             path = args[0].lstrip('/')
-            with self._with_client() as client:
+            with self._with_client(path) as client:
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = client.head_container(
                         path.rstrip('/'), headers=hdrs, query=options.query,
@@ -1003,7 +1051,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             prefix = options.prefix
             marker = options.marker
             end_marker = options.end_marker
-            with self._with_client() as client:
+            early_return = None
+            with self._with_client(path) as client:
                 if not path:
                     status, reason, headers, contents = client.get_account(
                         headers=hdrs, limit=limit, marker=marker,
@@ -1014,14 +1063,17 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         path, headers=hdrs, limit=limit, delimiter=delimiter,
                         prefix=prefix, marker=marker, end_marker=end_marker,
                         query=options.query, cdn=self._main_options.cdn)
-            if status // 100 != 2:
-                if status == 404 and options.ignore_404:
-                    return 0
-                self.stderr.write('%s %s\n' % (status, reason))
-                self.stderr.flush()
-                if hasattr(contents, 'read'):
-                    contents.read()
-                return 1
+                if status // 100 != 2:
+                    if status == 404 and options.ignore_404:
+                        early_return = 0
+                    else:
+                        early_return = 1
+                        self.stderr.write('%s %s\n' % (status, reason))
+                        self.stderr.flush()
+                        if hasattr(contents, 'read'):
+                            contents.read()
+            if early_return is not None:
+                return early_return
             if options.headers and not options.all_objects:
                 self._output_headers(headers, mute, stdout=stdout)
                 stdout.write('\n')
@@ -1105,7 +1157,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     break
                 marker = \
                     contents[-1].get('name', contents[-1].get('subdir', ''))
-                with self._with_client() as client:
+                early_return = None
+                with self._with_client(path) as client:
                     if not path:
                         status, reason, headers, contents = client.get_account(
                             headers=hdrs, limit=limit, delimiter=delimiter,
@@ -1120,14 +1173,17 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                                 end_marker=end_marker, marker=marker,
                                 query=options.query,
                                 cdn=self._main_options.cdn)
-                if status // 100 != 2:
-                    if status == 404 and options.ignore_404:
-                        return 0
-                    self.stderr.write('%s %s\n' % (status, reason))
-                    self.stderr.flush()
-                    if hasattr(contents, 'read'):
-                        contents.read()
-                    return 1
+                    if status // 100 != 2:
+                        if status == 404 and options.ignore_404:
+                            early_return = 0
+                        else:
+                            early_return = 1
+                            self.stderr.write('%s %s\n' % (status, reason))
+                            self.stderr.flush()
+                            if hasattr(contents, 'read'):
+                                contents.read()
+                if early_return is not None:
+                    return early_return
             conc.join()
             for rv in conc.get_results().values():
                 if rv:
@@ -1135,57 +1191,51 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             return 0
         sub_command = None
         if options.sub_command:
-            eventlet = None
-            if self._main_options.eventlet:
-                eventlet = True
-            if self._main_options.no_eventlet:
-                eventlet = False
-            PIPE, Popen = _delayed_imports(eventlet)
-            sub_command = Popen(options.sub_command, shell=True, stdin=PIPE,
-                                stdout=stdout)
+            sub_command = self.Popen(
+                options.sub_command, shell=True, stdin=self.PIPE,
+                stdout=stdout)
             stdout = sub_command.stdin
-        with self._with_client() as client:
+        early_return = None
+        with self._with_client(path) as client:
             status, reason, headers, contents = client.get_object(
                 *path.split('/', 1), headers=hdrs, query=options.query,
                 cdn=self._main_options.cdn)
             if status // 100 != 2:
                 if status == 404 and options.ignore_404:
-                    if sub_command:
-                        stdout.close()
-                        self._verbose('Waiting on sub-command for %s', path)
-                        self._verbose(
-                            'Sub-command returned %s with object %s',
-                            sub_command.wait(), path)
-                    return 0
-                self.stderr.write('%s %s\n' % (status, reason))
-                self.stderr.flush()
-                if hasattr(contents, 'read'):
-                    contents.read()
-                if sub_command:
-                    stdout.close()
-                    self._verbose('Waiting on sub-command for %s', path)
-                    self._verbose(
-                        'Sub-command returned %s with object %s',
-                        sub_command.wait(), path)
-                return 1
-            if options.headers:
-                self._output_headers(headers, MUTED_OBJECT_HEADERS,
-                                     stdout=stdout)
-                stdout.write('\n')
-            if headers.get('content-type') == 'text/directory' and \
-                    headers.get('content-length') == '0':
-                contents.read()
-                if options.output and not options.output.endswith('/'):
-                    stdout.close()
-                    unlink(options.output)
-                    makedirs(options.output)
+                    early_return = 0
+                else:
+                    early_return = 1
+                    self.stderr.write('%s %s\n' % (status, reason))
+                    self.stderr.flush()
+                    if hasattr(contents, 'read'):
+                        contents.read()
             else:
-                # TODO: Exception handling around these and other reads
-                chunk = contents.read(CHUNK_SIZE)
-                while chunk:
-                    stdout.write(chunk)
+                if options.headers:
+                    self._output_headers(headers, MUTED_OBJECT_HEADERS,
+                                         stdout=stdout)
+                    stdout.write('\n')
+                if headers.get('content-type') in [
+                        'text/directory', 'application/directory'] and \
+                        headers.get('content-length') == '0':
+                    contents.read()
+                    if options.output and not options.output.endswith('/'):
+                        stdout.close()
+                        unlink(options.output)
+                        makedirs(options.output)
+                else:
                     chunk = contents.read(CHUNK_SIZE)
-                stdout.flush()
+                    while chunk:
+                        stdout.write(chunk)
+                        chunk = contents.read(CHUNK_SIZE)
+                    stdout.flush()
+        if early_return is not None:
+            if sub_command:
+                stdout.close()
+                self._verbose('Waiting on sub-command for %s', path)
+                self._verbose(
+                    'Sub-command returned %s with object %s',
+                    sub_command.wait(), path)
+            return early_return
         if options.output and not options.output.endswith('/'):
             stdout.close()
             mtime = 0
@@ -1202,6 +1252,226 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self._verbose(
                 'Sub-command returned %s with object %s',
                 sub_command.wait(), path)
+        return 0
+
+    def _ping_status(self, heading, helper_data):
+        fxid, status, reason, headers, contents = '', 200, 'OK', {}, ''
+        if helper_data[2]:
+            fxid, status, reason, headers, contents = helper_data[2]
+            if status // 100 != 2:
+                self.stderr.write('%s %s %s\n' % (
+                    status, reason, headers.get('x-trans-id') or fxid))
+                self.stderr.flush()
+                return 1
+        now = time()
+        if helper_data[0].ping_verbose:
+            self.stdout.write('% 6.02fs %s %s\n' % (
+                now - helper_data[1], heading,
+                headers.get('x-trans-id') or fxid))
+            self.stdout.flush()
+        helper_data[1] = now
+        return 0
+
+    def _ping_objects(self, heading, helper_data, conc, container, objects,
+                      func):
+        begin = time()
+        for obj in objects:
+            for rv in conc.get_results().values():
+                if _get_return_code(rv):
+                    conc.join()
+                    return rv
+            conc.spawn(obj, func, container, obj)
+        conc.join()
+        for rv in conc.get_results().values():
+            if _get_return_code(rv):
+                return rv
+        elapsed = time() - begin
+        helper_data[2] = None
+        self._ping_status(
+            'object %s x%d at %d concurrency, %.02f/s' %
+            (heading, len(objects), conc.concurrency, len(objects) / elapsed),
+            helper_data)
+
+    def _ping_object_put(self, container, obj):
+        with self._with_client() as client:
+            begin = time()
+            status, reason, headers, contents = client.put_object(
+                container, obj, 'swiftly-ping')
+            if status // 100 != 2:
+                self.stderr.write('%s %s %s\n' % (
+                    status, reason, headers.get('x-trans-id') or obj))
+                self.stderr.flush()
+                return 1
+            if self.object_ring:
+                elapsed = time() - begin
+                for node in self.object_ring.get_nodes(
+                        client.get_account_hash(), container, obj)[1]:
+                    self.ping_ring_object_puts[node['ip']].append(
+                        (elapsed, headers.get('x-trans-id') or obj))
+
+    def _ping_object_get(self, container, obj):
+        with self._with_client() as client:
+            begin = time()
+            status, reason, headers, contents = client.get_object(
+                container, obj, stream=False)
+            if status // 100 != 2:
+                self.stderr.write('%s %s %s\n' % (
+                    status, reason, headers.get('x-trans-id') or obj))
+                self.stderr.flush()
+                return 1
+            if self.object_ring:
+                elapsed = time() - begin
+                for node in self.object_ring.get_nodes(
+                        client.get_account_hash(), container, obj)[1]:
+                    self.ping_ring_object_gets[node['ip']].append(
+                        (elapsed, headers.get('x-trans-id') or obj))
+
+    def _ping_object_delete(self, container, obj):
+        with self._with_client() as client:
+            begin = time()
+            status, reason, headers, contents = client.delete_object(
+                container, obj)
+            if status // 100 != 2:
+                self.stderr.write('%s %s %s\n' % (
+                    status, reason, headers.get('x-trans-id') or obj))
+                self.stderr.flush()
+                return 1
+            if self.object_ring:
+                elapsed = time() - begin
+                for node in self.object_ring.get_nodes(
+                        client.get_account_hash(), container, obj)[1]:
+                    self.ping_ring_object_deletes[node['ip']].append(
+                        (elapsed, headers.get('x-trans-id') or obj))
+
+    def _ping_ring_output(self, options, timings_dict, label):
+            worsts = {}
+            for ip, timings in timings_dict.iteritems():
+                worst = [0, None]
+                for timing in timings:
+                    if timing[0] > worst[0]:
+                        worst = timing
+                worsts[ip] = worst
+            self.stdout.write(
+                'Worst %s times for up to %d nodes with implied usage:\n' %
+                (label, options.limit))
+            for ip, (elapsed, xid) in sorted(
+                    worsts.iteritems(), key=lambda x: x[1][0],
+                    reverse=True)[:options.limit]:
+                self.stdout.write(
+                    '    %20s % 6.02fs %s\n' % (ip, elapsed, xid))
+            self.stdout.flush()
+            averages = {}
+            for ip, timings in timings_dict.iteritems():
+                averages[ip] = sum(t[0] for t in timings) / len(timings)
+            self.stdout.write(
+                'Average %s times for up to %d nodes with implied usage:\n' %
+                (label, options.limit))
+            for ip, elapsed in sorted(
+                    averages.iteritems(), key=lambda x: x[1],
+                    reverse=True)[:options.limit]:
+                self.stdout.write('    %20s % 6.02fs\n' % (ip, elapsed))
+            self.stdout.flush()
+
+    @_client_command
+    def _ping(self, args, stdin=None):
+        try:
+            options, args = self._ping_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
+        if self._ping_parser.error_encountered:
+            return 1
+        if len(args) > 1 or options.help:
+            self._ping_parser.print_help()
+            return 1
+        try:
+            options.ping_count = int(options.ping_count or 1)
+        except ValueError:
+            self.stderr.write('invalid ping count %s\n' % options.ping_count)
+            self.stderr.flush()
+            return 1
+        self.object_ring = None
+        try:
+            if options.object_ring:
+                if ring:
+                    self.object_ring = ring.Ring(options.object_ring)
+                else:
+                    self.stderr.write(
+                        'Object ring usage specified but swift.common.ring is '
+                        'not installed or importable.\n')
+                    self.stderr.flush()
+        except Exception, err:
+            self.stderr.write(
+                'Object ring usage specified but an error occurred trying to '
+                'load the ring: %s\n' % err)
+            self.stderr.flush()
+        self.ping_ring_object_puts = collections.defaultdict(lambda: [])
+        self.ping_ring_object_gets = collections.defaultdict(lambda: [])
+        self.ping_ring_object_deletes = collections.defaultdict(lambda: [])
+        try:
+            options.limit = int(options.limit or 10)
+        except ValueError:
+            self.stderr.write('invalid limit %s\n' % options.ping_count)
+            self.stderr.flush()
+            return 1
+        prefix = (args[0] if len(args) else 'swiftly-ping') + '-'
+        begin = time()
+        helper_data = [options, begin, None]
+        container = prefix + uuid.uuid4().hex
+        with self._with_client() as client:
+            helper_data[2] = client.auth()
+            if self._ping_status('auth', helper_data):
+                return 1
+            helper_data[2] = [''] + list(client.head_account())
+            if self._ping_status('account head', helper_data):
+                return 1
+            helper_data[2] = [container] + list(
+                client.put_container(container))
+            if self._ping_status('container put', helper_data):
+                return 1
+        objects = [uuid.uuid4().hex for x in xrange(options.ping_count)]
+        conc = Concurrency(int(self._main_options.concurrency))
+        if self._ping_objects(
+                'put', helper_data, conc, container, objects,
+                self._ping_object_put):
+            return 1
+        if self._ping_objects(
+                'get', helper_data, conc, container, objects,
+                self._ping_object_get):
+            return 1
+        if self._ping_objects(
+                'delete', helper_data, conc, container, objects,
+                self._ping_object_delete):
+            return 1
+        with self._with_client() as client:
+            helper_data[2] = [container] + list(
+                client.delete_container(container))
+            if self._ping_status('container delete', helper_data):
+                return 1
+        end = time()
+        if options.ping_verbose:
+            self.stdout.write('% 6.02fs total\n' % (end - begin))
+        else:
+            self.stdout.write('%.02fs\n' % (end - begin))
+        self.stdout.flush()
+        ping_ring_overall = collections.defaultdict(lambda: [])
+        if self.ping_ring_object_puts:
+            self._ping_ring_output(options, self.ping_ring_object_puts, 'PUT')
+            for ip, timings in self.ping_ring_object_puts.iteritems():
+                ping_ring_overall[ip].extend(timings)
+        if self.ping_ring_object_gets:
+            self._ping_ring_output(options, self.ping_ring_object_gets, 'GET')
+            for ip, timings in self.ping_ring_object_gets.iteritems():
+                ping_ring_overall[ip].extend(timings)
+        if self.ping_ring_object_deletes:
+            self._ping_ring_output(
+                options, self.ping_ring_object_deletes, 'DELETE')
+            for ip, timings in self.ping_ring_object_deletes.iteritems():
+                ping_ring_overall[ip].extend(timings)
+        if ping_ring_overall:
+            self._ping_ring_output(
+                options, ping_ring_overall, 'overall')
         return 0
 
     def _put_recursive_helper(self, args, stdin=None):
@@ -1329,7 +1599,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     '/' in path.rstrip('/'):
                 r_mtime = 0
                 r_size = -1
-                with self._with_client() as client:
+                with self._with_client(path) as client:
                     status, reason, headers, contents = \
                         client.head_object(
                             *path.split('/', 1), query=options.query,
@@ -1393,7 +1663,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     hdrs['x-object-manifest'] = prefix
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
-        with self._with_client() as client:
+        with self._with_client(path) as client:
             if not path.rstrip('/'):
                 body = stdin if options.INPUT_ else ''
                 status, reason, headers, contents = \
@@ -1455,7 +1725,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         cdn=self._main_options.cdn, body=body)
         elif len(args) == 1:
             path = args[0].lstrip('/')
-            with self._with_client() as client:
+            with self._with_client(path) as client:
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = \
                         client.post_container(
@@ -1592,7 +1862,7 @@ THERE IS NO GOING BACK!""".strip())
                 if options.recursive:
                     marker = None
                     while True:
-                        with self._with_client() as client:
+                        with self._with_client(path) as client:
                             status, reason, headers, contents = \
                                 client.get_container(
                                     path.rstrip('/'), headers=hdrs,
@@ -1626,21 +1896,21 @@ THERE IS NO GOING BACK!""".strip())
                         for rv in conc.get_results().values():
                             if rv:
                                 return rv
-                    with self._with_client() as client:
+                    with self._with_client(path) as client:
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
                                 query=options.query,
                                 cdn=self._main_options.cdn, body=body)
                 else:
-                    with self._with_client() as client:
+                    with self._with_client(path) as client:
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
                                 query=options.query,
                                 cdn=self._main_options.cdn, body=body)
             else:
-                with self._with_client() as client:
+                with self._with_client(path) as client:
                     status, reason, headers, contents = \
                         client.delete_object(
                             *path.split('/', 1), headers=hdrs,
