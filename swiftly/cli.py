@@ -355,7 +355,10 @@ Outputs the resulting contents from a GET request of the [path] given. If no
 Usage: %prog [main_options] ping [options] [path]
 
 For help on [main_options] run %prog with no args.
-""".strip(),
+
+Runs a ping test against the account.
+The [path] will be used as a prefix to the random container name used (default:
+swiftly-ping).""".strip(),
             stdout=self.stdout, stderr=self.stderr, preamble='ping command: ')
         self._ping_parser.add_option(
             '-v', '--verbose', dest='ping_verbose', action='store_true',
