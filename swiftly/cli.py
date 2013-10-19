@@ -1255,19 +1255,19 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         return 0
 
     def _ping_status(self, heading, helper_data):
-        status, reason, headers, contents = 200, 'OK', {}, ''
+        fxid, status, reason, headers, contents = '', 200, 'OK', {}, ''
         if helper_data[2]:
-            status, reason, headers, contents = helper_data[2]
+            fxid, status, reason, headers, contents = helper_data[2]
             if status // 100 != 2:
                 self.stderr.write('%s %s %s\n' % (
-                    status, reason, headers.get('x-trans-id')))
+                    status, reason, headers.get('x-trans-id') or fxid))
                 self.stderr.flush()
                 return 1
         now = time()
         if helper_data[0].ping_verbose:
             self.stdout.write('% 6.02fs %s %s\n' % (
                 now - helper_data[1], heading,
-                headers.get('x-trans-id') or ''))
+                headers.get('x-trans-id') or fxid))
             self.stdout.flush()
         helper_data[1] = now
         return 0
@@ -1299,7 +1299,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 container, obj, 'swiftly-ping')
             if status // 100 != 2:
                 self.stderr.write('%s %s %s\n' % (
-                    status, reason, headers.get('x-trans-id')))
+                    status, reason, headers.get('x-trans-id') or obj))
                 self.stderr.flush()
                 return 1
             if self.object_ring:
@@ -1307,7 +1307,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 for node in self.object_ring.get_nodes(
                         client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_puts[node['ip']].append(
-                        (elapsed, headers.get('x-trans-id')))
+                        (elapsed, headers.get('x-trans-id') or obj))
 
     def _ping_object_get(self, container, obj):
         with self._with_client() as client:
@@ -1316,7 +1316,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 container, obj, stream=False)
             if status // 100 != 2:
                 self.stderr.write('%s %s %s\n' % (
-                    status, reason, headers.get('x-trans-id')))
+                    status, reason, headers.get('x-trans-id') or obj))
                 self.stderr.flush()
                 return 1
             if self.object_ring:
@@ -1324,7 +1324,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 for node in self.object_ring.get_nodes(
                         client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_gets[node['ip']].append(
-                        (elapsed, headers.get('x-trans-id')))
+                        (elapsed, headers.get('x-trans-id') or obj))
 
     def _ping_object_delete(self, container, obj):
         with self._with_client() as client:
@@ -1333,7 +1333,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 container, obj)
             if status // 100 != 2:
                 self.stderr.write('%s %s %s\n' % (
-                    status, reason, headers.get('x-trans-id')))
+                    status, reason, headers.get('x-trans-id') or obj))
                 self.stderr.flush()
                 return 1
             if self.object_ring:
@@ -1341,7 +1341,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 for node in self.object_ring.get_nodes(
                         client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_deletes[node['ip']].append(
-                        (elapsed, headers.get('x-trans-id')))
+                        (elapsed, headers.get('x-trans-id') or obj))
 
     def _ping_ring_output(self, options, timings_dict, label):
             worsts = {}
@@ -1418,15 +1418,16 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         prefix = (args[0] if len(args) else 'swiftly-ping') + '-'
         begin = time()
         helper_data = [options, begin, None]
+        container = prefix + uuid.uuid4().hex
         with self._with_client() as client:
             helper_data[2] = client.auth()
             if self._ping_status('auth', helper_data):
                 return 1
-            helper_data[2] = client.head_account()
+            helper_data[2] = [''] + list(client.head_account())
             if self._ping_status('account head', helper_data):
                 return 1
-            container = prefix + uuid.uuid4().hex
-            helper_data[2] = client.put_container(container)
+            helper_data[2] = [container] + list(
+                client.put_container(container))
             if self._ping_status('container put', helper_data):
                 return 1
         objects = [uuid.uuid4().hex for x in xrange(options.ping_count)]
@@ -1444,7 +1445,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self._ping_object_delete):
             return 1
         with self._with_client() as client:
-            helper_data[2] = client.delete_container(container)
+            helper_data[2] = [container] + list(
+                client.delete_container(container))
             if self._ping_status('container delete', helper_data):
                 return 1
         end = time()
