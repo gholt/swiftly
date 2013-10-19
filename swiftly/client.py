@@ -414,8 +414,8 @@ class Client(object):
                 hdrs[h] = v
         return hdrs
 
-    def get_account_from_storage_url(self):
-        return self.storage_url.rsplit('/', 1)[1]
+    def get_account_hash(self):
+        return (self.storage_url or self.storage_path).rsplit('/', 1)[1]
 
     def reset(self):
         """

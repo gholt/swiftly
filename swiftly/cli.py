@@ -1305,8 +1305,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             if self.object_ring:
                 elapsed = time() - begin
                 for node in self.object_ring.get_nodes(
-                        client.get_account_from_storage_url(),
-                        container, obj)[1]:
+                        client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_puts[node['ip']].append(
                         (elapsed, headers.get('x-trans-id')))
 
@@ -1323,8 +1322,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             if self.object_ring:
                 elapsed = time() - begin
                 for node in self.object_ring.get_nodes(
-                        client.get_account_from_storage_url(),
-                        container, obj)[1]:
+                        client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_gets[node['ip']].append(
                         (elapsed, headers.get('x-trans-id')))
 
@@ -1341,8 +1339,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             if self.object_ring:
                 elapsed = time() - begin
                 for node in self.object_ring.get_nodes(
-                        client.get_account_from_storage_url(),
-                        container, obj)[1]:
+                        client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_deletes[node['ip']].append(
                         (elapsed, headers.get('x-trans-id')))
 
