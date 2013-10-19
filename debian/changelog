@@ -1,3 +1,9 @@
+swiftly (1.10-1) lucid; urgency=low
+
+   * Added new ping command.
+
+ -- Greg Holt <greg@brim.net>  Sat, 19 Oct 2013 02:13:28 +0000
+
 swiftly (1.8-1) lucid; urgency=low
 
   * More auth systems support: Now supports Rackspace's v2.0 auth and
