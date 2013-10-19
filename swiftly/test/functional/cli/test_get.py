@@ -16,7 +16,6 @@ limitations under the License.
 
 import unittest
 from StringIO import StringIO
-from urlparse import urlparse
 from uuid import uuid4
 
 from swiftly.cli import CLI

@@ -24,11 +24,6 @@ from swiftly.test.functional import AUTH_URL, AUTH_USER, AUTH_KEY, \
     SWIFT_PROXY_STORAGE_PATH
 
 try:
-    from eventlet.green.httplib import HTTPException
-except ImportError:
-    from httplib import HTTPException
-
-try:
     from swift.proxy.server import Application
 except ImportError:
     Application = None
