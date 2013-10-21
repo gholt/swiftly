@@ -23,7 +23,7 @@ from optparse import Option, OptionParser
 from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
-from time import mktime, strptime, time
+from time import gmtime, mktime, strftime, strptime, time
 import collections
 import sys
 import textwrap
@@ -35,7 +35,8 @@ except ImportError:
     ring = None
 
 from swiftly import VERSION
-from swiftly.client import Client, CHUNK_SIZE, generate_temp_url
+from swiftly.client import Client, CHUNK_SIZE, generate_temp_url, \
+    get_trans_id_time
 from swiftly.concurrency import Concurrency
 
 try:
@@ -218,6 +219,17 @@ The <path> should be to an object or object-prefix.
 [seconds] defaults to 3600""".strip(),
             stdout=self.stdout, stderr=self.stderr,
             preamble='tempurl command: ')
+
+        self._trans_parser = _OptionParser(
+            usage="""
+Usage: %prog [main_options] trans <x-trans-id-value>
+
+For help on [main_options] run %prog with no args.
+
+Outputs information about the <x-trans-id-value> given, such as the embedded
+transaction time.""".strip(),
+            stdout=self.stdout, stderr=self.stderr,
+            preamble='trans command: ')
 
         self._head_parser = _OptionParser(
             usage="""
@@ -956,6 +968,38 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self.stdout.write('\n')
             self.stdout.flush()
         return 0
+
+    @_command
+    def _trans(self, args):
+        try:
+            options, args = self._trans_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
+        if self._trans_parser.error_encountered:
+            return 1
+        if not args or options.help:
+            self._trans_parser.print_help()
+            return 1
+        x_trans_id = args.pop(0)
+        if args:
+            self._trans_parser.print_help()
+            return 1
+        trans_time = get_trans_id_time(x_trans_id)
+        trans_info = x_trans_id[34:]
+        msg = 'X-Trans-Id:      ' + x_trans_id + '\n'
+        if not trans_time:
+            msg += 'Time Stamp:      None, old style id with no time ' \
+                'embedded\nUTC Time:        None, old style id with no time ' \
+                'embedded\n'
+        else:
+            msg += 'Time Stamp:      %s\nUTC Time:        %s\n' % (
+                trans_time,
+                strftime('%a %Y-%m-%d %H:%M:%S UTC', gmtime(trans_time)))
+        msg += 'Additional Info: ' + trans_info + '\n'
+        self.stdout.write(msg)
+        self.stdout.flush()
 
     @_client_command
     def _head(self, args):

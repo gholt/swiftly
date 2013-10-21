@@ -2,6 +2,7 @@
 Client API to Swift
 
 Copyright 2011-2013 Gregory Holt
+Portions Copyright (c) 2010-2012 OpenStack Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -56,6 +57,19 @@ def generate_temp_url(method, url, seconds, key):
     sig = hmac.new(key, hmac_body, sha1).hexdigest()
     return '%s%s?temp_url_sig=%s&temp_url_expires=%s' % (
         base_url, object_path, sig, expires)
+
+
+def get_trans_id_time(trans_id):
+    """
+    Copied from the Swift codebase.
+    Copyright (c) 2010-2012 OpenStack Foundation
+    """
+    if len(trans_id) >= 34 and trans_id[:2] == 'tx' and trans_id[23] == '-':
+        try:
+            return int(trans_id[24:34], 16)
+        except ValueError:
+            pass
+    return None
 
 
 def _delayed_imports(eventlet=None):
