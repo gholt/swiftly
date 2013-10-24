@@ -1517,21 +1517,21 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self._ping_object_put):
             self.stderr.write(
                 'put objects did not complete successfully due to previous '
-                'error; but continuing')
+                'error; but continuing\n')
             self.stderr.flush()
         if self._ping_objects(
                 'get', helper_data, conc, container, objects,
                 self._ping_object_get):
             self.stderr.write(
                 'get objects did not complete successfully due to previous '
-                'error; but continuing')
+                'error; but continuing\n')
             self.stderr.flush()
         if self._ping_objects(
                 'delete', helper_data, conc, container, objects,
                 self._ping_object_delete):
             self.stderr.write(
                 'delete objects did not complete successfully due to previous '
-                'error; but continuing')
+                'error; but continuing\n')
             self.stderr.flush()
         completed = False
         with self._with_client() as client:
@@ -1542,7 +1542,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if not completed:
             self.stderr.write(
                 'could not confirm deletion of container due to previous '
-                'error; but continuing')
+                'error; but continuing\n')
             self.stderr.flush()
         end = time()
         if options.ping_verbose:
