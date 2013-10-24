@@ -1537,9 +1537,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         with self._with_client() as client:
             helper_data[2] = [container] + list(
                 client.delete_container(container))
-            if self._ping_status('container delete', helper_data):
-                return 1
-            completed = True
+            if not self._ping_status('container delete', helper_data):
+                completed = True
         if not completed:
             self.stderr.write(
                 'could not confirm deletion of container due to previous '
