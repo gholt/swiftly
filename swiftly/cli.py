@@ -1515,15 +1515,24 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         if self._ping_objects(
                 'put', helper_data, conc, container, objects,
                 self._ping_object_put):
-            return 1
+            self.stderr.write(
+                'put objects did not complete successfully due to previous '
+                'error; but continuing')
+            self.stderr.flush()
         if self._ping_objects(
                 'get', helper_data, conc, container, objects,
                 self._ping_object_get):
-            return 1
+            self.stderr.write(
+                'get objects did not complete successfully due to previous '
+                'error; but continuing')
+            self.stderr.flush()
         if self._ping_objects(
                 'delete', helper_data, conc, container, objects,
                 self._ping_object_delete):
-            return 1
+            self.stderr.write(
+                'delete objects did not complete successfully due to previous '
+                'error; but continuing')
+            self.stderr.flush()
         completed = False
         with self._with_client() as client:
             helper_data[2] = [container] + list(
