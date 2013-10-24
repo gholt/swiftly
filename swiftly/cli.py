@@ -25,6 +25,7 @@ from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
 from time import gmtime, mktime, strftime, strptime, time
 import collections
+import StringIO
 import sys
 import textwrap
 import uuid
@@ -1365,7 +1366,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         with self._with_client() as client:
             begin = time()
             status, reason, headers, contents = client.put_object(
-                container, obj, 'swiftly-ping')
+                container, obj, StringIO.StringIO('swiftly-ping'))
             if status // 100 != 2:
                 self.stderr.write('%s %s %s\n' % (
                     status, reason, headers.get('x-trans-id') or obj))
