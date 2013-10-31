@@ -1447,6 +1447,41 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 reverse=True)[:options.limit]:
             self.stdout.write('    %20s % 6.02fs\n' % (ip, elapsed))
         self.stdout.flush()
+        total = 0.0
+        count = 0
+        for ip, timings in timings_dict.iteritems():
+            total += sum(t[0] for t in timings)
+            count += len(timings)
+        threshold = total / count * 2
+        counts = collections.defaultdict(lambda: 0)
+        for ip, timings in timings_dict.iteritems():
+            for t in timings:
+                if t[0] > threshold:
+                    counts[ip] += 1
+        self.stdout.write(
+            'Count of %s times past (average * 2) for up to %d nodes with '
+            'implied usage:\n' % (label, options.limit))
+        for ip, count in sorted(
+                counts.iteritems(), key=lambda x: x[1],
+                reverse=True)[:options.limit]:
+            self.stdout.write('    %20s % 6d\n' % (ip, count))
+        self.stdout.flush()
+        percentages = {}
+        for ip, count in counts.iteritems():
+            percentages[ip] = (
+                100.0 * count / len(timings_dict[ip]),
+                count,
+                len(timings_dict[ip]))
+        self.stdout.write(
+            'Percentage of %s times past (average * 2) for up to %d nodes '
+            'with implied usage:\n' % (label, options.limit))
+        for ip, percentage in sorted(
+                percentages.iteritems(), key=lambda x: x[1][0],
+                reverse=True)[:options.limit]:
+            self.stdout.write(
+                '    %20s % 6.02f%%  %d of %d\n' %
+                (ip, percentage[0], percentage[1], percentage[2]))
+        self.stdout.flush()
 
     @_client_command
     def _ping(self, args, stdin=None):
