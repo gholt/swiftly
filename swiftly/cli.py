@@ -389,6 +389,10 @@ swiftly-ping).""".strip(),
         self._ping_parser.add_option(
             '-l', '--limit', dest='limit',
             help='Limits the node output tables to LIMIT nodes.')
+        self._ping_parser.add_option(
+            '-t', '--threshold', dest='threshold',
+            help='Changes the threshold for the final (average * x) reports. '
+                 'This will define the value of x, defaults to 2.')
 
         self._put_parser = _OptionParser(
             usage="""
@@ -1452,15 +1456,15 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         for ip, timings in timings_dict.iteritems():
             total += sum(t[0] for t in timings)
             count += len(timings)
-        threshold = total / count * 2
+        threshold = total / count * options.threshold
         counts = collections.defaultdict(lambda: 0)
         for ip, timings in timings_dict.iteritems():
             for t in timings:
                 if t[0] > threshold:
                     counts[ip] += 1
         self.stdout.write(
-            'Count of %s times past (average * 2) for up to %d nodes with '
-            'implied usage:\n' % (label, options.limit))
+            'Count of %s times past (average * %d) for up to %d nodes with '
+            'implied usage:\n' % (label, options.threshold, options.limit))
         for ip, count in sorted(
                 counts.iteritems(), key=lambda x: x[1],
                 reverse=True)[:options.limit]:
@@ -1473,8 +1477,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 count,
                 len(timings_dict[ip]))
         self.stdout.write(
-            'Percentage of %s times past (average * 2) for up to %d nodes '
-            'with implied usage:\n' % (label, options.limit))
+            'Percentage of %s times past (average * %d) for up to %d nodes '
+            'with implied usage:\n' %
+            (label, options.threshold, options.limit))
         for ip, percentage in sorted(
                 percentages.iteritems(), key=lambda x: x[1][0],
                 reverse=True)[:options.limit]:
@@ -1523,7 +1528,13 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         try:
             options.limit = int(options.limit or 10)
         except ValueError:
-            self.stderr.write('invalid limit %s\n' % options.ping_count)
+            self.stderr.write('invalid limit %s\n' % options.limit)
+            self.stderr.flush()
+            return 1
+        try:
+            options.threshold = int(options.threshold or 2)
+        except ValueError:
+            self.stderr.write('invalid threshold %s\n' % options.threshold)
             self.stderr.flush()
             return 1
         prefix = (args[0] if len(args) else 'swiftly-ping') + '-'
