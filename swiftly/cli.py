@@ -1828,6 +1828,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     client.put_container(
                         path.rstrip('/'), headers=hdrs, query=options.query,
                         cdn=self._main_options.cdn, body=body)
+                completed = True
             else:
                 c, o = path.split('/', 1)
                 status, reason, headers, contents = \
