@@ -623,7 +623,7 @@ class Client(object):
                                     storage_match2 = endpoint.get(
                                         'internalURL'
                                         if self.snet else 'publicURL')
-                            if not storage_match3:
+                            elif not storage_match3:
                                 storage_match3 = endpoint.get(
                                     'internalURL'
                                     if self.snet else 'publicURL')
