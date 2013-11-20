@@ -594,10 +594,7 @@ Issues a DELETE request of the [path] given.""".strip(),
         self._main_parser = _OptionParser(
             version=VERSION,
             usage="""
-Usage: %prog [options] <command> [command_options] [args]
-
-NOTE: Be sure any names given are url encoded if necessary. For instance, an
-object named 4&4.txt must be given as 4%264.txt.""".strip(),
+Usage: %prog [options] <command> [command_options] [args]""".strip(),
             stdout=self.stdout, stderr=self.stderr)
         self._main_parser.add_option(
             '-h', dest='help', action='store_true',
