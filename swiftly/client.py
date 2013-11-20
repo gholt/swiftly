@@ -344,14 +344,17 @@ class Client(object):
             try:
                 data = open(self.cache_path, 'r').read().decode('base64')
                 data = data.split('\n')
-                if len(data) == 8:
+                if len(data) == 9:
                     (auth_url, auth_user, auth_key, auth_tenant, region,
-                     self.storage_url, self.cdn_url, self.auth_token) = data
+                     self.storage_url, self.cdn_url, self.auth_token,
+                     snet) = data
+                    snet = snet == 'True'
                     if auth_url != self.auth_url or \
                             auth_user != self.auth_user or \
                             auth_key != self.auth_key or \
                             auth_tenant != self.auth_tenant or \
-                            (self.region and region != self.region):
+                            (self.region and region != self.region) or \
+                            snet != self.snet:
                         self.storage_url = None
                         self.cdn_url = None
                         self.auth_token = None
@@ -541,7 +544,7 @@ class Client(object):
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
                         self.auth_tenant, self.region, self.storage_url,
-                        self.cdn_url or '', self.auth_token])
+                        self.cdn_url or '', self.auth_token, str(self.snet)])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
@@ -662,7 +665,7 @@ class Client(object):
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
                         self.auth_tenant, self.region, self.storage_url,
-                        self.cdn_url or '', self.auth_token])
+                        self.cdn_url or '', self.auth_token, str(self.snet)])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
