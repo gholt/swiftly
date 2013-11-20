@@ -1692,7 +1692,7 @@ Usage: %prog [options] <command> [command_options] [args]""".strip(),
                     subargs.append('content-type:text/directory')
                     subargs.append('-h')
                     subargs.append(
-                        'x-object-meta-mtime:%d' % getmtime(options.input_))
+                        'x-object-meta-mtime:%f' % getmtime(options.input_))
                     subargs.append('-e')
                     for rv in conc.get_results().values():
                         if _get_return_code(rv):
@@ -1754,7 +1754,7 @@ Usage: %prog [options] <command> [command_options] [args]""".strip(),
                     return 1
                 if status // 100 == 2:
                     try:
-                        r_mtime = int(headers.get('x-object-meta-mtime', 0))
+                        r_mtime = float(headers.get('x-object-meta-mtime', 0))
                     except ValueError:
                         pass
                     try:
@@ -1772,7 +1772,16 @@ Usage: %prog [options] <command> [command_options] [args]""".strip(),
                 if options.different and l_mtime == r_mtime and \
                         getsize(options.input_) == r_size:
                     return 0, path, r_size, headers.get('etag')
-            hdrs['x-object-meta-mtime'] = '%d' % l_mtime
+                elif options.different:
+                    if l_mtime != r_mtime:
+                        self._verbose(
+                            'Putting %s because l_mtime != r_mtime (%s != %s)',
+                            path, l_mtime, r_mtime)
+                    elif getsize(options.input_) != r_size:
+                        self._verbose(
+                            'Putting %s because l_size != r_size (%s != %s)',
+                            path, getsize(options.input_), r_size)
+            hdrs['x-object-meta-mtime'] = '%f' % l_mtime
             size = getsize(options.input_)
             if size <= options.segment_size:
                 stdin = open(options.input_, 'rb')
