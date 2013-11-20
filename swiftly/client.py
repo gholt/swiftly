@@ -523,11 +523,6 @@ class Client(object):
                     parsed[1] = 'snet-' + parsed[1]
                     self.storage_url = urlunparse(parsed)
                 self.cdn_url = hdrs.get('x-cdn-management-url')
-                if self.cdn_url and self.snet:
-                    parsed = list(urlparse(self.cdn_url))
-                    # Second item in the list is the netloc
-                    parsed[1] = 'snet-' + parsed[1]
-                    self.cdn_url = urlunparse(parsed)
                 self.auth_token = hdrs.get('x-auth-token')
                 if not self.auth_token:
                     self.auth_token = hdrs.get('x-storage-token')
@@ -600,6 +595,9 @@ class Client(object):
             if status == 401:
                 break
             if status // 100 == 2:
+                # I leave this commented out normally because the response from
+                # auth is so huge.
+                # self._verbose('< %s', body)
                 try:
                     body = json.loads(body)
                 except ValueError, err:
@@ -634,18 +632,12 @@ class Client(object):
                         for endpoint in service['endpoints']:
                             if 'region' in endpoint:
                                 if endpoint['region'] == region:
-                                    cdn_match1 = endpoint.get(
-                                        'internalURL'
-                                        if self.snet else 'publicURL')
+                                    cdn_match1 = endpoint.get('publicURL')
                                 elif endpoint['region'].lower() == \
                                         region.lower():
-                                    cdn_match2 = endpoint.get(
-                                        'internalURL'
-                                        if self.snet else 'publicURL')
-                            if not cdn_match3:
-                                cdn_match3 = endpoint.get(
-                                    'internalURL'
-                                    if self.snet else 'publicURL')
+                                    cdn_match2 = endpoint.get('publicURL')
+                            elif not cdn_match3:
+                                cdn_match3 = endpoint.get('publicURL')
                 self.storage_url = \
                     storage_match1 or storage_match2 or storage_match3
                 self.cdn_url = cdn_match1 or cdn_match2 or cdn_match3
