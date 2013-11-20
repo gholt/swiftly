@@ -1259,6 +1259,10 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 if rv:
                     return rv
             return 0
+        else:
+            if options.output and options.output.endswith('/'):
+                object_name = path.rstrip('/').split('/', 1)[1]
+                stdout = open(options.output + object_name, 'wb')
         sub_command = None
         if options.sub_command:
             sub_command = self.Popen(
