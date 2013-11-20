@@ -97,9 +97,6 @@ swiftly.</p>
 <p>Output from <cite>swiftly</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [options] &lt;command&gt; [command_options] [args]
 
-NOTE: Be sure any names given are url encoded if necessary. For instance, an
-object named 4&amp;4.txt must be given as 4%264.txt.
-
 Options:
   -?, --help            Shows this help text.
   --version             Shows the version of Swiftly.
@@ -119,8 +116,7 @@ Options:
                         Tenant name for auth system, example: test You can
                         also set this with the environment variable
                         SWIFTLY_AUTH_TENANT. If not specified and needed, the
-                        auth user will be used, but it's best to specify it if
-                        it's needed to avoid useless auth attempts.
+                        auth user will be used.
   --auth-methods=name[,name[...]]
                         Auth methods to use with the auth system, example: aut
                         h2key,auth2password,auth2password_force_tenant,auth1
@@ -183,6 +179,9 @@ Commands:
                         on the account is performed.
   help [command]        Outputs help information for the given [command] or
                         general help if no [command] is given.
+  ping [options] [path] Runs a ping test against the account. The [path] will
+                        be used as a prefix to the random container name used
+                        (default: swiftly-ping).
   post [options] [path] Issues a POST request of the [path] given. If no [path]
                         is given, a POST request on the account is performed.
   put [options] [path]  Performs a PUT request on the &lt;path&gt; given. If the
@@ -191,7 +190,10 @@ Commands:
   tempurl &lt;method&gt; &lt;path&gt; [seconds]
                         Outputs a TempURL using the information given. The
                         &lt;path&gt; should be to an object or object-prefix.
-                        [seconds] defaults to 3600</pre>
+                        [seconds] defaults to 3600
+  trans &lt;x-trans-id-value&gt;
+                        Outputs information about the &lt;x-trans-id-value&gt; given,
+                        such as the embedded transaction time.</pre>
 </div>
 <p>Output from <cite>swiftly help auth</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] auth
@@ -361,6 +363,33 @@ Options:
   --ignore-404          Ignores 404 Not Found responses. Nothing will be
                         output, but the exit code will be 0 instead of 1.</pre>
 </div>
+<p>Output from <cite>swiftly help ping</cite>:</p>
+<div class="highlight-python"><pre>Usage: swiftly [main_options] ping [options] [path]
+
+For help on [main_options] run swiftly with no args.
+
+Runs a ping test against the account.
+The [path] will be used as a prefix to the random container name used (default:
+swiftly-ping).
+
+Options:
+  -?, --help            Shows this help text.
+  -v, --verbose         Outputs additional information as ping works.
+  -c PING_COUNT, --count=PING_COUNT
+                        Count of objects to create; default 1.
+  -o OBJECT_RING, --object-ring=OBJECT_RING
+                        The current object ring of the cluster being pinged.
+                        This will enable output of which nodes are involved in
+                        the object requests and their implied behavior. Use of
+                        this also requires the main Swift code is installed
+                        and importable.
+  -l LIMIT, --limit=LIMIT
+                        Limits the node output tables to LIMIT nodes.
+  -t THRESHOLD, --threshold=THRESHOLD
+                        Changes the threshold for the final (average * x)
+                        reports. This will define the value of x, defaults to
+                        2.</pre>
+</div>
 <p>Output from <cite>swiftly help post</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] post [options] [path]
 
@@ -490,6 +519,17 @@ The &lt;path&gt; should be to an object or object-prefix.
 Options:
   -?, --help  Shows this help text.</pre>
 </div>
+<p>Output from <cite>swiftly help trans</cite>:</p>
+<div class="highlight-python"><pre>Usage: swiftly [main_options] trans &lt;x-trans-id-value&gt;
+
+For help on [main_options] run swiftly with no args.
+
+Outputs information about the &lt;x-trans-id-value&gt; given, such as the embedded
+transaction time.
+
+Options:
+  -?, --help  Shows this help text.</pre>
+</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -566,7 +606,7 @@ Options:
     </div>
     <div class="footer">
         &copy; Copyright 2011-2013, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>
 </html>

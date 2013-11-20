@@ -52,6 +52,7 @@
 <span class="sd">Client API to Swift</span>
 
 <span class="sd">Copyright 2011-2013 Gregory Holt</span>
+<span class="sd">Portions Copyright (c) 2010-2012 OpenStack Foundation</span>
 
 <span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="sd">you may not use this file except in compliance with the License.</span>
@@ -106,6 +107,19 @@
     <span class="n">sig</span> <span class="o">=</span> <span class="n">hmac</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">hmac_body</span><span class="p">,</span> <span class="n">sha1</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
     <span class="k">return</span> <span class="s">&#39;</span><span class="si">%s%s</span><span class="s">?temp_url_sig=</span><span class="si">%s</span><span class="s">&amp;temp_url_expires=</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
         <span class="n">base_url</span><span class="p">,</span> <span class="n">object_path</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="n">expires</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_trans_id_time</span><span class="p">(</span><span class="n">trans_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Copied from the Swift codebase.</span>
+<span class="sd">    Copyright (c) 2010-2012 OpenStack Foundation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">trans_id</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">34</span> <span class="ow">and</span> <span class="n">trans_id</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;tx&#39;</span> <span class="ow">and</span> <span class="n">trans_id</span><span class="p">[</span><span class="mi">23</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">trans_id</span><span class="p">[</span><span class="mi">24</span><span class="p">:</span><span class="mi">34</span><span class="p">],</span> <span class="mi">16</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">return</span> <span class="bp">None</span>
 
 
 <span class="k">def</span> <span class="nf">_delayed_imports</span><span class="p">(</span><span class="n">eventlet</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -380,14 +394,17 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="s">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&#39;base64&#39;</span><span class="p">)</span>
                 <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">9</span><span class="p">:</span>
                     <span class="p">(</span><span class="n">auth_url</span><span class="p">,</span> <span class="n">auth_user</span><span class="p">,</span> <span class="n">auth_key</span><span class="p">,</span> <span class="n">auth_tenant</span><span class="p">,</span> <span class="n">region</span><span class="p">,</span>
-                     <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">)</span> <span class="o">=</span> <span class="n">data</span>
+                     <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">,</span>
+                     <span class="n">snet</span><span class="p">)</span> <span class="o">=</span> <span class="n">data</span>
+                    <span class="n">snet</span> <span class="o">=</span> <span class="n">snet</span> <span class="o">==</span> <span class="s">&#39;True&#39;</span>
                     <span class="k">if</span> <span class="n">auth_url</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span> <span class="ow">or</span> \
                             <span class="n">auth_user</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span> <span class="ow">or</span> \
                             <span class="n">auth_key</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span> <span class="ow">or</span> \
                             <span class="n">auth_tenant</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_tenant</span> <span class="ow">or</span> \
-                            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="ow">and</span> <span class="n">region</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">):</span>
+                            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="ow">and</span> <span class="n">region</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">)</span> <span class="ow">or</span> \
+                            <span class="n">snet</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">=</span> <span class="bp">None</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="o">=</span> <span class="bp">None</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="bp">None</span>
@@ -556,11 +573,6 @@
                     <span class="n">parsed</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;snet-&#39;</span> <span class="o">+</span> <span class="n">parsed</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">=</span> <span class="n">urlunparse</span><span class="p">(</span><span class="n">parsed</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="o">=</span> <span class="n">hdrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-cdn-management-url&#39;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span><span class="p">:</span>
-                    <span class="n">parsed</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">urlparse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">))</span>
-                    <span class="c"># Second item in the list is the netloc</span>
-                    <span class="n">parsed</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;snet-&#39;</span> <span class="o">+</span> <span class="n">parsed</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="o">=</span> <span class="n">urlunparse</span><span class="p">(</span><span class="n">parsed</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="n">hdrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-auth-token&#39;</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="n">hdrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-storage-token&#39;</span><span class="p">)</span>
@@ -577,7 +589,7 @@
                     <span class="n">data</span> <span class="o">=</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span><span class="p">,</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">auth_tenant</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">])</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snet</span><span class="p">)])</span>
                     <span class="n">old_umask</span> <span class="o">=</span> <span class="n">umask</span><span class="p">(</span><span class="mo">0077</span><span class="p">)</span>
                     <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;base64&#39;</span><span class="p">))</span>
                     <span class="n">umask</span><span class="p">(</span><span class="n">old_umask</span><span class="p">)</span>
@@ -633,6 +645,9 @@
             <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">401</span><span class="p">:</span>
                 <span class="k">break</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="c"># I leave this commented out normally because the response from</span>
+                <span class="c"># auth is so huge.</span>
+                <span class="c"># self._verbose(&#39;&lt; %s&#39;, body)</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
                 <span class="k">except</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
@@ -659,7 +674,7 @@
                                     <span class="n">storage_match2</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
                                         <span class="s">&#39;internalURL&#39;</span>
                                         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span> <span class="k">else</span> <span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
-                            <span class="k">if</span> <span class="ow">not</span> <span class="n">storage_match3</span><span class="p">:</span>
+                            <span class="k">elif</span> <span class="ow">not</span> <span class="n">storage_match3</span><span class="p">:</span>
                                 <span class="n">storage_match3</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
                                     <span class="s">&#39;internalURL&#39;</span>
                                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span> <span class="k">else</span> <span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
@@ -667,18 +682,12 @@
                         <span class="k">for</span> <span class="n">endpoint</span> <span class="ow">in</span> <span class="n">service</span><span class="p">[</span><span class="s">&#39;endpoints&#39;</span><span class="p">]:</span>
                             <span class="k">if</span> <span class="s">&#39;region&#39;</span> <span class="ow">in</span> <span class="n">endpoint</span><span class="p">:</span>
                                 <span class="k">if</span> <span class="n">endpoint</span><span class="p">[</span><span class="s">&#39;region&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">region</span><span class="p">:</span>
-                                    <span class="n">cdn_match1</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                                        <span class="s">&#39;internalURL&#39;</span>
-                                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span> <span class="k">else</span> <span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
+                                    <span class="n">cdn_match1</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
                                 <span class="k">elif</span> <span class="n">endpoint</span><span class="p">[</span><span class="s">&#39;region&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> \
                                         <span class="n">region</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-                                    <span class="n">cdn_match2</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                                        <span class="s">&#39;internalURL&#39;</span>
-                                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span> <span class="k">else</span> <span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
-                            <span class="k">if</span> <span class="ow">not</span> <span class="n">cdn_match3</span><span class="p">:</span>
-                                <span class="n">cdn_match3</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                                    <span class="s">&#39;internalURL&#39;</span>
-                                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span> <span class="k">else</span> <span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
+                                    <span class="n">cdn_match2</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="ow">not</span> <span class="n">cdn_match3</span><span class="p">:</span>
+                                <span class="n">cdn_match3</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">=</span> \
                     <span class="n">storage_match1</span> <span class="ow">or</span> <span class="n">storage_match2</span> <span class="ow">or</span> <span class="n">storage_match3</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="o">=</span> <span class="n">cdn_match1</span> <span class="ow">or</span> <span class="n">cdn_match2</span> <span class="ow">or</span> <span class="n">cdn_match3</span>
@@ -698,7 +707,7 @@
                     <span class="n">data</span> <span class="o">=</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_user</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_key</span><span class="p">,</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">auth_tenant</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">])</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">snet</span><span class="p">)])</span>
                     <span class="n">old_umask</span> <span class="o">=</span> <span class="n">umask</span><span class="p">(</span><span class="mo">0077</span><span class="p">)</span>
                     <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="s">&#39;w&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;base64&#39;</span><span class="p">))</span>
                     <span class="n">umask</span><span class="p">(</span><span class="n">old_umask</span><span class="p">)</span>
@@ -1497,7 +1506,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-2013, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>
 </html>
