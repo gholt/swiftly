@@ -2,6 +2,7 @@
 Client API to Swift
 
 Copyright 2011-2013 Gregory Holt
+Portions Copyright (c) 2010-2012 OpenStack Foundation
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -56,6 +57,19 @@ def generate_temp_url(method, url, seconds, key):
     sig = hmac.new(key, hmac_body, sha1).hexdigest()
     return '%s%s?temp_url_sig=%s&temp_url_expires=%s' % (
         base_url, object_path, sig, expires)
+
+
+def get_trans_id_time(trans_id):
+    """
+    Copied from the Swift codebase.
+    Copyright (c) 2010-2012 OpenStack Foundation
+    """
+    if len(trans_id) >= 34 and trans_id[:2] == 'tx' and trans_id[23] == '-':
+        try:
+            return int(trans_id[24:34], 16)
+        except ValueError:
+            pass
+    return None
 
 
 def _delayed_imports(eventlet=None):
@@ -330,14 +344,17 @@ class Client(object):
             try:
                 data = open(self.cache_path, 'r').read().decode('base64')
                 data = data.split('\n')
-                if len(data) == 8:
+                if len(data) == 9:
                     (auth_url, auth_user, auth_key, auth_tenant, region,
-                     self.storage_url, self.cdn_url, self.auth_token) = data
+                     self.storage_url, self.cdn_url, self.auth_token,
+                     snet) = data
+                    snet = snet == 'True'
                     if auth_url != self.auth_url or \
                             auth_user != self.auth_user or \
                             auth_key != self.auth_key or \
                             auth_tenant != self.auth_tenant or \
-                            (self.region and region != self.region):
+                            (self.region and region != self.region) or \
+                            snet != self.snet:
                         self.storage_url = None
                         self.cdn_url = None
                         self.auth_token = None
@@ -506,11 +523,6 @@ class Client(object):
                     parsed[1] = 'snet-' + parsed[1]
                     self.storage_url = urlunparse(parsed)
                 self.cdn_url = hdrs.get('x-cdn-management-url')
-                if self.cdn_url and self.snet:
-                    parsed = list(urlparse(self.cdn_url))
-                    # Second item in the list is the netloc
-                    parsed[1] = 'snet-' + parsed[1]
-                    self.cdn_url = urlunparse(parsed)
                 self.auth_token = hdrs.get('x-auth-token')
                 if not self.auth_token:
                     self.auth_token = hdrs.get('x-storage-token')
@@ -527,7 +539,7 @@ class Client(object):
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
                         self.auth_tenant, self.region, self.storage_url,
-                        self.cdn_url or '', self.auth_token])
+                        self.cdn_url or '', self.auth_token, str(self.snet)])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
@@ -583,6 +595,9 @@ class Client(object):
             if status == 401:
                 break
             if status // 100 == 2:
+                # I leave this commented out normally because the response from
+                # auth is so huge.
+                # self._verbose('< %s', body)
                 try:
                     body = json.loads(body)
                 except ValueError, err:
@@ -609,7 +624,7 @@ class Client(object):
                                     storage_match2 = endpoint.get(
                                         'internalURL'
                                         if self.snet else 'publicURL')
-                            if not storage_match3:
+                            elif not storage_match3:
                                 storage_match3 = endpoint.get(
                                     'internalURL'
                                     if self.snet else 'publicURL')
@@ -617,18 +632,12 @@ class Client(object):
                         for endpoint in service['endpoints']:
                             if 'region' in endpoint:
                                 if endpoint['region'] == region:
-                                    cdn_match1 = endpoint.get(
-                                        'internalURL'
-                                        if self.snet else 'publicURL')
+                                    cdn_match1 = endpoint.get('publicURL')
                                 elif endpoint['region'].lower() == \
                                         region.lower():
-                                    cdn_match2 = endpoint.get(
-                                        'internalURL'
-                                        if self.snet else 'publicURL')
-                            if not cdn_match3:
-                                cdn_match3 = endpoint.get(
-                                    'internalURL'
-                                    if self.snet else 'publicURL')
+                                    cdn_match2 = endpoint.get('publicURL')
+                            elif not cdn_match3:
+                                cdn_match3 = endpoint.get('publicURL')
                 self.storage_url = \
                     storage_match1 or storage_match2 or storage_match3
                 self.cdn_url = cdn_match1 or cdn_match2 or cdn_match3
@@ -648,7 +657,7 @@ class Client(object):
                     data = '\n'.join([
                         self.auth_url, self.auth_user, self.auth_key,
                         self.auth_tenant, self.region, self.storage_url,
-                        self.cdn_url or '', self.auth_token])
+                        self.cdn_url or '', self.auth_token, str(self.snet)])
                     old_umask = umask(0077)
                     open(self.cache_path, 'w').write(data.encode('base64'))
                     umask(old_umask)
