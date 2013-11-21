@@ -1,3 +1,22 @@
+swiftly (1.11-1) lucid; urgency=low
+
+   * dac9620 Fixed #29 Fixed mtime checking to use floats
+   * 39e6736 Fixed #17 Bug with get <obj> -o <dir>/
+   * 289e76a CDN end points don't seem to support snet/internalURL
+   * 1fa9d52 Fixed #20 snet auth cache bug; and exc dump
+   * f10dd61 Fixed #24 Invalid region bug
+   * e86b701 Fixed bug with missing completed = True
+   * 870711a Allow configurable ping report threshold
+   * 6a2ecb5 More ping verbose reports
+   * 0253aff Added missing newlines for a few messages
+   * 105313d Continue on failed container delete
+   * 934465c Continuation with ping even when objects fail
+   * fe7c170 Made ping use StringIO for resettable uploads
+   * 9c190a6 More error checking; esp. exceptions with client
+   * 38355a0 Added trans command
+
+ -- Greg Holt <greg@brim.net>  Thu, 21 Nov 2013 00:47:29 +0000
+
 swiftly (1.10-1) lucid; urgency=low
 
    * Added new ping command.
