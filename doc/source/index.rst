@@ -53,10 +53,7 @@ Command Line Tool Usage
 Output from `swiftly`::
 
     Usage: swiftly [options] <command> [command_options] [args]
-    
-    NOTE: Be sure any names given are url encoded if necessary. For instance, an
-    object named 4&4.txt must be given as 4%264.txt.
-    
+
     Options:
       -?, --help            Shows this help text.
       --version             Shows the version of Swiftly.
@@ -76,8 +73,7 @@ Output from `swiftly`::
                             Tenant name for auth system, example: test You can
                             also set this with the environment variable
                             SWIFTLY_AUTH_TENANT. If not specified and needed, the
-                            auth user will be used, but it's best to specify it if
-                            it's needed to avoid useless auth attempts.
+                            auth user will be used.
       --auth-methods=name[,name[...]]
                             Auth methods to use with the auth system, example: aut
                             h2key,auth2password,auth2password_force_tenant,auth1
@@ -140,6 +136,9 @@ Output from `swiftly`::
                             on the account is performed.
       help [command]        Outputs help information for the given [command] or
                             general help if no [command] is given.
+      ping [options] [path] Runs a ping test against the account. The [path] will
+                            be used as a prefix to the random container name used
+                            (default: swiftly-ping).
       post [options] [path] Issues a POST request of the [path] given. If no [path]
                             is given, a POST request on the account is performed.
       put [options] [path]  Performs a PUT request on the <path> given. If the
@@ -149,16 +148,19 @@ Output from `swiftly`::
                             Outputs a TempURL using the information given. The
                             <path> should be to an object or object-prefix.
                             [seconds] defaults to 3600
+      trans <x-trans-id-value>
+                            Outputs information about the <x-trans-id-value> given,
+                            such as the embedded transaction time.
 
 
 Output from `swiftly help auth`::
 
     Usage: swiftly [main_options] auth
-    
+
     For help on [main_options] run swiftly with no args.
-    
+
     Outputs auth information.
-    
+
     Options:
       -?, --help  Shows this help text.
 
@@ -166,11 +168,11 @@ Output from `swiftly help auth`::
 Output from `swiftly help delete`::
 
     Usage: swiftly [main_options] delete [options] [path]
-    
+
     For help on [main_options] run swiftly with no args.
-    
+
     Issues a DELETE request of the [path] given.
-    
+
     Options:
       -?, --help            Shows this help text.
       -h HEADER:VALUE, --header=HEADER:VALUE
@@ -217,12 +219,12 @@ Output from `swiftly help delete`::
 Output from `swiftly help get`::
 
     Usage: swiftly [main_options] get [options] [path]
-    
+
     For help on [main_options] run swiftly with no args.
-    
+
     Outputs the resulting contents from a GET request of the [path] given. If no
     [path] is given, a GET request on the account is performed.
-    
+
     Options:
       -?, --help            Shows this help text.
       --headers             Output headers as well as the contents.
@@ -306,12 +308,12 @@ Output from `swiftly help get`::
 Output from `swiftly help head`::
 
     Usage: swiftly [main_options] head [options] [path]
-    
+
     For help on [main_options] run swiftly with no args.
-    
+
     Outputs the resulting headers from a HEAD request of the [path] given. If no
     [path] is given, a HEAD request on the account is performed.
-    
+
     Options:
       -?, --help            Shows this help text.
       -h HEADER:VALUE, --header=HEADER:VALUE
@@ -327,15 +329,44 @@ Output from `swiftly help head`::
                             output, but the exit code will be 0 instead of 1.
 
 
+Output from `swiftly help ping`::
+
+    Usage: swiftly [main_options] ping [options] [path]
+
+    For help on [main_options] run swiftly with no args.
+
+    Runs a ping test against the account.
+    The [path] will be used as a prefix to the random container name used (default:
+    swiftly-ping).
+
+    Options:
+      -?, --help            Shows this help text.
+      -v, --verbose         Outputs additional information as ping works.
+      -c PING_COUNT, --count=PING_COUNT
+                            Count of objects to create; default 1.
+      -o OBJECT_RING, --object-ring=OBJECT_RING
+                            The current object ring of the cluster being pinged.
+                            This will enable output of which nodes are involved in
+                            the object requests and their implied behavior. Use of
+                            this also requires the main Swift code is installed
+                            and importable.
+      -l LIMIT, --limit=LIMIT
+                            Limits the node output tables to LIMIT nodes.
+      -t THRESHOLD, --threshold=THRESHOLD
+                            Changes the threshold for the final (average * x)
+                            reports. This will define the value of x, defaults to
+                            2.
+
+
 Output from `swiftly help post`::
 
     Usage: swiftly [main_options] post [options] [path]
-    
+
     For help on [main_options] run swiftly with no args.
-    
+
     Issues a POST request of the [path] given. If no [path] is given, a POST
     request on the account is performed.
-    
+
     Options:
       -?, --help            Shows this help text.
       -h HEADER:VALUE, --header=HEADER:VALUE
@@ -360,41 +391,41 @@ Output from `swiftly help post`::
 Output from `swiftly help put`::
 
     Usage: swiftly [main_options] put [options] [path]
-    
+
     For help on [main_options] run swiftly with no args.
-    
+
     Performs a PUT request on the <path> given. If the <path> is an object, the
     contents for the object are read from standard input.
-    
+
     Special Note About Segmented Objects:
-    
+
     For object uploads exceeding the -s [size] (default: 5G) the object will be
     uploaded in segments. At this time, auto-segmenting only works for objects
     uploaded from source files -- objects sourced from standard input cannot exceed
     the maximum object size for the cluster.
-    
+
     A segmented object is one that has its contents in several other objects. On
     download, these other objects are concatenated into a single object stream.
-    
+
     Segmented objects can be useful to greatly exceed the maximum single object
     size, speed up uploading large objects with concurrent segment uploading, and
     provide the option to replace, insert, and delete segments within a whole
     object without having to alter or reupload any of the other segments.
-    
+
     The main object of a segmented object is called the "manifest object". This
     object just has an X-Object-Manifest header that points to another path where
     the segments for the object contents are stored. For Swiftly, this header value
     is auto-generated as the same name as the manifest object, but with "_segments"
     added to the container name. This keeps the segments out of the main container
     listing, which is often useful.
-    
+
     By default, Swift's dynamic large object support is used since it was
     implemented first. However, if you prefix the [size] with an 's', as in '-s
     s1048576' Swiftly will use static large object support. These static large
     objects are very similar as described above, except the manifest contains a
     static list of the object segments. For more information on the tradeoffs, see
     http://greg.brim.net/post/2013/05/16/1834.html
-    
+
     Options:
       -?, --help            Shows this help text.
       -h HEADER:VALUE, --header=HEADER:VALUE
@@ -451,13 +482,26 @@ Output from `swiftly help put`::
 Output from `swiftly help tempurl`::
 
     Usage: swiftly [main_options] tempurl <method> <path> [seconds]
-    
+
     For help on [main_options] run swiftly with no args.
-    
+
     Outputs a TempURL using the information given.
     The <path> should be to an object or object-prefix.
     [seconds] defaults to 3600
-    
+
+    Options:
+      -?, --help  Shows this help text.
+
+
+Output from `swiftly help trans`::
+
+    Usage: swiftly [main_options] trans <x-trans-id-value>
+
+    For help on [main_options] run swiftly with no args.
+
+    Outputs information about the <x-trans-id-value> given, such as the embedded
+    transaction time.
+
     Options:
       -?, --help  Shows this help text.
 

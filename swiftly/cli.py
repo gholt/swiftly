@@ -23,10 +23,12 @@ from optparse import Option, OptionParser
 from os import environ, makedirs, unlink, utime, walk
 from os.path import dirname, exists, getmtime, getsize, join as pathjoin, isdir
 from Queue import Empty, Queue
-from time import mktime, strptime, time
+from time import gmtime, mktime, strftime, strptime, time
 import collections
+import StringIO
 import sys
 import textwrap
+import traceback
 import uuid
 
 try:
@@ -35,7 +37,8 @@ except ImportError:
     ring = None
 
 from swiftly import VERSION
-from swiftly.client import Client, CHUNK_SIZE, generate_temp_url
+from swiftly.client import Client, CHUNK_SIZE, generate_temp_url, \
+    get_trans_id_time
 from swiftly.concurrency import Concurrency
 
 try:
@@ -219,6 +222,17 @@ The <path> should be to an object or object-prefix.
             stdout=self.stdout, stderr=self.stderr,
             preamble='tempurl command: ')
 
+        self._trans_parser = _OptionParser(
+            usage="""
+Usage: %prog [main_options] trans <x-trans-id-value>
+
+For help on [main_options] run %prog with no args.
+
+Outputs information about the <x-trans-id-value> given, such as the embedded
+transaction time.""".strip(),
+            stdout=self.stdout, stderr=self.stderr,
+            preamble='trans command: ')
+
         self._head_parser = _OptionParser(
             usage="""
 Usage: %prog [main_options] head [options] [path]
@@ -376,6 +390,10 @@ swiftly-ping).""".strip(),
         self._ping_parser.add_option(
             '-l', '--limit', dest='limit',
             help='Limits the node output tables to LIMIT nodes.')
+        self._ping_parser.add_option(
+            '-t', '--threshold', dest='threshold',
+            help='Changes the threshold for the final (average * x) reports. '
+                 'This will define the value of x, defaults to 2.')
 
         self._put_parser = _OptionParser(
             usage="""
@@ -576,10 +594,7 @@ Issues a DELETE request of the [path] given.""".strip(),
         self._main_parser = _OptionParser(
             version=VERSION,
             usage="""
-Usage: %prog [options] <command> [command_options] [args]
-
-NOTE: Be sure any names given are url encoded if necessary. For instance, an
-object named 4&4.txt must be given as 4%264.txt.""".strip(),
+Usage: %prog [options] <command> [command_options] [args]""".strip(),
             stdout=self.stdout, stderr=self.stderr)
         self._main_parser.add_option(
             '-h', dest='help', action='store_true',
@@ -809,12 +824,13 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         try:
             yield client
         except (self.Timeout, Exception), err:
+            exc_type, exc_value, exc_tb = sys.exc_info()
+            trace = traceback.format_exception(exc_type, exc_value, exc_tb)
+            trace = ''.join(trace).replace('\n', '#012').replace('\r', '#013')
             if path:
-                self.stderr.write('EXCEPTION with %s %s %s\n' %
-                                  (path, err.__class__.__name__, err))
+                self.stderr.write('EXCEPTION with %s %s\n' % (path, trace))
             else:
-                self.stderr.write('EXCEPTION %s %s\n' %
-                                  (err.__class__.__name__, err))
+                self.stderr.write('EXCEPTION %s\n' % trace)
             self.stderr.flush()
             client.reset()
         self._put_client(client)
@@ -891,7 +907,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self.stdout.write(client.storage_path)
                 self.stdout.write('\n')
                 self.stdout.flush()
-            return 0
+                return 0
+            return 1
         with self._with_client() as client:
             client.auth()
             self.stdout.write('Storage URL: ')
@@ -914,7 +931,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 self.stdout.write(client.regions_default)
                 self.stdout.write('\n')
                 self.stdout.flush()
-        return 0
+            return 0
+        return 1
 
     @_client_command
     def _tempurl(self, args):
@@ -955,7 +973,40 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             self.stdout.write(generate_temp_url(method, url, seconds, key))
             self.stdout.write('\n')
             self.stdout.flush()
-        return 0
+            return 0
+        return 1
+
+    @_command
+    def _trans(self, args):
+        try:
+            options, args = self._trans_parser.parse_args(args)
+        except UnboundLocalError:
+            # Happens sometimes with an error handler that doesn't raise its
+            # own exception. We'll catch the error below.
+            pass
+        if self._trans_parser.error_encountered:
+            return 1
+        if not args or options.help:
+            self._trans_parser.print_help()
+            return 1
+        x_trans_id = args.pop(0)
+        if args:
+            self._trans_parser.print_help()
+            return 1
+        trans_time = get_trans_id_time(x_trans_id)
+        trans_info = x_trans_id[34:]
+        msg = 'X-Trans-Id:      ' + x_trans_id + '\n'
+        if not trans_time:
+            msg += 'Time Stamp:      None, old style id with no time ' \
+                'embedded\nUTC Time:        None, old style id with no time ' \
+                'embedded\n'
+        else:
+            msg += 'Time Stamp:      %s\nUTC Time:        %s\n' % (
+                trans_time,
+                strftime('%a %Y-%m-%d %H:%M:%S UTC', gmtime(trans_time)))
+        msg += 'Additional Info: ' + trans_info + '\n'
+        self.stdout.write(msg)
+        self.stdout.flush()
 
     @_client_command
     def _head(self, args):
@@ -975,13 +1026,18 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         mute = []
         if not args:
+            completed = False
             with self._with_client() as client:
                 status, reason, headers, contents = client.head_account(
                     headers=hdrs, query=options.query,
                     cdn=self._main_options.cdn)
+                completed = True
+            if not completed:
+                return 1
             mute.extend(MUTED_ACCOUNT_HEADERS)
         elif len(args) == 1:
             path = args[0].lstrip('/')
+            completed = False
             with self._with_client(path) as client:
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = client.head_container(
@@ -993,6 +1049,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         *path.split('/', 1), headers=hdrs, query=options.query,
                         cdn=self._main_options.cdn)
                     mute.extend(MUTED_OBJECT_HEADERS)
+                completed = True
+            if not completed:
+                return 1
         else:
             self._head_parser.print_help()
             return 1
@@ -1052,6 +1111,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             marker = options.marker
             end_marker = options.end_marker
             early_return = None
+            completed = False
             with self._with_client(path) as client:
                 if not path:
                     status, reason, headers, contents = client.get_account(
@@ -1072,6 +1132,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         self.stderr.flush()
                         if hasattr(contents, 'read'):
                             contents.read()
+                completed = True
+            if not completed:
+                return 1
             if early_return is not None:
                 return early_return
             if options.headers and not options.all_objects:
@@ -1158,6 +1221,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 marker = \
                     contents[-1].get('name', contents[-1].get('subdir', ''))
                 early_return = None
+                completed = False
                 with self._with_client(path) as client:
                     if not path:
                         status, reason, headers, contents = client.get_account(
@@ -1182,6 +1246,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                             self.stderr.flush()
                             if hasattr(contents, 'read'):
                                 contents.read()
+                    completed = True
+                if not completed:
+                    return 1
                 if early_return is not None:
                     return early_return
             conc.join()
@@ -1189,6 +1256,10 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 if rv:
                     return rv
             return 0
+        else:
+            if options.output and options.output.endswith('/'):
+                object_name = path.rstrip('/').split('/', 1)[1]
+                stdout = open(options.output + object_name, 'wb')
         sub_command = None
         if options.sub_command:
             sub_command = self.Popen(
@@ -1196,6 +1267,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 stdout=stdout)
             stdout = sub_command.stdin
         early_return = None
+        completed = False
         with self._with_client(path) as client:
             status, reason, headers, contents = client.get_object(
                 *path.split('/', 1), headers=hdrs, query=options.query,
@@ -1228,6 +1300,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         stdout.write(chunk)
                         chunk = contents.read(CHUNK_SIZE)
                     stdout.flush()
+            completed = True
+        if not completed:
+            return 1
         if early_return is not None:
             if sub_command:
                 stdout.close()
@@ -1274,29 +1349,31 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
 
     def _ping_objects(self, heading, helper_data, conc, container, objects,
                       func):
+        rv = 0
         begin = time()
         for obj in objects:
-            for rv in conc.get_results().values():
-                if _get_return_code(rv):
+            for sub_rv in conc.get_results().values():
+                if _get_return_code(sub_rv):
                     conc.join()
-                    return rv
+                    rv = sub_rv
             conc.spawn(obj, func, container, obj)
         conc.join()
-        for rv in conc.get_results().values():
-            if _get_return_code(rv):
-                return rv
+        for sub_rv in conc.get_results().values():
+            if _get_return_code(sub_rv):
+                rv = sub_rv
         elapsed = time() - begin
         helper_data[2] = None
         self._ping_status(
             'object %s x%d at %d concurrency, %.02f/s' %
             (heading, len(objects), conc.concurrency, len(objects) / elapsed),
             helper_data)
+        return rv
 
     def _ping_object_put(self, container, obj):
         with self._with_client() as client:
             begin = time()
             status, reason, headers, contents = client.put_object(
-                container, obj, 'swiftly-ping')
+                container, obj, StringIO.StringIO('swiftly-ping'))
             if status // 100 != 2:
                 self.stderr.write('%s %s %s\n' % (
                     status, reason, headers.get('x-trans-id') or obj))
@@ -1308,6 +1385,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_puts[node['ip']].append(
                         (elapsed, headers.get('x-trans-id') or obj))
+            return 0
+        return 1
 
     def _ping_object_get(self, container, obj):
         with self._with_client() as client:
@@ -1325,6 +1404,8 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_gets[node['ip']].append(
                         (elapsed, headers.get('x-trans-id') or obj))
+            return 0
+        return 1
 
     def _ping_object_delete(self, container, obj):
         with self._with_client() as client:
@@ -1342,35 +1423,73 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                         client.get_account_hash(), container, obj)[1]:
                     self.ping_ring_object_deletes[node['ip']].append(
                         (elapsed, headers.get('x-trans-id') or obj))
+            return 0
+        return 1
 
     def _ping_ring_output(self, options, timings_dict, label):
-            worsts = {}
-            for ip, timings in timings_dict.iteritems():
-                worst = [0, None]
-                for timing in timings:
-                    if timing[0] > worst[0]:
-                        worst = timing
-                worsts[ip] = worst
+        worsts = {}
+        for ip, timings in timings_dict.iteritems():
+            worst = [0, None]
+            for timing in timings:
+                if timing[0] > worst[0]:
+                    worst = timing
+            worsts[ip] = worst
+        self.stdout.write(
+            'Worst %s times for up to %d nodes with implied usage:\n' %
+            (label, options.limit))
+        for ip, (elapsed, xid) in sorted(
+                worsts.iteritems(), key=lambda x: x[1][0],
+                reverse=True)[:options.limit]:
             self.stdout.write(
-                'Worst %s times for up to %d nodes with implied usage:\n' %
-                (label, options.limit))
-            for ip, (elapsed, xid) in sorted(
-                    worsts.iteritems(), key=lambda x: x[1][0],
-                    reverse=True)[:options.limit]:
-                self.stdout.write(
-                    '    %20s % 6.02fs %s\n' % (ip, elapsed, xid))
-            self.stdout.flush()
-            averages = {}
-            for ip, timings in timings_dict.iteritems():
-                averages[ip] = sum(t[0] for t in timings) / len(timings)
+                '    %20s % 6.02fs %s\n' % (ip, elapsed, xid))
+        self.stdout.flush()
+        averages = {}
+        for ip, timings in timings_dict.iteritems():
+            averages[ip] = sum(t[0] for t in timings) / len(timings)
+        self.stdout.write(
+            'Average %s times for up to %d nodes with implied usage:\n' %
+            (label, options.limit))
+        for ip, elapsed in sorted(
+                averages.iteritems(), key=lambda x: x[1],
+                reverse=True)[:options.limit]:
+            self.stdout.write('    %20s % 6.02fs\n' % (ip, elapsed))
+        self.stdout.flush()
+        total = 0.0
+        count = 0
+        for ip, timings in timings_dict.iteritems():
+            total += sum(t[0] for t in timings)
+            count += len(timings)
+        threshold = total / count * options.threshold
+        counts = collections.defaultdict(lambda: 0)
+        for ip, timings in timings_dict.iteritems():
+            for t in timings:
+                if t[0] > threshold:
+                    counts[ip] += 1
+        self.stdout.write(
+            'Count of %s times past (average * %d) for up to %d nodes with '
+            'implied usage:\n' % (label, options.threshold, options.limit))
+        for ip, count in sorted(
+                counts.iteritems(), key=lambda x: x[1],
+                reverse=True)[:options.limit]:
+            self.stdout.write('    %20s % 6d\n' % (ip, count))
+        self.stdout.flush()
+        percentages = {}
+        for ip, count in counts.iteritems():
+            percentages[ip] = (
+                100.0 * count / len(timings_dict[ip]),
+                count,
+                len(timings_dict[ip]))
+        self.stdout.write(
+            'Percentage of %s times past (average * %d) for up to %d nodes '
+            'with implied usage:\n' %
+            (label, options.threshold, options.limit))
+        for ip, percentage in sorted(
+                percentages.iteritems(), key=lambda x: x[1][0],
+                reverse=True)[:options.limit]:
             self.stdout.write(
-                'Average %s times for up to %d nodes with implied usage:\n' %
-                (label, options.limit))
-            for ip, elapsed in sorted(
-                    averages.iteritems(), key=lambda x: x[1],
-                    reverse=True)[:options.limit]:
-                self.stdout.write('    %20s % 6.02fs\n' % (ip, elapsed))
-            self.stdout.flush()
+                '    %20s % 6.02f%%  %d of %d\n' %
+                (ip, percentage[0], percentage[1], percentage[2]))
+        self.stdout.flush()
 
     @_client_command
     def _ping(self, args, stdin=None):
@@ -1412,13 +1531,20 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
         try:
             options.limit = int(options.limit or 10)
         except ValueError:
-            self.stderr.write('invalid limit %s\n' % options.ping_count)
+            self.stderr.write('invalid limit %s\n' % options.limit)
+            self.stderr.flush()
+            return 1
+        try:
+            options.threshold = int(options.threshold or 2)
+        except ValueError:
+            self.stderr.write('invalid threshold %s\n' % options.threshold)
             self.stderr.flush()
             return 1
         prefix = (args[0] if len(args) else 'swiftly-ping') + '-'
         begin = time()
         helper_data = [options, begin, None]
         container = prefix + uuid.uuid4().hex
+        completed = False
         with self._with_client() as client:
             helper_data[2] = client.auth()
             if self._ping_status('auth', helper_data):
@@ -1430,25 +1556,43 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 client.put_container(container))
             if self._ping_status('container put', helper_data):
                 return 1
+            completed = True
+        if not completed:
+            return 1
         objects = [uuid.uuid4().hex for x in xrange(options.ping_count)]
         conc = Concurrency(int(self._main_options.concurrency))
         if self._ping_objects(
                 'put', helper_data, conc, container, objects,
                 self._ping_object_put):
-            return 1
+            self.stderr.write(
+                'put objects did not complete successfully due to previous '
+                'error; but continuing\n')
+            self.stderr.flush()
         if self._ping_objects(
                 'get', helper_data, conc, container, objects,
                 self._ping_object_get):
-            return 1
+            self.stderr.write(
+                'get objects did not complete successfully due to previous '
+                'error; but continuing\n')
+            self.stderr.flush()
         if self._ping_objects(
                 'delete', helper_data, conc, container, objects,
                 self._ping_object_delete):
-            return 1
+            self.stderr.write(
+                'delete objects did not complete successfully due to previous '
+                'error; but continuing\n')
+            self.stderr.flush()
+        completed = False
         with self._with_client() as client:
             helper_data[2] = [container] + list(
                 client.delete_container(container))
-            if self._ping_status('container delete', helper_data):
-                return 1
+            if not self._ping_status('container delete', helper_data):
+                completed = True
+        if not completed:
+            self.stderr.write(
+                'could not confirm deletion of container due to previous '
+                'error; but continuing\n')
+            self.stderr.flush()
         end = time()
         if options.ping_verbose:
             self.stdout.write('% 6.02fs total\n' % (end - begin))
@@ -1548,7 +1692,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     subargs.append('content-type:text/directory')
                     subargs.append('-h')
                     subargs.append(
-                        'x-object-meta-mtime:%d' % getmtime(options.input_))
+                        'x-object-meta-mtime:%f' % getmtime(options.input_))
                     subargs.append('-e')
                     for rv in conc.get_results().values():
                         if _get_return_code(rv):
@@ -1599,26 +1743,45 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     '/' in path.rstrip('/'):
                 r_mtime = 0
                 r_size = -1
+                completed = False
                 with self._with_client(path) as client:
                     status, reason, headers, contents = \
                         client.head_object(
                             *path.split('/', 1), query=options.query,
                             cdn=self._main_options.cdn)
+                    completed = True
+                if not completed:
+                    return 1
                 if status // 100 == 2:
                     try:
-                        r_mtime = int(headers.get('x-object-meta-mtime', 0))
+                        r_mtime = float(headers.get('x-object-meta-mtime', 0))
                     except ValueError:
                         pass
                     try:
                         r_size = int(headers.get('content-length', -1))
                     except ValueError:
                         pass
+                elif status != 404:
+                    self.stderr.write(
+                        'aborting after error with HEAD %r query=%r cdn=%r\n' %
+                        (path, options.query, self._main_options.cdn))
+                    self.stderr.flush()
+                    return 1
                 if options.newer and l_mtime <= r_mtime:
                     return 0, path, r_size, headers.get('etag')
                 if options.different and l_mtime == r_mtime and \
                         getsize(options.input_) == r_size:
                     return 0, path, r_size, headers.get('etag')
-            hdrs['x-object-meta-mtime'] = '%d' % l_mtime
+                elif options.different:
+                    if l_mtime != r_mtime:
+                        self._verbose(
+                            'Putting %s because l_mtime != r_mtime (%s != %s)',
+                            path, l_mtime, r_mtime)
+                    elif getsize(options.input_) != r_size:
+                        self._verbose(
+                            'Putting %s because l_size != r_size (%s != %s)',
+                            path, getsize(options.input_), r_size)
+            hdrs['x-object-meta-mtime'] = '%f' % l_mtime
             size = getsize(options.input_)
             if size <= options.segment_size:
                 stdin = open(options.input_, 'rb')
@@ -1663,6 +1826,7 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     hdrs['x-object-manifest'] = prefix
         hdrs.update(self._command_line_headers(options.header))
         status, reason, headers, contents = 0, 'Unknown', {}, ''
+        completed = False
         with self._with_client(path) as client:
             if not path.rstrip('/'):
                 body = stdin if options.INPUT_ else ''
@@ -1676,12 +1840,16 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                     client.put_container(
                         path.rstrip('/'), headers=hdrs, query=options.query,
                         cdn=self._main_options.cdn, body=body)
+                completed = True
             else:
                 c, o = path.split('/', 1)
                 status, reason, headers, contents = \
                     client.put_object(
                         c, o, stdin, headers=hdrs, query=options.query,
                         cdn=self._main_options.cdn)
+                completed = True
+        if not completed:
+            return 1
         if status // 100 != 2:
             self.stderr.write('%s %s\n' % (status, reason))
             if self._main_options.verbose and contents:
@@ -1718,13 +1886,18 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                 body = self.stdin
         status, reason, headers, contents = 0, 'Unknown', {}, ''
         if not args:
+            completed = False
             with self._with_client() as client:
                 status, reason, headers, contents = \
                     client.post_account(
                         headers=hdrs, query=options.query,
                         cdn=self._main_options.cdn, body=body)
+                completed = True
+            if not completed:
+                return 1
         elif len(args) == 1:
             path = args[0].lstrip('/')
+            completed = False
             with self._with_client(path) as client:
                 if '/' not in path.rstrip('/'):
                     status, reason, headers, contents = \
@@ -1738,6 +1911,9 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
                             *path.split('/', 1), headers=hdrs,
                             query=options.query, cdn=self._main_options.cdn,
                             body=body)
+                completed = True
+            if not completed:
+                return 1
         else:
             self._post_parser.print_help()
             return 1
@@ -1779,11 +1955,15 @@ object named 4&4.txt must be given as 4%264.txt.""".strip(),
             body = self.stdin
             if options.input_:
                 body = open(options.input_, 'rb')
+            completed = False
             with self._with_client() as client:
                 status, reason, headers, contents = \
                     client.delete_account(
                         headers=hdrs, query=options.query,
                         cdn=self._main_options.cdn, body=body)
+                completed = True
+            if not completed:
+                return 1
         elif not args:
             if options.recursive and not options.yes_empty_account:
                 self.stderr.write("""
@@ -1814,12 +1994,16 @@ THERE IS NO GOING BACK!""".strip())
             if options.yes_empty_account:
                 marker = None
                 while True:
+                    completed = False
                     with self._with_client() as client:
                         status, reason, headers, contents = \
                             client.get_account(
                                 headers=hdrs, marker=marker,
                                 query=options.query,
                                 cdn=self._main_options.cdn)
+                        completed = True
+                    if not completed:
+                        return 1
                     if status // 100 != 2:
                         if status == 404 and options.ignore_404:
                             return 0
@@ -1844,6 +2028,7 @@ THERE IS NO GOING BACK!""".strip())
                     marker = item['name']
                 return 0
             if options.yes_delete_account:
+                completed = False
                 with self._with_client() as client:
                     yn = options.yes_delete_account
                     status, reason, headers, contents = \
@@ -1851,6 +2036,9 @@ THERE IS NO GOING BACK!""".strip())
                             headers=hdrs, query=options.query,
                             cdn=self._main_options.cdn,
                             yes_i_mean_delete_the_account=yn)
+                    completed = True
+                if not completed:
+                    return 1
         elif len(args) == 1:
             body = None
             if options.INPUT_:
@@ -1862,12 +2050,16 @@ THERE IS NO GOING BACK!""".strip())
                 if options.recursive:
                     marker = None
                     while True:
+                        completed = False
                         with self._with_client(path) as client:
                             status, reason, headers, contents = \
                                 client.get_container(
                                     path.rstrip('/'), headers=hdrs,
                                     marker=marker, query=options.query,
                                     cdn=self._main_options.cdn)
+                            completed = True
+                        if not completed:
+                            return 1
                         if status // 100 != 2:
                             if status == 404 and options.ignore_404:
                                 return 0
@@ -1896,26 +2088,38 @@ THERE IS NO GOING BACK!""".strip())
                         for rv in conc.get_results().values():
                             if rv:
                                 return rv
+                    completed = False
                     with self._with_client(path) as client:
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
                                 query=options.query,
                                 cdn=self._main_options.cdn, body=body)
+                        completed = True
+                    if not completed:
+                        return 1
                 else:
+                    completed = False
                     with self._with_client(path) as client:
                         status, reason, headers, contents = \
                             client.delete_container(
                                 path.rstrip('/'), headers=hdrs,
                                 query=options.query,
                                 cdn=self._main_options.cdn, body=body)
+                        completed = True
+                    if not completed:
+                        return 1
             else:
+                completed = False
                 with self._with_client(path) as client:
                     status, reason, headers, contents = \
                         client.delete_object(
                             *path.split('/', 1), headers=hdrs,
                             query=options.query, cdn=self._main_options.cdn,
                             body=body)
+                    completed = True
+                if not completed:
+                    return 1
         else:
             self._delete_parser.print_help()
             return 1
