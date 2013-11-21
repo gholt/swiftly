@@ -1,0 +1,1073 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.client &mdash; Swiftly 1.12 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.12',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.12 documentation" href="index.html" />
+    <link rel="next" title="swiftly.concurrency" href="swiftly_concurrency.html" />
+    <link rel="prev" title="swiftly.cli" href="swiftly_cli.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="swiftly_concurrency.html" title="swiftly.concurrency"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="swiftly_cli.html" title="swiftly.cli"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Swiftly 1.12 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-swiftly.client">
+<span id="swiftly-client"></span><span id="swiftly-client-module"></span><h1>swiftly.client<a class="headerlink" href="#module-swiftly.client" title="Permalink to this headline">¶</a></h1>
+<p>Client API to Swift</p>
+<p>Copyright 2011-2013 Gregory Holt
+Portions Copyright (c) 2010-2012 OpenStack Foundation</p>
+<p>Licensed under the Apache License, Version 2.0 (the &#8220;License&#8221;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+<blockquote>
+<div><a class="reference external" href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></div></blockquote>
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &#8220;AS IS&#8221; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+<dl class="class">
+<dt id="swiftly.client.Client">
+<em class="property">class </em><tt class="descclassname">swiftly.client.</tt><tt class="descname">Client</tt><big>(</big><em>auth_url=None</em>, <em>auth_user=None</em>, <em>auth_key=None</em>, <em>proxy=None</em>, <em>snet=False</em>, <em>retries=4</em>, <em>swift_proxy=None</em>, <em>swift_proxy_storage_path=None</em>, <em>cache_path=None</em>, <em>eventlet=None</em>, <em>swift_proxy_cdn_path=None</em>, <em>region=None</em>, <em>verbose=None</em>, <em>verbose_id=''</em>, <em>auth_tenant=None</em>, <em>auth_methods=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Client code to work with Swift.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>auth_url</strong> &#8211; The URL to the auth system.</li>
+<li><strong>auth_user</strong> &#8211; The user to authenticate as.</li>
+<li><strong>auth_key</strong> &#8211; The key to use when authenticating.</li>
+<li><strong>proxy</strong> &#8211; The URL to the proxy to use. Default: None.</li>
+<li><strong>snet</strong> &#8211; Prepends &#8220;snet-&#8221; to the host name of the storage URL
+given once authenticated. This is usually only useful when
+working with Rackspace Cloud Files and wanting to use
+Rackspace ServiceNet. Default: False.</li>
+<li><strong>retries</strong> &#8211; The number of times to retry requests if a server
+error ocurrs (5xx response). Default: 4 (for a total of 5
+attempts).</li>
+<li><strong>swift_proxy</strong> &#8211; Default: None. If set, the
+swift.proxy.server.Application given will be used instead of
+connecting to an external proxy server. You can also set it to
+True and the Swift proxy will be created with default values.</li>
+<li><strong>swift_proxy_storage_path</strong> &#8211; If swift_proxy is set,
+swift_proxy_storage_path is the path to the Swift account to
+use (example: /v1/AUTH_test).</li>
+<li><strong>cache_path</strong> &#8211; Default: None. If set to a path, the storage
+URL and auth token are cached in the file for reuse. If there
+is already cached values in the file, they are used without
+authenticating first.</li>
+<li><strong>eventlet</strong> &#8211; Default: None. If True, Eventlet will be used if
+installed. If False, Eventlet will not be used even if
+installed. If None, the default, Eventlet will be used if
+installed and its version is at least 0.11.0 when a CPU usage
+bug was fixed.</li>
+<li><strong>swift_proxy_cdn_path</strong> &#8211; If swift_proxy is set,
+swift_proxy_cdn_path is the path to the Swift account to use
+for CDN management (example: /v1/AUTH_test).</li>
+<li><strong>region</strong> &#8211; The region to access, if supported by auth
+(Example: DFW).</li>
+<li><strong>verbose</strong> &#8211; Set to a <tt class="docutils literal"><span class="pre">func(msg,</span> <span class="pre">*args)</span></tt> that will be called
+with debug messages. Constructing a string for output can be
+done with msg % args.</li>
+<li><strong>verbose_id</strong> &#8211; Set to a string you wish verbose messages to
+be prepended with; can help in identifying output when
+multiple Clients are in use.</li>
+<li><strong>auth_tenant</strong> &#8211; The tenant to authenticate as, if needed.
+Default (if needed): same as auth_user.</li>
+<li><strong>auth_methods</strong> &#8211; Auth methods to use with the auth system,
+example:
+<tt class="docutils literal"><span class="pre">auth2key,auth2password,auth2password_force_tenant,auth1</span></tt> If
+not specified, the best order will try to be determined; but
+if you notice it keeps making useless auth attempts and that
+drives you crazy, you can override that here. All the
+available auth methods are listed in the example.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="swiftly.client.Client.auth">
+<tt class="descname">auth</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.auth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.auth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Just performs the authentication step without making an
+actual request to the Swift system.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.delete_account">
+<tt class="descname">delete_account</tt><big>(</big><em>headers=None</em>, <em>yes_i_mean_delete_the_account=False</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.delete_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.delete_account" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sends a DELETE request to the account and returns the results.</p>
+<p>With <tt class="docutils literal"><span class="pre">query['bulk-delete']</span> <span class="pre">=</span> <span class="pre">''</span></tt> this might mean a bulk
+delete request where the body of the request is new-line
+separated, url-encoded list of names to delete. Be careful
+with this! One wrong move and you might mark your account for
+deletion of you have the access to do so!</p>
+<p>For a plain DELETE to the account, on clusters that support
+it and, assuming you have permissions to do so, the account
+will be marked as deleted and immediately begin removing the
+objects from the cluster in the backgound.</p>
+<p>THERE IS NO GOING BACK!</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>yes_i_mean_delete_the_account</strong> &#8211; Set to True to verify
+you really mean to delete the entire account. This is
+required unless <tt class="docutils literal"><span class="pre">body</span> <span class="pre">and</span> <span class="pre">'bulk-delete'</span> <span class="pre">in</span> <span class="pre">query</span></tt>.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+<li><strong>body</strong> &#8211; Some account DELETE requests, like the bulk
+delete request, take a body.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be
+a list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.delete_container">
+<tt class="descname">delete_container</tt><big>(</big><em>container</em>, <em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.delete_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.delete_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>DELETEs the container and returns the results.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+<li><strong>body</strong> &#8211; Some container DELETE requests might take a body
+in the future.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.delete_object">
+<tt class="descname">delete_object</tt><big>(</big><em>container</em>, <em>obj</em>, <em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.delete_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.delete_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>DELETEs the object and returns the results.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>obj</strong> &#8211; The name of the object.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+<li><strong>body</strong> &#8211; Some object DELETE requests might take a body in
+the future.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.get_account">
+<tt class="descname">get_account</tt><big>(</big><em>headers=None</em>, <em>prefix=None</em>, <em>delimiter=None</em>, <em>marker=None</em>, <em>end_marker=None</em>, <em>limit=None</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.get_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.get_account" title="Permalink to this definition">¶</a></dt>
+<dd><p>GETs the account and returns the results. This is done to list
+the containers for the account. Some useful headers are also
+returned:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="45%" />
+<col width="55%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>x-account-bytes-used</td>
+<td>Object storage used for the
+account, in bytes.</td>
+</tr>
+<tr class="row-even"><td>x-account-container-count</td>
+<td>The number of containers in the
+account.</td>
+</tr>
+<tr class="row-odd"><td>x-account-object-count</td>
+<td>The number of objects in the
+account.</td>
+</tr>
+</tbody>
+</table>
+<p>Also, any user headers beginning with x-account-meta- are
+returned.</p>
+<p>These values can be delayed depending the Swift cluster.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>prefix</strong> &#8211; The prefix container names must match to be
+listed.</li>
+<li><strong>delimiter</strong> &#8211; <p>The delimiter for the listing. Delimiters
+indicate how far to progress through container names
+before &#8220;rolling them up&#8221;. For instance, a delimiter=&#8217;.&#8217;
+query on an account with the containers:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">one</span><span class="o">.</span><span class="n">one</span>
+<span class="n">one</span><span class="o">.</span><span class="n">two</span>
+<span class="n">two</span>
+<span class="n">three</span><span class="o">.</span><span class="n">one</span>
+</pre></div>
+</div>
+<p>would return the JSON value of:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[{</span><span class="s">&#39;subdir&#39;</span><span class="p">:</span> <span class="s">&#39;one.&#39;</span><span class="p">},</span>
+ <span class="p">{</span><span class="s">&#39;count&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&#39;bytes&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&#39;two&#39;</span><span class="p">},</span>
+ <span class="p">{</span><span class="s">&#39;subdir&#39;</span><span class="p">:</span> <span class="s">&#39;three.&#39;</span><span class="p">}]</span>
+</pre></div>
+</div>
+<p>Using this with prefix can allow you to traverse a psuedo
+hierarchy.</p>
+</li>
+<li><strong>marker</strong> &#8211; Only container names after this marker will be
+returned. Swift returns a limited number of containers
+per request (often 10,000). To get the next batch of
+names, you issue another query with the marker set to the
+last name you received. You can continue to issue
+requests until you receive no more names.</li>
+<li><strong>end_marker</strong> &#8211; Only container names before this marker will be
+returned.</li>
+<li><strong>limit</strong> &#8211; Limits the size of the list returned per
+request. The default and maximum depends on the Swift
+cluster (usually 10,000).</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.get_account_hash">
+<tt class="descname">get_account_hash</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.get_account_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.get_account_hash" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.get_container">
+<tt class="descname">get_container</tt><big>(</big><em>container</em>, <em>headers=None</em>, <em>prefix=None</em>, <em>delimiter=None</em>, <em>marker=None</em>, <em>end_marker=None</em>, <em>limit=None</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.get_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.get_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>GETs the container and returns the results. This is done to
+list the objects for the container. Some useful headers are
+also returned:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="45%" />
+<col width="55%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>x-container-bytes-used</td>
+<td>Object storage used for the
+container, in bytes.</td>
+</tr>
+<tr class="row-even"><td>x-container-object-count</td>
+<td>The number of objects in the
+container.</td>
+</tr>
+</tbody>
+</table>
+<p>Also, any user headers beginning with x-container-meta- are
+returned.</p>
+<p>These values can be delayed depending the Swift cluster.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>prefix</strong> &#8211; The prefix object names must match to be
+listed.</li>
+<li><strong>delimiter</strong> &#8211; <p>The delimiter for the listing. Delimiters
+indicate how far to progress through object names before
+&#8220;rolling them up&#8221;. For instance, a delimiter=&#8217;/&#8217; query on
+an container with the objects:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">one</span><span class="o">/</span><span class="n">one</span>
+<span class="n">one</span><span class="o">/</span><span class="n">two</span>
+<span class="n">two</span>
+<span class="n">three</span><span class="o">/</span><span class="n">one</span>
+</pre></div>
+</div>
+<p>would return the JSON value of:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[{</span><span class="s">&#39;subdir&#39;</span><span class="p">:</span> <span class="s">&#39;one/&#39;</span><span class="p">},</span>
+ <span class="p">{</span><span class="s">&#39;count&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&#39;bytes&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&#39;name&#39;</span><span class="p">:</span> <span class="s">&#39;two&#39;</span><span class="p">},</span>
+ <span class="p">{</span><span class="s">&#39;subdir&#39;</span><span class="p">:</span> <span class="s">&#39;three/&#39;</span><span class="p">}]</span>
+</pre></div>
+</div>
+<p>Using this with prefix can allow you to traverse a psuedo
+hierarchy.</p>
+</li>
+<li><strong>marker</strong> &#8211; Only object names after this marker will be
+returned. Swift returns a limited number of objects per
+request (often 10,000). To get the next batch of names,
+you issue another query with the marker set to the last
+name you received. You can continue to issue requests
+until you receive no more names.</li>
+<li><strong>end_marker</strong> &#8211; Only object names before this marker will be
+returned.</li>
+<li><strong>limit</strong> &#8211; Limits the size of the list returned per
+request. The default and maximum depends on the Swift
+cluster (usually 10,000).</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.get_object">
+<tt class="descname">get_object</tt><big>(</big><em>container</em>, <em>obj</em>, <em>headers=None</em>, <em>stream=True</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.get_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.get_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>GETs the object and returns the results.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>obj</strong> &#8211; The name of the object.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>stream</strong> &#8211; Indicates whether to stream the contents or
+preread them fully and return them as a str. Default:
+True to stream the contents. When streaming, contents
+will have the standard file-like-object read function,
+which accepts an optional size parameter to limit how
+much data is read per call. When streaming is on, be
+certain to fully read the contents before issuing another
+request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">if <em>stream</em> was True, <em>contents</em> is a
+file-like-object of the contents of the HTTP body. If
+<em>stream</em> was False, <em>contents</em> is just a simple str of
+the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.head_account">
+<tt class="descname">head_account</tt><big>(</big><em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.head_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.head_account" title="Permalink to this definition">¶</a></dt>
+<dd><p>HEADs the account and returns the results. Useful headers
+returned are:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="45%" />
+<col width="55%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>x-account-bytes-used</td>
+<td>Object storage used for the
+account, in bytes.</td>
+</tr>
+<tr class="row-even"><td>x-account-container-count</td>
+<td>The number of containers in the
+account.</td>
+</tr>
+<tr class="row-odd"><td>x-account-object-count</td>
+<td>The number of objects in the
+account.</td>
+</tr>
+</tbody>
+</table>
+<p>Also, any user headers beginning with x-account-meta- are
+returned.</p>
+<p>These values can be delayed depending the Swift cluster.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.head_container">
+<tt class="descname">head_container</tt><big>(</big><em>container</em>, <em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.head_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.head_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>HEADs the container and returns the results. Useful headers
+returned are:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="45%" />
+<col width="55%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>x-container-bytes-used</td>
+<td>Object storage used for the
+container, in bytes.</td>
+</tr>
+<tr class="row-even"><td>x-container-object-count</td>
+<td>The number of objects in the
+container.</td>
+</tr>
+</tbody>
+</table>
+<p>Also, any user headers beginning with x-container-meta- are
+returned.</p>
+<p>These values can be delayed depending the Swift cluster.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.head_object">
+<tt class="descname">head_object</tt><big>(</big><em>container</em>, <em>obj</em>, <em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.head_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.head_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>HEADs the object and returns the results.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>obj</strong> &#8211; The name of the object.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.post_account">
+<tt class="descname">post_account</tt><big>(</big><em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.post_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.post_account" title="Permalink to this definition">¶</a></dt>
+<dd><p>POSTs the account and returns the results. This is usually
+done to set X-Account-Meta-xxx headers. Note that any existing
+X-Account-Meta-xxx headers will remain untouched. To remove an
+X-Account-Meta-xxx header, send the header with an empty
+string as its value.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+<li><strong>body</strong> &#8211; No known Swift POSTs take a body; but the option
+is there for the future.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.post_container">
+<tt class="descname">post_container</tt><big>(</big><em>container</em>, <em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.post_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.post_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>POSTs the container and returns the results. This is usually
+done to set X-Container-Meta-xxx headers. Note that any
+existing X-Container-Meta-xxx headers will remain untouched.
+To remove an X-Container-Meta-xxx header, send the header with
+an empty string as its value.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+<li><strong>body</strong> &#8211; No known Swift POSTs take a body; but the option
+is there for the future.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.post_object">
+<tt class="descname">post_object</tt><big>(</big><em>container</em>, <em>obj</em>, <em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.post_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.post_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>POSTs the object and returns the results. This is used to
+update the object&#8217;s header values. Note that all headers must
+be sent with the POST, unlike the account and container POSTs.
+With account and container POSTs, existing headers are
+untouched. But with object POSTs, any existing headers are
+removed. The full list of supported headers depends on the
+Swift cluster, but usually include Content-Type,
+Content-Encoding, and any X-Object-Meta-xxx headers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>obj</strong> &#8211; The name of the object.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+<li><strong>body</strong> &#8211; No known Swift POSTs take a body; but the option
+is there for the future.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.put_account">
+<tt class="descname">put_account</tt><big>(</big><em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.put_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.put_account" title="Permalink to this definition">¶</a></dt>
+<dd><p>PUTs the account and returns the results. This is usually
+done with the extract-archive bulk upload request and has no
+other use I know of (but the call is left open in case there
+ever is).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+<li><strong>body</strong> &#8211; Some account PUT requests, like the
+extract-archive bulk upload request, take a body.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.put_container">
+<tt class="descname">put_container</tt><big>(</big><em>container</em>, <em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.put_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.put_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>PUTs the container and returns the results. This is usually
+done to create new containers and can also be used to set
+X-Container-Meta-xxx headers. Note that if the container
+already exists, any existing X-Container-Meta-xxx headers will
+remain untouched. To remove an X-Container-Meta-xxx header,
+send the header with an empty string as its value.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+<li><strong>body</strong> &#8211; Some container PUT requests, like the
+extract-archive bulk upload request, take a body.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.put_object">
+<tt class="descname">put_object</tt><big>(</big><em>container</em>, <em>obj</em>, <em>contents</em>, <em>headers=None</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.put_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.put_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>PUTs the object and returns the results. This is used to
+create or overwrite objects. X-Object-Meta-xxx can optionally
+be sent to be stored with the object. Content-Type,
+Content-Encoding and other standard HTTP headers can often
+also be set, depending on the Swift cluster.</p>
+<p>Note that you can set the ETag header to the MD5 sum of the
+contents for extra verifification the object was stored
+correctly.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> &#8211; The name of the container.</li>
+<li><strong>obj</strong> &#8211; The name of the object.</li>
+<li><strong>contents</strong> &#8211; The contents of the object to store. This can
+be a simple str, or a file-like-object with at least a
+read function. If the file-like-object also has tell and
+seek functions, the PUT can be reattempted on any server
+error.</li>
+<li><strong>headers</strong> &#8211; Additional headers to send with the request.</li>
+<li><strong>query</strong> &#8211; Set to a dict of query values to send on the
+query string of the request.</li>
+<li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
+used.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple of (status, reason, headers, contents).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">status:</th><td class="field-body">is an int for the HTTP status code.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">reason:</th><td class="field-body">is the str for the HTTP status (ex: &#8220;Ok&#8221;).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">headers:</th><td class="field-body">is a dict with all lowercase keys of the HTTP
+headers; if a header has multiple values, it will be a
+list.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+</tr>
+</tbody>
+</table>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.Client.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resets the client, closing any connections and discarding any
+state. This can be useful if some exceptional condition
+occurred and the request/response state can no longer be
+certain.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="swiftly_cli.html"
+                        title="previous chapter">swiftly.cli</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="swiftly_concurrency.html"
+                        title="next chapter">swiftly.concurrency</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/swiftly_client.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="swiftly_concurrency.html" title="swiftly.concurrency"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="swiftly_cli.html" title="swiftly.cli"
+             >previous</a> |</li>
+        <li><a href="index.html">Swiftly 1.12 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
+    </div>
+  </body>
+</html>
