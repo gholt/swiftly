@@ -4,7 +4,7 @@
 %endif
 
 Name:           swiftly
-Version:        1.10
+Version:        1.12
 Release:        1
 Summary:        Client for Swift
 
@@ -39,6 +39,8 @@ rm -rf %{buildroot}
 %{python_sitelib}/%{name}-%{version}-*.egg-info
 
 %changelog
+* Thu Nov 21 2013 Gregory Holt <greg@brim.net> - 1.12-1
+- Bug fixes; updated ping; new trans command
 * Sat Oct 19 2013 Gregory Holt <greg@brim.net> - 1.10-1
 - Added new ping command
 * Fri May 17 2013 Gregory Holt <greg@brim.net> - 1.8-1
