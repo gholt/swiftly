@@ -43,6 +43,16 @@ git checkout master
 git push
 git push --tags
 
-Update PyPI; however you magically figure out how to do that. I think I edited
-the past version's information, changing the version number, and it created a
-new entry that I could then upload a source tar.gz to.
+To Update PyPI:
+git checkout <version>
+tar zcf ~/swiftly-<version>.tgz .
+Log into https://pypi.python.org/pypi
+Click on Your packages: swiftly
+Edit latest version
+Change version to <version>
+Click Add Information
+Click files
+Select swiftly-<version>.tgz created above
+Select File Type: source
+Select Python Version: Any
+Click Upload new File
