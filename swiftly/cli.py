@@ -823,7 +823,7 @@ Usage: %prog [options] <command> [command_options] [args]""".strip(),
             raise Exception('No client!')
         try:
             yield client
-        except (self.Timeout, Exception), err:
+        except (self.Timeout, Exception):
             exc_type, exc_value, exc_tb = sys.exc_info()
             trace = traceback.format_exception(exc_type, exc_value, exc_tb)
             trace = ''.join(trace).replace('\n', '#012').replace('\r', '#013')
