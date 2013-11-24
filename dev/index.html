@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Swiftly &mdash; Swiftly 1.13 documentation</title>
+    <title>Swiftly &mdash; Swiftly 1.99 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '1.13',
+        VERSION:     '1.99',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Swiftly 1.13 documentation" href="#" />
+    <link rel="top" title="Swiftly 1.99 documentation" href="#" />
     <link rel="next" title="LICENSE" href="license.html" /> 
   </head>
   <body>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="license.html" title="LICENSE"
              accesskey="N">next</a> |</li>
-        <li><a href="#">Swiftly 1.13 documentation</a> &raquo;</li> 
+        <li><a href="#">Swiftly 1.99 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -67,8 +67,27 @@ swiftly.</p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="swiftly.html">swiftly</a></li>
-<li class="toctree-l1"><a class="reference internal" href="swiftly_cli.html">swiftly.cli</a></li>
-<li class="toctree-l1"><a class="reference internal" href="swiftly_client.html">swiftly.client</a></li>
+<li class="toctree-l1"><a class="reference internal" href="swiftly_cli.html">swiftly.cli</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.cli">cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.context">context</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.command">command</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.optionparser">optionparser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.auth">auth</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.delete">delete</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.get">get</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.head">head</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.help">help</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.ping">ping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.post">post</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.put">put</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.tempurl">tempurl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.trans">trans</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="swiftly_client.html">swiftly.client</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_client.html#module-swiftly.client.manager">manager</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="swiftly_concurrency.html">swiftly.concurrency</a></li>
 </ul>
 </div>
@@ -156,7 +175,16 @@ Options:
   --concurrency=INTEGER
                         Sets the the number of actions that can be done
                         simultaneously when possible (currently requires using
-                        Eventlet too). Default: 1
+                        Eventlet too). Default: 1. You can also set this with
+                        the environment variable SWIFTLY_CONCURRENCY. Note
+                        that some nested actions may amplify the number of
+                        concurrent actions. For instance, a put of an entire
+                        directory will use up to this number of concurrent
+                        actions. A put of a segmented object will use up to
+                        this number of concurrent actions. But, if a directory
+                        structure put is uploading segmented objects, this
+                        nesting could cause up to INTEGER * INTEGER concurrent
+                        actions.
   --eventlet            Enables Eventlet, if installed. This is disabled by
                         default if Eventlet is not installed or is less than
                         version 0.11.0 (because older Swiftly+Eventlet tends
@@ -168,7 +196,8 @@ Options:
                         VERBOSE and will also include the number of seconds
                         elapsed since Swiftly started.
 Commands:
-  auth                  Outputs auth information.
+  auth                  Authenticates and then outputs the resulting
+                        information.
   delete [options] [path]
                         Issues a DELETE request of the [path] given.
   get [options] [path]  Outputs the resulting contents from a GET request of
@@ -200,7 +229,42 @@ Commands:
 
 For help on [main_options] run swiftly with no args.
 
-Outputs auth information.
+Authenticates and then outputs the resulting information.
+
+Possible Output Values:
+
+    Auth Cache           The location where auth info may be cached.
+    Auth URL             The URL of the auth service if in use.
+    Auth User            The user to auth as if in use.
+    Auth Key             The key to auth with if in use.
+    Auth Tenant          The tenant to auth as if in use.
+    Auth Methods         The auth methods in use if any specified.
+    Direct Storage Path  The direct-mode path if in use.
+    Regions              The available regions as reported by the auth service.
+    Default Region       The default region as reported by the auth service.
+    Selected Region      The region selected for use by Swiftly.
+    SNet                 True if ServiceNet/InternalURL would be used.
+    Storage URL          The URL to use for storage as reported by the auth
+                         service.
+    CDN Management URL   The URL to use for CDN management as reported by the
+                         auth service.
+    Auth Token           The auth token to use as reported by the auth service.
+    Request Retries      The number retries to be done for any request.
+
+Example Output:
+
+Auth Cache:         /tmp/user.swiftly
+Auth URL:           https://identity.api.rackspacecloud.com/v2.0
+Auth User:          myusername
+Auth Key:           mykey
+Regions:            ORD DFW SYD IAD HKG
+Default Region:     ORD
+Selected Region:    IAD
+SNet:               True
+Storage URL:        https://snet-storage101.iad3.clouddrive.com/v1/account
+CDN Management URL: https://cdn5.clouddrive.com/v1/account
+Auth Token:         abcdef0123456789abcdef0123456789
+Request Retries:    4
 
 Options:
   -?, --help  Shows this help text.</pre>
@@ -224,15 +288,8 @@ Options:
                         -qmultipart-manifest=get
   -i PATH, --input=PATH
                         Indicates where to read the DELETE request body from;
-                        default is standard input. This is not normally used
-                        with DELETE requests, so you must also specify -I if
-                        you want the body sent.
-  -I                    Since DELETEs do not normally take input, you must
-                        specify this option if you wish them to read from the
-                        input specified by -i (or the default standard input).
-                        This is useful with -qbulk-delete requests. For
-                        example: swiftly delete -qbulk-delete -Ii &lt;my-bulk-
-                        deletes-file&gt;
+                        use a dash (as in "-i -") to specify standard input
+                        since DELETEs do not normally take input.
   --recursive           Normally a delete for a non-empty container will error
                         with a 409 Conflict; --recursive will first delete all
                         objects in a container and then delete the container
@@ -339,7 +396,10 @@ Options:
                         gunzipping them, grepping for a keyword, and only
                         storing matching lines locally (--sub-command "gunzip
                         | grep keyword" or --sub-command "zgrep keyword" if
-                        your system has that).</pre>
+                        your system has that).
+  --remove-empty-files  Removes files that result as empty. This can be useful
+                        in conjunction with --sub-command so you are left only
+                        with the files that generated output.</pre>
 </div>
 <p>Output from <cite>swiftly help head</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] head [options] [path]
@@ -410,13 +470,8 @@ Options:
                         -qmultipart-manifest=get
   -i PATH, --input=PATH
                         Indicates where to read the POST request body from;
-                        default is standard input. This is not normally used
-                        with Swift POST requests, so you must also specify -I
-                        if you want the body sent.
-  -I                    Since Swift POSTs do not normally take input, you must
-                        specify this option if you wish them to read from the
-                        input specified by -i (or the default standard input).
-                        This is not known to be useful for anything yet.</pre>
+                        use a dash (as in "-i -") to specify standard input
+                        since POSTs to Swift do not normally take input.</pre>
 </div>
 <p>Output from <cite>swiftly help put</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] put [options] [path]
@@ -470,14 +525,12 @@ Options:
                         standard input. If the PATH is a directory, all files
                         in the directory will be uploaded as similarly named
                         objects and empty directories will create
-                        text/directory marker objects.
-  -I                    Since account and container PUTs do not normally take
-                        input, you must specify this option if you wish them
-                        to read from the input specified by -i (or the default
-                        standard input). This is useful with -qextract-
-                        archive=&lt;format&gt; bulk upload requests. For example:
-                        tar zc . | swiftly put -qextract-archive=tar.gz -I
-                        container
+                        text/directory marker objects. Use a dash (as in "-i
+                        -") to specify standard input for account and
+                        container PUTs, as those do not normally take input.
+                        This is useful with -qextract-archive=&lt;format&gt; bulk
+                        upload requests. For example: tar zc . | swiftly put
+                        -qextract-archive=tar.gz -i - container
   -n, --newer           For PUTs with an --input option, first performs a HEAD
                         on the object and compares the X-Object-Meta-Mtime
                         header with the modified time of the PATH obtained
@@ -601,7 +654,7 @@ Options:
         <li class="right" >
           <a href="license.html" title="LICENSE"
              >next</a> |</li>
-        <li><a href="#">Swiftly 1.13 documentation</a> &raquo;</li> 
+        <li><a href="#">Swiftly 1.99 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

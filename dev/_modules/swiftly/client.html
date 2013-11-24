@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>swiftly.client &mdash; Swiftly 1.13 documentation</title>
+    <title>swiftly.client &mdash; Swiftly 1.99 documentation</title>
     
     <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../../',
-        VERSION:     '1.13',
+        VERSION:     '1.99',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="../../_static/jquery.js"></script>
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
-    <link rel="top" title="Swiftly 1.13 documentation" href="../../index.html" />
+    <link rel="top" title="Swiftly 1.99 documentation" href="../../index.html" />
     <link rel="up" title="swiftly" href="../swiftly.html" /> 
   </head>
   <body>
@@ -36,7 +36,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly 1.13 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
       </ul>
@@ -49,7 +49,7 @@
             
   <h1>Source code for swiftly.client</h1><div class="highlight"><pre>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Client API to Swift</span>
+<span class="sd">Client API to Swift.</span>
 
 <span class="sd">Copyright 2011-2013 Gregory Holt</span>
 <span class="sd">Portions Copyright (c) 2010-2012 OpenStack Foundation</span>
@@ -77,11 +77,7 @@
 <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">time</span>
 <span class="kn">from</span> <span class="nn">urllib</span> <span class="kn">import</span> <span class="n">quote</span>
 <span class="kn">from</span> <span class="nn">urlparse</span> <span class="kn">import</span> <span class="n">urlparse</span><span class="p">,</span> <span class="n">urlunparse</span>
-
-<span class="k">try</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
-<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-    <span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">json</span>
 
 <span class="k">try</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">swift.proxy.server</span> <span class="kn">import</span> <span class="n">Application</span> <span class="k">as</span> <span class="n">SwiftProxy</span>
@@ -419,14 +415,14 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
                         <span class="s">&#39;Cache </span><span class="si">%s</span><span class="s"> was unrecognized format; discarding.&#39;</span><span class="p">,</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">IOError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">errno</span> <span class="o">==</span> <span class="n">ENOENT</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;No cached values in </span><span class="si">%s</span><span class="s">.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
                         <span class="s">&#39;Exception attempting to read auth response values &#39;</span>
                         <span class="s">&#39;from cache </span><span class="si">%s</span><span class="s">: </span><span class="si">%r</span><span class="s">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
                     <span class="s">&#39;Exception attempting to read auth response values from &#39;</span>
                     <span class="s">&#39;cache </span><span class="si">%s</span><span class="s">: </span><span class="si">%r</span><span class="s">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_path</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
@@ -554,7 +550,7 @@
                 <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
                 <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
                 <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">reason</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
                 <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -639,7 +635,7 @@
                 <span class="n">body</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
                 <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
                 <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-            <span class="k">except</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
                 <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
                 <span class="n">reason</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">401</span><span class="p">:</span>
@@ -650,7 +646,7 @@
                 <span class="c"># self._verbose(&#39;&lt; %s&#39;, body)</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">body</span><span class="p">)</span>
-                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
                     <span class="n">status</span> <span class="o">=</span> <span class="mi">500</span>
                     <span class="n">reason</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
                     <span class="k">break</span>
@@ -761,32 +757,44 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">HTTPException</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> failed&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">),</span>
                                              <span class="mi">0</span><span class="p">,</span> <span class="s">&#39;No connection&#39;</span><span class="p">)</span>
-            <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;User-Agent&#39;</span><span class="p">:</span> <span class="s">&#39;Swiftly v</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">VERSION</span><span class="p">,</span>
-                    <span class="s">&#39;X-Auth-Token&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">}</span>
+            <span class="n">titled_headers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="o">.</span><span class="n">title</span><span class="p">(),</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">{</span>
+                <span class="s">&#39;User-Agent&#39;</span><span class="p">:</span> <span class="s">&#39;Swiftly v</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">VERSION</span><span class="p">,</span>
+                <span class="s">&#39;X-Auth-Token&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span><span class="p">}</span><span class="o">.</span><span class="n">iteritems</span><span class="p">())</span>
             <span class="k">if</span> <span class="n">headers</span><span class="p">:</span>
-                <span class="n">hdrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span>
+                <span class="n">titled_headers</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">k</span><span class="o">.</span><span class="n">title</span><span class="p">(),</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">headers</span><span class="o">.</span><span class="n">iteritems</span><span class="p">())</span>
+            <span class="n">verbose_headers</span> <span class="o">=</span> <span class="s">&#39;  &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="s">&#39;</span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">titled_headers</span><span class="o">.</span><span class="n">iteritems</span><span class="p">())</span>
             <span class="n">resp</span> <span class="o">=</span> <span class="bp">None</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">:</span>
                     <span class="n">req</span> <span class="o">=</span> <span class="n">Request</span><span class="o">.</span><span class="n">blank</span><span class="p">(</span><span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span>
                                         <span class="n">environ</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;REQUEST_METHOD&#39;</span><span class="p">:</span> <span class="n">method</span><span class="p">},</span>
-                                        <span class="n">headers</span><span class="o">=</span><span class="n">hdrs</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">contents</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&gt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                                        <span class="n">headers</span><span class="o">=</span><span class="n">titled_headers</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">contents</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
+                        <span class="s">&#39;&gt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">verbose_headers</span><span class="p">)</span>
                     <span class="n">resp</span> <span class="o">=</span> <span class="n">req</span><span class="o">.</span><span class="n">get_response</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&gt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">)</span>
-                    <span class="n">conn</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">hdrs</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
+                        <span class="s">&#39;&gt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span>
+                        <span class="n">verbose_headers</span><span class="p">)</span>
+                    <span class="n">conn</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+                        <span class="n">method</span><span class="p">,</span> <span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">titled_headers</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">req</span> <span class="o">=</span> <span class="bp">None</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">:</span>
                     <span class="n">req</span> <span class="o">=</span> <span class="n">Request</span><span class="o">.</span><span class="n">blank</span><span class="p">(</span><span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span>
                                         <span class="n">environ</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;REQUEST_METHOD&#39;</span><span class="p">:</span> <span class="n">method</span><span class="p">},</span>
-                                        <span class="n">headers</span><span class="o">=</span><span class="n">hdrs</span><span class="p">)</span>
+                                        <span class="n">headers</span><span class="o">=</span><span class="n">titled_headers</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
+                        <span class="s">&#39;&gt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">method</span><span class="p">,</span> <span class="n">req</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">verbose_headers</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&gt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span>
+                        <span class="s">&#39;&gt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">,</span>
+                        <span class="n">verbose_headers</span><span class="p">)</span>
                     <span class="n">conn</span><span class="o">.</span><span class="n">putrequest</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">conn_path</span> <span class="o">+</span> <span class="n">path</span><span class="p">)</span>
                 <span class="n">content_length</span> <span class="o">=</span> <span class="bp">None</span>
-                <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">hdrs</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="k">for</span> <span class="n">h</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">titled_headers</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
                     <span class="k">if</span> <span class="n">h</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;content-length&#39;</span><span class="p">:</span>
                         <span class="n">content_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
                     <span class="k">if</span> <span class="n">req</span><span class="p">:</span>
@@ -834,7 +842,7 @@
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">value</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
                         <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-                <span class="k">except</span> <span class="bp">self</span><span class="o">.</span><span class="n">BadStatusLine</span><span class="p">,</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
                     <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
                     <span class="n">reason</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
                     <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -850,7 +858,7 @@
             <span class="k">if</span> <span class="n">resp</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&lt; </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">resp</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&lt; None (probably timed out)&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">(</span><span class="s">&#39;&lt; - </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">401</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">stream</span><span class="p">:</span>
                     <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
@@ -911,7 +919,7 @@
 </div>
 <div class="viewcode-block" id="Client.get_account"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.get_account">[docs]</a>    <span class="k">def</span> <span class="nf">get_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                     <span class="n">marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                    <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+                    <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        GETs the account and returns the results. This is done to list</span>
 <span class="sd">        the containers for the account. Some useful headers are also</span>
@@ -967,6 +975,9 @@
 <span class="sd">            query string of the request.</span>
 <span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
 <span class="sd">            used.</span>
+<span class="sd">        :param decode_json: If set False, the usual decoding of the</span>
+<span class="sd">            JSON response will be skipped and the raw contents will</span>
+<span class="sd">            be returned instead.</span>
 <span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
 
 <span class="sd">            :status: is an int for the HTTP status code.</span>
@@ -974,7 +985,8 @@
 <span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
 <span class="sd">                headers; if a header has multiple values, it will be a</span>
 <span class="sd">                list.</span>
-<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">            :contents: is the decoded JSON response or the raw str</span>
+<span class="sd">                for the HTTP body.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">query</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">query</span> <span class="ow">or</span> <span class="p">{})</span>
         <span class="n">query</span><span class="p">[</span><span class="s">&#39;format&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span>
@@ -989,7 +1001,8 @@
         <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
             <span class="n">query</span><span class="p">[</span><span class="s">&#39;limit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">limit</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
-            <span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+            <span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="n">decode_json</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+            <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Client.put_account"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.put_account">[docs]</a>    <span class="k">def</span> <span class="nf">put_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1132,7 +1145,7 @@
 </div>
 <div class="viewcode-block" id="Client.get_container"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.get_container">[docs]</a>    <span class="k">def</span> <span class="nf">get_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
                       <span class="n">delimiter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                      <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+                      <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        GETs the container and returns the results. This is done to</span>
 <span class="sd">        list the objects for the container. Some useful headers are</span>
@@ -1187,6 +1200,9 @@
 <span class="sd">            query string of the request.</span>
 <span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
 <span class="sd">            used.</span>
+<span class="sd">        :param decode_json: If set False, the usual decoding of the</span>
+<span class="sd">            JSON response will be skipped and the raw contents will</span>
+<span class="sd">            be returned instead.</span>
 <span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
 
 <span class="sd">            :status: is an int for the HTTP status code.</span>
@@ -1194,7 +1210,8 @@
 <span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
 <span class="sd">                headers; if a header has multiple values, it will be a</span>
 <span class="sd">                list.</span>
-<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">            :contents: is the decoded JSON response or the raw str</span>
+<span class="sd">                for the HTTP body.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">query</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">query</span> <span class="ow">or</span> <span class="p">{})</span>
         <span class="n">query</span><span class="p">[</span><span class="s">&#39;format&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span>
@@ -1210,7 +1227,7 @@
             <span class="n">query</span><span class="p">[</span><span class="s">&#39;limit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">limit</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_request</span><span class="p">(</span>
             <span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span>
-            <span class="n">decode_json</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+            <span class="n">decode_json</span><span class="o">=</span><span class="n">decode_json</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Client.put_container"><a class="viewcode-back" href="../../swiftly_client.html#swiftly.client.Client.put_container">[docs]</a>    <span class="k">def</span> <span class="nf">put_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
                       <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -1378,7 +1395,7 @@
 <span class="sd">        also be set, depending on the Swift cluster.</span>
 
 <span class="sd">        Note that you can set the ETag header to the MD5 sum of the</span>
-<span class="sd">        contents for extra verifification the object was stored</span>
+<span class="sd">        contents for extra verification the object was stored</span>
 <span class="sd">        correctly.</span>
 
 <span class="sd">        :param container: The name of the container.</span>
@@ -1499,7 +1516,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
-        <li><a href="../../index.html">Swiftly 1.13 documentation</a> &raquo;</li>
+        <li><a href="../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
           <li><a href="../index.html" >Module code</a> &raquo;</li>
           <li><a href="../swiftly.html" >swiftly</a> &raquo;</li> 
       </ul>

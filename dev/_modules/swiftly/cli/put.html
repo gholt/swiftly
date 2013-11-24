@@ -1,0 +1,532 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.put &mdash; Swiftly 1.99 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.99',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.99 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.put</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains a CLICommand that can issue PUT requests.</span>
+
+<span class="sd">Uses the following from :py:class:`swiftly.cli.context.CLIContext`:</span>
+
+<span class="sd">===============  ====================================================</span>
+<span class="sd">cdn              True if the CDN Management URL should be used</span>
+<span class="sd">                 instead of the Storage URL.</span>
+<span class="sd">client_manager   For connecting to Swift.</span>
+<span class="sd">concurrency      The number of concurrent actions that can be</span>
+<span class="sd">                 performed.</span>
+<span class="sd">different        Set to True to check if the local file is different</span>
+<span class="sd">                 than an existing object before uploading.</span>
+<span class="sd">empty            Set to True if you wish to send an empty body with</span>
+<span class="sd">                 the PUT rather than reading from the io_manager&#39;s</span>
+<span class="sd">                 stdin.</span>
+<span class="sd">headers          A dict of headers to send.</span>
+<span class="sd">input\_          A string representing where input should be obtained</span>
+<span class="sd">                 from. If None, the io_manager&#39;s stdin will be used.</span>
+<span class="sd">                 If a directory path is specified, a set of PUTs will</span>
+<span class="sd">                 be generated for each item in the directory</span>
+<span class="sd">                 structure. If a file path is specified, that single</span>
+<span class="sd">                 file will be used as input.</span>
+<span class="sd">io_manager       For directing output and obtaining input if needed.</span>
+<span class="sd">newer            Set to True to check if the local file is newer than</span>
+<span class="sd">                 an existing object before uploading.</span>
+<span class="sd">query            A dict of query parameters to send.</span>
+<span class="sd">seek             Where to seek to in the input\_ before uploading;</span>
+<span class="sd">                 usually just used by recursive calls with segmented</span>
+<span class="sd">                 objects.</span>
+<span class="sd">segment_size     The max size of a file before switching to a</span>
+<span class="sd">                 segmented object and the max size of each object</span>
+<span class="sd">                 segment.</span>
+<span class="sd">static_segments  Set to True to use static large object support</span>
+<span class="sd">                 instead of dynamic large object support.</span>
+<span class="sd">===============  ====================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">swiftly.concurrency</span>
+<span class="kn">import</span> <span class="nn">swiftly.cli.command</span>
+
+
+<div class="viewcode-block" id="cli_put_directory_structure"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put_directory_structure">[docs]</a><span class="k">def</span> <span class="nf">cli_put_directory_structure</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs PUTs rooted at the path using a directory structure</span>
+<span class="sd">    pointed to by context.input\_.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.put` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIPut` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;called cli_put_directory_structure without context.input_ set&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;</span><span class="si">%r</span><span class="s"> is not a directory&#39;</span> <span class="o">%</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;uploading a directory structure requires at least a container &#39;</span>
+            <span class="s">&#39;name&#39;</span><span class="p">)</span>
+    <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">new_context</span><span class="o">.</span><span class="n">input_</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">cli_put_container</span><span class="p">(</span><span class="n">new_context</span><span class="p">,</span> <span class="n">container</span><span class="p">)</span>
+    <span class="n">ilen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">):</span>
+        <span class="n">ilen</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">conc</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">concurrency</span><span class="o">.</span><span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">dirnames</span><span class="p">,</span> <span class="n">filenames</span><span class="p">)</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dirnames</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">filenames</span><span class="p">:</span>
+            <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&#39;content-type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;text/directory&#39;</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&#39;x-object-meta-mtime&#39;</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="s">&#39;</span><span class="si">%f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">input_</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">empty</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">new_path</span> <span class="o">=</span> <span class="n">path</span>
+            <span class="k">if</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;/&#39;</span><span class="p">:</span>
+                <span class="n">new_path</span> <span class="o">+=</span> <span class="s">&#39;/&#39;</span>
+            <span class="n">new_path</span> <span class="o">+=</span> <span class="n">dirpath</span><span class="p">[</span><span class="n">ilen</span><span class="p">:]</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
+                    <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+                    <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                    <span class="k">raise</span> <span class="n">exc_value</span>
+            <span class="n">conc</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">new_path</span><span class="p">,</span> <span class="n">cli_put_object</span><span class="p">,</span> <span class="n">new_context</span><span class="p">,</span> <span class="n">new_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">fname</span> <span class="ow">in</span> <span class="n">filenames</span><span class="p">:</span>
+                <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">new_context</span><span class="o">.</span><span class="n">input_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+                <span class="n">new_path</span> <span class="o">=</span> <span class="n">path</span>
+                <span class="k">if</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;/&#39;</span><span class="p">:</span>
+                    <span class="n">new_path</span> <span class="o">+=</span> <span class="s">&#39;/&#39;</span>
+                <span class="k">if</span> <span class="n">dirpath</span><span class="p">[</span><span class="n">ilen</span><span class="p">:]:</span>
+                    <span class="n">new_path</span> <span class="o">+=</span> <span class="n">dirpath</span><span class="p">[</span><span class="n">ilen</span><span class="p">:]</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span>
+                <span class="n">new_path</span> <span class="o">+=</span> <span class="n">fname</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
+                        <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+                        <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                        <span class="k">raise</span> <span class="n">exc_value</span>
+                <span class="n">conc</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">new_path</span><span class="p">,</span> <span class="n">cli_put_object</span><span class="p">,</span> <span class="n">new_context</span><span class="p">,</span> <span class="n">new_path</span><span class="p">)</span>
+    <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
+            <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">exc_value</span>
+
+</div>
+<div class="viewcode-block" id="cli_put_account"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put_account">[docs]</a><span class="k">def</span> <span class="nf">cli_put_account</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a PUT on the account.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.put` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIPut` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">get_stdin</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">put_account</span><span class="p">(</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">,</span>
+            <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+            <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;putting account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="cli_put_container"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put_container">[docs]</a><span class="k">def</span> <span class="nf">cli_put_container</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a PUT on the container.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.put` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIPut` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;called cli_put_container with object </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="n">body</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">get_stdin</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">put_container</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span>
+            <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+            <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;putting container </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="cli_put_object"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put_object">[docs]</a><span class="k">def</span> <span class="nf">cli_put_object</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a PUT on the object.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.put` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIPut` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">put_headers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;content-length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;0&#39;</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="ow">or</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">get_stdin</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">context</span><span class="o">.</span><span class="n">seek</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">body</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+        <span class="n">body</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">seek</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">l_mtime</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getmtime</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">newer</span> <span class="ow">or</span> <span class="n">context</span><span class="o">.</span><span class="n">different</span><span class="p">:</span>
+            <span class="n">r_mtime</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">r_size</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+                <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">head_object</span><span class="p">(</span>
+                    <span class="o">*</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span>
+                    <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                    <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">r_mtime</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-object-meta-mtime&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">r_mtime</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">r_mtime</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r_mtime</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="n">r_mtime</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="n">r_size</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">r_size</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">r_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r_size</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="n">r_size</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">elif</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">404</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;could not head </span><span class="si">%r</span><span class="s"> for conditional check; skipping put: &#39;</span>
+                    <span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">newer</span> <span class="ow">and</span> <span class="n">r_mtime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">l_mtime</span> <span class="o">&lt;=</span> <span class="n">r_mtime</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">different</span> <span class="ow">and</span> <span class="n">r_mtime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> \
+                    <span class="n">l_mtime</span> <span class="o">==</span> <span class="n">r_mtime</span> <span class="ow">and</span> <span class="n">r_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> \
+                    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span> <span class="o">==</span> <span class="n">r_size</span><span class="p">:</span>
+                <span class="k">return</span>
+        <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;x-object-meta-mtime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">l_mtime</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span><span class="p">:</span>
+            <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">input_</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">container</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;_segments&#39;</span>
+            <span class="n">cli_put_container</span><span class="p">(</span><span class="n">new_context</span><span class="p">,</span> <span class="n">container</span><span class="p">)</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">container</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">/</span><span class="si">%s</span><span class="s">/</span><span class="si">%s</span><span class="s">/&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">l_mtime</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+            <span class="n">conc</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">concurrency</span><span class="o">.</span><span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">segment</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">path2info</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">while</span> <span class="n">start</span> <span class="o">&lt;</span> <span class="n">size</span><span class="p">:</span>
+                <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">new_context</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
+                <span class="n">new_context</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s">&#39;content-length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span>
+                    <span class="n">size</span> <span class="o">-</span> <span class="n">start</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span><span class="p">))</span>
+                <span class="n">new_context</span><span class="o">.</span><span class="n">seek</span> <span class="o">=</span> <span class="n">start</span>
+                <span class="n">new_path</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s%08d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">segment</span><span class="p">)</span>
+                <span class="k">for</span> <span class="p">(</span><span class="n">ident</span><span class="p">,</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span> <span class="ow">in</span> \
+                        <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+                        <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                        <span class="k">raise</span> <span class="n">exc_value</span>
+                    <span class="n">path2info</span><span class="p">[</span><span class="n">ident</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+                <span class="n">conc</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span>
+                    <span class="n">new_path</span><span class="p">,</span> <span class="n">cli_put_object</span><span class="p">,</span> <span class="n">new_context</span><span class="p">,</span> <span class="n">new_path</span><span class="p">)</span>
+                <span class="n">segment</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">start</span> <span class="o">+=</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span>
+            <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="k">for</span> <span class="p">(</span><span class="n">ident</span><span class="p">,</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span> <span class="ow">in</span> \
+                    <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">exc_value</span>
+                <span class="n">path2info</span><span class="p">[</span><span class="n">ident</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+            <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">static_segments</span><span class="p">:</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span>
+                    <span class="p">{</span><span class="s">&#39;path&#39;</span><span class="p">:</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="p">,</span> <span class="s">&#39;size_bytes&#39;</span><span class="p">:</span> <span class="n">s</span><span class="p">,</span> <span class="s">&#39;etag&#39;</span><span class="p">:</span> <span class="n">e</span><span class="p">}</span>
+                    <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">path2info</span><span class="o">.</span><span class="n">iteritems</span><span class="p">())])</span>
+                <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;content-type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;application/json&#39;</span>
+                <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;content-length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">))</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="s">&#39;multipart-manifest&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;put&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;content-length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;0&#39;</span>
+                <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;x-object-manifest&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">body</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">container</span><span class="p">,</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span>
+            <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">put_headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span>
+            <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+            <span class="n">contents</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;putting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">contents</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">seek</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">put_headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">),</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;etag&#39;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="cli_put"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put">[docs]</a><span class="k">def</span> <span class="nf">cli_put</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a PUT on the item (account, container, or object).</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.put` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIPut` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">path</span> <span class="k">else</span> <span class="s">&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cli_put_directory_structure</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cli_put_account</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s">&#39;/&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cli_put_container</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cli_put_object</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="CLIPut"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.CLIPut">[docs]</a><span class="k">class</span> <span class="nc">CLIPut</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">CLICommand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A CLICommand that can issue PUT requests.</span>
+
+<span class="sd">    See the output of ``swiftly help put`` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cli</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CLIPut</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
+            <span class="n">cli</span><span class="p">,</span> <span class="s">&#39;put&#39;</span><span class="p">,</span> <span class="n">max_args</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">Usage: %prog [main_options] put [options] [path]</span>
+
+<span class="s">For help on [main_options] run %prog with no args.</span>
+
+<span class="s">Performs a PUT request on the &lt;path&gt; given. If the &lt;path&gt; is an object, the</span>
+<span class="s">contents for the object are read from standard input.</span>
+
+<span class="s">Special Note About Segmented Objects:</span>
+
+<span class="s">For object uploads exceeding the -s [size] (default: 5G) the object will be</span>
+<span class="s">uploaded in segments. At this time, auto-segmenting only works for objects</span>
+<span class="s">uploaded from source files -- objects sourced from standard input cannot exceed</span>
+<span class="s">the maximum object size for the cluster.</span>
+
+<span class="s">A segmented object is one that has its contents in several other objects. On</span>
+<span class="s">download, these other objects are concatenated into a single object stream.</span>
+
+<span class="s">Segmented objects can be useful to greatly exceed the maximum single object</span>
+<span class="s">size, speed up uploading large objects with concurrent segment uploading, and</span>
+<span class="s">provide the option to replace, insert, and delete segments within a whole</span>
+<span class="s">object without having to alter or reupload any of the other segments.</span>
+
+<span class="s">The main object of a segmented object is called the &quot;manifest object&quot;. This</span>
+<span class="s">object just has an X-Object-Manifest header that points to another path where</span>
+<span class="s">the segments for the object contents are stored. For Swiftly, this header value</span>
+<span class="s">is auto-generated as the same name as the manifest object, but with &quot;_segments&quot;</span>
+<span class="s">added to the container name. This keeps the segments out of the main container</span>
+<span class="s">listing, which is often useful.</span>
+
+<span class="s">By default, Swift&#39;s dynamic large object support is used since it was</span>
+<span class="s">implemented first. However, if you prefix the [size] with an &#39;s&#39;, as in &#39;-s</span>
+<span class="s">s1048576&#39; Swiftly will use static large object support. These static large</span>
+<span class="s">objects are very similar as described above, except the manifest contains a</span>
+<span class="s">static list of the object segments. For more information on the tradeoffs, see</span>
+<span class="s">http://greg.brim.net/post/2013/05/16/1834.html&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-h&#39;</span><span class="p">,</span> <span class="s">&#39;--header&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;header&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;HEADER:VALUE&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Add a header to the request. This can be used multiple &#39;</span>
+                 <span class="s">&#39;times for multiple headers. Examples: &#39;</span>
+                 <span class="s">&#39;-hx-object-meta-color:blue -h &quot;Content-Type: text/html&quot;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-q&#39;</span><span class="p">,</span> <span class="s">&#39;--query&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;query&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;NAME[=VALUE]&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Add a query parameter to the request. This can be used &#39;</span>
+                 <span class="s">&#39;multiple times for multiple query parameters. Example: &#39;</span>
+                 <span class="s">&#39;-qmultipart-manifest=get&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-i&#39;</span><span class="p">,</span> <span class="s">&#39;--input&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;input_&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;PATH&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Indicates where to read the contents from; default is &#39;</span>
+                 <span class="s">&#39;standard input. If the PATH is a directory, all files in &#39;</span>
+                 <span class="s">&#39;the directory will be uploaded as similarly named objects &#39;</span>
+                 <span class="s">&#39;and empty directories will create text/directory marker &#39;</span>
+                 <span class="s">&#39;objects. Use a dash (as in &quot;-i -&quot;) to specify standard &#39;</span>
+                 <span class="s">&#39;input for account and container PUTs, as those do not &#39;</span>
+                 <span class="s">&#39;normally take input. This is useful with &#39;</span>
+                 <span class="s">&#39;-qextract-archive=&lt;format&gt; bulk upload requests. For &#39;</span>
+                 <span class="s">&#39;example: tar zc . | swiftly put -qextract-archive=tar.gz -i &#39;</span>
+                 <span class="s">&#39;- container&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-n&#39;</span><span class="p">,</span> <span class="s">&#39;--newer&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;newer&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For PUTs with an --input option, first performs a HEAD on &#39;</span>
+                 <span class="s">&#39;the object and compares the X-Object-Meta-Mtime header with &#39;</span>
+                 <span class="s">&#39;the modified time of the PATH obtained from the --input &#39;</span>
+                 <span class="s">&#39;option and then PUTs the object only if the local time is &#39;</span>
+                 <span class="s">&#39;newer. When the --input PATH is a directory, this offers an &#39;</span>
+                 <span class="s">&#39;easy way to upload only the newer files since the last &#39;</span>
+                 <span class="s">&#39;upload (at the expense of HEAD requests). NOTE THAT THIS &#39;</span>
+                 <span class="s">&#39;WILL NOT UPLOAD CHANGED FILES THAT DO NOT HAVE A NEWER &#39;</span>
+                 <span class="s">&#39;LOCAL MODIFIED TIME! NEWER does not mean DIFFERENT.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-d&#39;</span><span class="p">,</span> <span class="s">&#39;--different&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;different&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For PUTs with an --input option, first performs a HEAD on &#39;</span>
+                 <span class="s">&#39;the object and compares the X-Object-Meta-Mtime header with &#39;</span>
+                 <span class="s">&#39;the modified time of the PATH obtained from the --input &#39;</span>
+                 <span class="s">&#39;option and then PUTs the object only if the local time is &#39;</span>
+                 <span class="s">&#39;different. It will also check the local and remote sizes &#39;</span>
+                 <span class="s">&#39;and PUT if they differ. ETag/MD5sum checking are not done &#39;</span>
+                 <span class="s">&#39;(an option may be provided in the future) since this is &#39;</span>
+                 <span class="s">&#39;usually much more disk intensive. When the --input PATH is &#39;</span>
+                 <span class="s">&#39;a directory, this offers an easy way to upload only the &#39;</span>
+                 <span class="s">&#39;differing files since the last upload (at the expense of &#39;</span>
+                 <span class="s">&#39;HEAD requests). NOTE THAT THIS CAN UPLOAD OLDER FILES OVER &#39;</span>
+                 <span class="s">&#39;NEWER ONES! DIFFERENT does not mean NEWER.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-e&#39;</span><span class="p">,</span> <span class="s">&#39;--empty&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;empty&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Indicates a zero-byte object should be PUT.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-s&#39;</span><span class="p">,</span> <span class="s">&#39;--segment-size&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;segment_size&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;BYTES&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Indicates the maximum size of an object before uploading it &#39;</span>
+                 <span class="s">&#39;as a segmented object. See full help text for more &#39;</span>
+                 <span class="s">&#39;information.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args_and_create_context</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_list_to_lowered_dict</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_list_to_lowered_dict</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">input_</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">static_segments</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;s&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">static_segments</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="ow">or</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;invalid segment size </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">empty</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">empty</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">newer</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">newer</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">different</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">different</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="n">cli_put</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
+    </div>
+  </body>
+</html>

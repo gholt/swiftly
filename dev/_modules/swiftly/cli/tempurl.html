@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.tempurl &mdash; Swiftly 1.99 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.99',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.99 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.tempurl</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains a CLICommand for generating TempURLs.</span>
+
+<span class="sd">Uses the following from :py:class:`swiftly.cli.context.CLIContext`:</span>
+
+<span class="sd">==============  ========================</span>
+<span class="sd">io_manager      For directing output.</span>
+<span class="sd">client_manager  For connecting to Swift.</span>
+<span class="sd">==============  ========================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+
+<span class="kn">import</span> <span class="nn">swiftly.client</span>
+<span class="kn">import</span> <span class="nn">swiftly.cli.command</span>
+
+
+<div class="viewcode-block" id="cli_tempurl"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.tempurl.cli_tempurl">[docs]</a><span class="k">def</span> <span class="nf">cli_tempurl</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">seconds</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates a TempURL and sends that to the context.io_manager&#39;s</span>
+<span class="sd">    stdout.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.tempurl` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLITempURL` for more information.</span>
+
+<span class="sd">    :param context: The :py:class:`swiftly.cli.context.CLIContext` to</span>
+<span class="sd">        use.</span>
+<span class="sd">    :param method: The method for the TempURL (GET, PUT, etc.)</span>
+<span class="sd">    :param path: The path the TempURL should direct to.</span>
+<span class="sd">    :param seconds: The number of seconds the TempURL should be good</span>
+<span class="sd">        for. Default: 3600</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">nested</span><span class="p">(</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">(),</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">())</span> <span class="k">as</span> <span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">method</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+        <span class="n">seconds</span> <span class="o">=</span> <span class="n">seconds</span> <span class="k">if</span> <span class="n">seconds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="mi">3600</span>
+        <span class="k">if</span> <span class="s">&#39;/&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;invalid tempurl path </span><span class="si">%r</span><span class="s">; should have a / within it&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">head_account</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;obtaining X-Account-Meta-Temp-Url-Key: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-account-meta-temp-url-key&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;there is no X-Account-Meta-Temp-Url-Key set for this account&#39;</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">path</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">generate_temp_url</span><span class="p">(</span>
+            <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">seconds</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+</div>
+<div class="viewcode-block" id="CLITempURL"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.tempurl.CLITempURL">[docs]</a><span class="k">class</span> <span class="nc">CLITempURL</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">CLICommand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A CLICommand for generating TempURLs.</span>
+
+<span class="sd">    See the output of ``swiftly help tempurl`` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cli</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CLITempURL</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
+            <span class="n">cli</span><span class="p">,</span> <span class="s">&#39;tempurl&#39;</span><span class="p">,</span> <span class="n">min_args</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_args</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">Usage: %prog [main_options] tempurl &lt;method&gt; &lt;path&gt; [seconds]</span>
+
+<span class="s">For help on [main_options] run %prog with no args.</span>
+
+<span class="s">Outputs a TempURL using the information given.</span>
+<span class="s">The &lt;path&gt; should be to an object or object-prefix.</span>
+<span class="s">[seconds] defaults to 3600&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args_and_create_context</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">seconds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="n">cli_tempurl</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">seconds</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
+    </div>
+  </body>
+</html>

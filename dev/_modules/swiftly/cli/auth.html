@@ -1,0 +1,228 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.auth &mdash; Swiftly 1.99 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.99',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.99 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.auth</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains a CLICommand that authenticates and then outputs the</span>
+<span class="sd">resulting information.</span>
+
+<span class="sd">Uses the following from :py:class:`swiftly.cli.context.CLIContext`:</span>
+
+<span class="sd">==============  ========================</span>
+<span class="sd">client_manager  For connecting to Swift.</span>
+<span class="sd">io_manager      For directing output.</span>
+<span class="sd">==============  ========================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+
+<span class="kn">import</span> <span class="nn">swiftly.cli.command</span>
+
+
+<div class="viewcode-block" id="cli_auth"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.auth.cli_auth">[docs]</a><span class="k">def</span> <span class="nf">cli_auth</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Authenticates and then outputs the resulting information.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.auth` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIAuth` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">nested</span><span class="p">(</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">(),</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">())</span> <span class="k">as</span> <span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">cache_path</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Cache&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">cache_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_url</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth URL&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_url</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_user</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth User&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_user</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_key</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Key&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_key</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_tenant</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Tenant&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_tenant</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_methods</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Methods&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_methods</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Direct Storage Path&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">storage_path</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">auth</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">regions</span><span class="p">:</span>
+                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Regions&#39;</span><span class="p">,</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">regions</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">regions_default</span><span class="p">:</span>
+                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Default Region&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">regions_default</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">region</span><span class="p">:</span>
+                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Selected Region&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">region</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">snet</span><span class="p">:</span>
+                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;SNet&#39;</span><span class="p">,</span> <span class="s">&#39;True&#39;</span><span class="p">))</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Storage URL&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">storage_url</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">:</span>
+                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;CDN Management URL&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">))</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Token&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_token</span><span class="p">))</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Request Retries&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">attempts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%%</span><span class="s">-</span><span class="si">%d</span><span class="s">s </span><span class="si">%%</span><span class="s">s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">info</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">info</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fmt</span> <span class="o">%</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+</div>
+<div class="viewcode-block" id="CLIAuth"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.auth.CLIAuth">[docs]</a><span class="k">class</span> <span class="nc">CLIAuth</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">CLICommand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A CLICommand that authenticates and then outputs the resulting</span>
+<span class="sd">    information.</span>
+
+<span class="sd">    See the output of ``swiftly help auth`` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cli</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CLIAuth</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
+            <span class="n">cli</span><span class="p">,</span> <span class="s">&#39;auth&#39;</span><span class="p">,</span> <span class="n">max_args</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">Usage: %prog [main_options] auth</span>
+
+<span class="s">For help on [main_options] run %prog with no args.</span>
+
+<span class="s">Authenticates and then outputs the resulting information.</span>
+
+<span class="s">Possible Output Values:</span>
+
+<span class="s">    Auth Cache           The location where auth info may be cached.</span>
+<span class="s">    Auth URL             The URL of the auth service if in use.</span>
+<span class="s">    Auth User            The user to auth as if in use.</span>
+<span class="s">    Auth Key             The key to auth with if in use.</span>
+<span class="s">    Auth Tenant          The tenant to auth as if in use.</span>
+<span class="s">    Auth Methods         The auth methods in use if any specified.</span>
+<span class="s">    Direct Storage Path  The direct-mode path if in use.</span>
+<span class="s">    Regions              The available regions as reported by the auth service.</span>
+<span class="s">    Default Region       The default region as reported by the auth service.</span>
+<span class="s">    Selected Region      The region selected for use by Swiftly.</span>
+<span class="s">    SNet                 True if ServiceNet/InternalURL would be used.</span>
+<span class="s">    Storage URL          The URL to use for storage as reported by the auth</span>
+<span class="s">                         service.</span>
+<span class="s">    CDN Management URL   The URL to use for CDN management as reported by the</span>
+<span class="s">                         auth service.</span>
+<span class="s">    Auth Token           The auth token to use as reported by the auth service.</span>
+<span class="s">    Request Retries      The number retries to be done for any request.</span>
+
+<span class="s">Example Output:</span>
+
+<span class="s">Auth Cache:         /tmp/user.swiftly</span>
+<span class="s">Auth URL:           https://identity.api.rackspacecloud.com/v2.0</span>
+<span class="s">Auth User:          myusername</span>
+<span class="s">Auth Key:           mykey</span>
+<span class="s">Regions:            ORD DFW SYD IAD HKG</span>
+<span class="s">Default Region:     ORD</span>
+<span class="s">Selected Region:    IAD</span>
+<span class="s">SNet:               True</span>
+<span class="s">Storage URL:        https://snet-storage101.iad3.clouddrive.com/v1/account</span>
+<span class="s">CDN Management URL: https://cdn5.clouddrive.com/v1/account</span>
+<span class="s">Auth Token:         abcdef0123456789abcdef0123456789</span>
+<span class="s">Request Retries:    4</span>
+<span class="s">            &quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args_and_create_context</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cli_auth</span><span class="p">(</span><span class="n">context</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
+    </div>
+  </body>
+</html>

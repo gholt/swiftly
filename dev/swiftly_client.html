@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>swiftly.client &mdash; Swiftly 1.13 documentation</title>
+    <title>swiftly.client &mdash; Swiftly 1.99 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '1.13',
+        VERSION:     '1.99',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Swiftly 1.13 documentation" href="index.html" />
+    <link rel="top" title="Swiftly 1.99 documentation" href="index.html" />
     <link rel="next" title="swiftly.concurrency" href="swiftly_concurrency.html" />
     <link rel="prev" title="swiftly.cli" href="swiftly_cli.html" /> 
   </head>
@@ -43,7 +43,7 @@
         <li class="right" >
           <a href="swiftly_cli.html" title="swiftly.cli"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Swiftly 1.13 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Swiftly 1.99 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -54,7 +54,7 @@
             
   <div class="section" id="module-swiftly.client">
 <span id="swiftly-client"></span><span id="swiftly-client-module"></span><h1>swiftly.client<a class="headerlink" href="#module-swiftly.client" title="Permalink to this headline">¶</a></h1>
-<p>Client API to Swift</p>
+<p>Client API to Swift.</p>
 <p>Copyright 2011-2013 Gregory Holt
 Portions Copyright (c) 2010-2012 OpenStack Foundation</p>
 <p>Licensed under the Apache License, Version 2.0 (the &#8220;License&#8221;);
@@ -283,7 +283,7 @@ list.</td>
 
 <dl class="method">
 <dt id="swiftly.client.Client.get_account">
-<tt class="descname">get_account</tt><big>(</big><em>headers=None</em>, <em>prefix=None</em>, <em>delimiter=None</em>, <em>marker=None</em>, <em>end_marker=None</em>, <em>limit=None</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.get_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.get_account" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">get_account</tt><big>(</big><em>headers=None</em>, <em>prefix=None</em>, <em>delimiter=None</em>, <em>marker=None</em>, <em>end_marker=None</em>, <em>limit=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>decode_json=True</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.get_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.get_account" title="Permalink to this definition">¶</a></dt>
 <dd><p>GETs the account and returns the results. This is done to list
 the containers for the account. Some useful headers are also
 returned:</p>
@@ -352,6 +352,9 @@ cluster (usually 10,000).</li>
 query string of the request.</li>
 <li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
 used.</li>
+<li><strong>decode_json</strong> &#8211; If set False, the usual decoding of the
+JSON response will be skipped and the raw contents will
+be returned instead.</li>
 </ul>
 </td>
 </tr>
@@ -368,7 +371,8 @@ used.</li>
 headers; if a header has multiple values, it will be a
 list.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the decoded JSON response or the raw str
+for the HTTP body.</td>
 </tr>
 </tbody>
 </table>
@@ -386,7 +390,7 @@ list.</td>
 
 <dl class="method">
 <dt id="swiftly.client.Client.get_container">
-<tt class="descname">get_container</tt><big>(</big><em>container</em>, <em>headers=None</em>, <em>prefix=None</em>, <em>delimiter=None</em>, <em>marker=None</em>, <em>end_marker=None</em>, <em>limit=None</em>, <em>query=None</em>, <em>cdn=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.get_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.get_container" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">get_container</tt><big>(</big><em>container</em>, <em>headers=None</em>, <em>prefix=None</em>, <em>delimiter=None</em>, <em>marker=None</em>, <em>end_marker=None</em>, <em>limit=None</em>, <em>query=None</em>, <em>cdn=False</em>, <em>decode_json=True</em><big>)</big><a class="reference internal" href="_modules/swiftly/client.html#Client.get_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.Client.get_container" title="Permalink to this definition">¶</a></dt>
 <dd><p>GETs the container and returns the results. This is done to
 list the objects for the container. Some useful headers are
 also returned:</p>
@@ -452,6 +456,9 @@ cluster (usually 10,000).</li>
 query string of the request.</li>
 <li><strong>cdn</strong> &#8211; If set True, the CDN management interface will be
 used.</li>
+<li><strong>decode_json</strong> &#8211; If set False, the usual decoding of the
+JSON response will be skipped and the raw contents will
+be returned instead.</li>
 </ul>
 </td>
 </tr>
@@ -468,7 +475,8 @@ used.</li>
 headers; if a header has multiple values, it will be a
 list.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the str for the HTTP body.</td>
+<tr class="field-even field"><th class="field-name">contents:</th><td class="field-body">is the decoded JSON response or the raw str
+for the HTTP body.</td>
 </tr>
 </tbody>
 </table>
@@ -954,7 +962,7 @@ be sent to be stored with the object. Content-Type,
 Content-Encoding and other standard HTTP headers can often
 also be set, depending on the Swift cluster.</p>
 <p>Note that you can set the ETag header to the MD5 sum of the
-contents for extra verifification the object was stored
+contents for extra verification the object was stored
 correctly.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1011,6 +1019,247 @@ certain.</p>
 
 </dd></dl>
 
+<div class="section" id="module-swiftly.client.manager">
+<span id="manager"></span><h2>manager<a class="headerlink" href="#module-swiftly.client.manager" title="Permalink to this headline">¶</a></h2>
+<p>Contains ClientManager and IOManager classes that can be used to
+manage resources.</p>
+<dl class="class">
+<dt id="swiftly.client.manager.ClientManager">
+<em class="property">class </em><tt class="descclassname">swiftly.client.manager.</tt><tt class="descname">ClientManager</tt><big>(</big><em>auth_url=None</em>, <em>auth_user=None</em>, <em>auth_key=None</em>, <em>proxy=None</em>, <em>snet=False</em>, <em>retries=4</em>, <em>swift_proxy=None</em>, <em>swift_proxy_storage_path=None</em>, <em>cache_path=None</em>, <em>eventlet=None</em>, <em>swift_proxy_cdn_path=None</em>, <em>region=None</em>, <em>verbose=None</em>, <em>verbose_id=''</em>, <em>auth_tenant=None</em>, <em>auth_methods=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#ClientManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.ClientManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Is constructed exactly like <a class="reference internal" href="#swiftly.client.Client" title="swiftly.client.Client"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.client.Client</span></tt></a> and
+is then used to construct actual clients as needed.</p>
+<dl class="method">
+<dt id="swiftly.client.manager.ClientManager.get_client">
+<tt class="descname">get_client</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#ClientManager.get_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.ClientManager.get_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Obtains a <a class="reference internal" href="#swiftly.client.Client" title="swiftly.client.Client"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.client.Client</span></tt></a> for use, whether
+an existing unused client or a brand new one if none are
+available.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.ClientManager.put_client">
+<tt class="descname">put_client</tt><big>(</big><em>client</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#ClientManager.put_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.ClientManager.put_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a client back into the pool for availability to
+future calls to get_client. This should only be called if
+get_client was used to obtain the client; with_client is a
+context manager that does this for you.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.ClientManager.with_client">
+<tt class="descname">with_client</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#ClientManager.with_client"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.ClientManager.with_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager that obtains a
+<a class="reference internal" href="#swiftly.client.Client" title="swiftly.client.Client"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.client.Client</span></tt></a> for use, whether an
+existing unused client or a brand new one if none are
+available.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="swiftly.client.manager.IOManager">
+<em class="property">class </em><tt class="descclassname">swiftly.client.manager.</tt><tt class="descname">IOManager</tt><big>(</big><em>stdin=None</em>, <em>stdout=None</em>, <em>stderr=None</em>, <em>debug=None</em>, <em>stdin_root=None</em>, <em>stdout_root=None</em>, <em>stderr_root=None</em>, <em>debug_root=None</em>, <em>stdin_sub_command=None</em>, <em>stdout_sub_command=None</em>, <em>stderr_sub_command=None</em>, <em>debug_sub_command=None</em>, <em>subprocess_module=None</em>, <em>verbose=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Manages access to IO in ways that are mostly specific to
+<a class="reference internal" href="swiftly_cli.html#module-swiftly.cli" title="swiftly.cli"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli</span></tt></a> but might be generally useful.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>stdin</strong> &#8211; The file-like object to use for default stdin or
+sys.stdin if None.</li>
+<li><strong>stdout</strong> &#8211; The file-like object to use for default stdout or
+sys.stdout if None.</li>
+<li><strong>stderr</strong> &#8211; The file-like object to use for default stderr or
+sys.stderr if None.</li>
+<li><strong>debug</strong> &#8211; The file-like object to use for default debug
+output or sys.stderr if None.</li>
+<li><strong>stdin_root</strong> &#8211; The root path to use for requests for pathed
+stdin file-like objects.</li>
+<li><strong>stdout_root</strong> &#8211; The root path to use for requests for pathed
+stdout file-like objects.</li>
+<li><strong>stderr_root</strong> &#8211; The root path to use for requests for pathed
+stderr file-like objects.</li>
+<li><strong>debug_root</strong> &#8211; The root path to use for requests for pathed
+debug file-like objects.</li>
+<li><strong>stdin_sub_command</strong> &#8211; A shell line to pipe any stdin
+file-like objects through.</li>
+<li><strong>stdout_sub_command</strong> &#8211; A shell line to pipe any stdout
+file-like objects through.</li>
+<li><strong>stderr_sub_command</strong> &#8211; A shell line to pipe any stderr
+file-like objects through.</li>
+<li><strong>debug_sub_command</strong> &#8211; A shell line to pipe any debug
+file-like objects through.</li>
+<li><strong>subprocess_module</strong> &#8211; The subprocess module to use; for
+instance, you might use eventlet.green.subprocess instead of
+the standard subprocess module.</li>
+<li><strong>verbose</strong> &#8211; A function to call with <tt class="docutils literal"><span class="pre">(msg)</span></tt> when waiting
+for subcommands to complete and for logging the subcommands&#8217;
+return codes.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.client_path_to_os_path">
+<tt class="descname">client_path_to_os_path</tt><big>(</big><em>client_path</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.client_path_to_os_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.client_path_to_os_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a client path into the operating system&#8217;s path by
+replacing instances of &#8216;/&#8217; with os.path.sep.</p>
+<p>Note: If the client path contains any instances of
+os.path.sep already, they will be replaced with &#8216;-&#8216;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.get_debug">
+<tt class="descname">get_debug</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.get_debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.get_debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a debug-output-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.get_stderr">
+<tt class="descname">get_stderr</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.get_stderr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.get_stderr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stderr-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.get_stdin">
+<tt class="descname">get_stdin</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.get_stdin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.get_stdin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stdin-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.get_stdout">
+<tt class="descname">get_stdout</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.get_stdout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.get_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stdout-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.os_path_to_client_path">
+<tt class="descname">os_path_to_client_path</tt><big>(</big><em>os_path</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.os_path_to_client_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.os_path_to_client_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts an operating system path into a client path by
+replacing instances of os.path.sep with &#8216;/&#8217;.</p>
+<p>Note: If the client path contains any instances of &#8216;/&#8217;
+already, they will be replaced with &#8216;-&#8216;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.with_debug">
+<tt class="descname">with_debug</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.with_debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.with_debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a debug-output-suitable file-like
+object based on the optional os_path and optionally skipping
+any configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.with_stderr">
+<tt class="descname">with_stderr</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.with_stderr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.with_stderr" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stderr-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.with_stdin">
+<tt class="descname">with_stdin</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.with_stdin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.with_stdin" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stdin-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.client.manager.IOManager.with_stdout">
+<tt class="descname">with_stdout</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/manager.html#IOManager.with_stdout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.manager.IOManager.with_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stdout-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
 </div>
 
 
@@ -1019,6 +1268,14 @@ certain.</p>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">swiftly.client</a><ul>
+<li><a class="reference internal" href="#module-swiftly.client.manager">manager</a></li>
+</ul>
+</li>
+</ul>
+
   <h4>Previous topic</h4>
   <p class="topless"><a href="swiftly_cli.html"
                         title="previous chapter">swiftly.cli</a></p>
@@ -1062,7 +1319,7 @@ certain.</p>
         <li class="right" >
           <a href="swiftly_cli.html" title="swiftly.cli"
              >previous</a> |</li>
-        <li><a href="index.html">Swiftly 1.13 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Swiftly 1.99 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

@@ -1,0 +1,238 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.optionparser &mdash; Swiftly 1.99 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.99',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.99 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.optionparser</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains an extended optparse.OptionParser that works better with</span>
+<span class="sd">command line applications that may call other command line</span>
+<span class="sd">applications or use multiple parsers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">optparse</span>
+
+
+<span class="k">def</span> <span class="nf">_stdout_filed</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Instance method decorator to convert an optional file keyword</span>
+<span class="sd">    argument into an actual value, whether it be a passed value, a</span>
+<span class="sd">    value obtained from an io_manager, or sys.stdout.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">file</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="nb">file</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">io_manager</span><span class="p">:</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">stdout</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="n">stdout</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+    <span class="n">wrapper</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">__doc__</span>
+    <span class="k">return</span> <span class="n">wrapper</span>
+
+
+<span class="k">def</span> <span class="nf">_stderr_filed</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Instance method decorator to convert an optional file keyword</span>
+<span class="sd">    argument into an actual value, whether it be a passed value, a</span>
+<span class="sd">    value obtained from an io_manager, or sys.stderr.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">file</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="nb">file</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">io_manager</span><span class="p">:</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">stderr</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="n">stderr</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+    <span class="n">wrapper</span><span class="o">.</span><span class="n">__doc__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">__doc__</span>
+    <span class="k">return</span> <span class="n">wrapper</span>
+
+
+<div class="viewcode-block" id="OptionParser"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.optionparser.OptionParser">[docs]</a><span class="k">class</span> <span class="nc">OptionParser</span><span class="p">(</span><span class="n">optparse</span><span class="o">.</span><span class="n">OptionParser</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extended optparse.OptionParser that supports an io_manager,</span>
+<span class="sd">    raw_epilog output, and an error prefix. It also does not exit</span>
+<span class="sd">    automatically on error and instead sets an instance bool of</span>
+<span class="sd">    error_encountered.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">option_list</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">option_class</span><span class="o">=</span><span class="n">optparse</span><span class="o">.</span><span class="n">Option</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">conflict_handler</span><span class="o">=</span><span class="s">&#39;error&#39;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">formatter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">add_help_option</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">prog</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">epilog</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">io_manager</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">raw_epilog</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">error_prefix</span><span class="o">=</span><span class="s">&#39;&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">OptionParser</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
+            <span class="n">usage</span><span class="p">,</span> <span class="n">option_list</span><span class="p">,</span> <span class="n">option_class</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">conflict_handler</span><span class="p">,</span>
+            <span class="n">description</span><span class="p">,</span> <span class="n">formatter</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">prog</span><span class="p">,</span> <span class="n">epilog</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">add_help_option</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+                <span class="s">&#39;-?&#39;</span><span class="p">,</span> <span class="s">&#39;--help&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;help&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+                <span class="n">help</span><span class="o">=</span><span class="s">&#39;Shows this help text.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_option</span><span class="p">(</span><span class="s">&#39;--version&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+                <span class="s">&#39;--version&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;version&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+                <span class="n">help</span><span class="o">=</span><span class="s">&#39;Shows the version of Swiftly.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">io_manager</span> <span class="o">=</span> <span class="n">io_manager</span>
+        <span class="c">#: Output just after the standard print_help output, in it&#39;s raw form.</span>
+        <span class="c">#: This is different than epilog in that epilog is reformatted.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raw_epilog</span> <span class="o">=</span> <span class="n">raw_epilog</span>
+        <span class="c">#: Output just before any error. This can be useful in identification</span>
+        <span class="c">#: when multiple parsers are in use.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_prefix</span> <span class="o">=</span> <span class="n">error_prefix</span>
+        <span class="c">#: True if an error was encountered while parsing.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_encountered</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="nd">@_stderr_filed</span>
+<div class="viewcode-block" id="OptionParser.error"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.optionparser.OptionParser.error">[docs]</a>    <span class="k">def</span> <span class="nf">error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Outputs the error msg to the file if specified, or to the</span>
+<span class="sd">        io_manager&#39;s stderr if available, or to sys.stderr.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_encountered</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_prefix</span><span class="p">)</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="OptionParser.exit"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.optionparser.OptionParser.exit">[docs]</a>    <span class="k">def</span> <span class="nf">exit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Immediately exits Python with the given status (or 0) as the</span>
+<span class="sd">        exit code and optionally outputs the msg using self.error.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">status</span><span class="p">)</span>
+</div>
+    <span class="nd">@_stdout_filed</span>
+<div class="viewcode-block" id="OptionParser.print_help"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.optionparser.OptionParser.print_help">[docs]</a>    <span class="k">def</span> <span class="nf">print_help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Outputs help information to the file if specified, or to the</span>
+<span class="sd">        io_manager&#39;s stdout if available, or to sys.stdout.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">optparse</span><span class="o">.</span><span class="n">OptionParser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_epilog</span><span class="p">:</span>
+            <span class="nb">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_epilog</span><span class="p">)</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</div>
+    <span class="nd">@_stdout_filed</span>
+<div class="viewcode-block" id="OptionParser.print_usage"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.optionparser.OptionParser.print_usage">[docs]</a>    <span class="k">def</span> <span class="nf">print_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Outputs usage information to the file if specified, or to the</span>
+<span class="sd">        io_manager&#39;s stdout if available, or to sys.stdout.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">optparse</span><span class="o">.</span><span class="n">OptionParser</span><span class="o">.</span><span class="n">print_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="p">)</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</div>
+    <span class="nd">@_stdout_filed</span>
+<div class="viewcode-block" id="OptionParser.print_version"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.optionparser.OptionParser.print_version">[docs]</a>    <span class="k">def</span> <span class="nf">print_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Outputs version information to the file if specified, or to</span>
+<span class="sd">        the io_manager&#39;s stdout if available, or to sys.stdout.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">optparse</span><span class="o">.</span><span class="n">OptionParser</span><span class="o">.</span><span class="n">print_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">file</span><span class="p">)</span>
+        <span class="nb">file</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
+    </div>
+  </body>
+</html>

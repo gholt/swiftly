@@ -1,0 +1,441 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.cli &mdash; Swiftly 1.99 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.99',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.99 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.cli</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains the CLI class that handles the original command line.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">textwrap</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<span class="kn">import</span> <span class="nn">swiftly</span>
+<span class="kn">import</span> <span class="nn">swiftly.cli.context</span>
+<span class="kn">import</span> <span class="nn">swiftly.client.manager</span>
+<span class="kn">import</span> <span class="nn">swiftly.cli.optionparser</span>
+
+
+<span class="c">#: The list of CLICommand classes avaiable to CLI. You&#39;ll want to add any new</span>
+<span class="c">#: CLICommand you create to this list.</span>
+<span class="n">COMMANDS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s">&#39;swiftly.cli.auth.CLIAuth&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.delete.CLIDelete&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.get.CLIGet&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.head.CLIHead&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.help.CLIHelp&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.ping.CLIPing&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.post.CLIPost&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.put.CLIPut&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.tempurl.CLITempURL&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.trans.CLITrans&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="CLI"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.cli.CLI">[docs]</a><span class="k">class</span> <span class="nc">CLI</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handles the original command line.</span>
+
+<span class="sd">    An example script is `swiftly` itself::</span>
+
+<span class="sd">        #!/usr/bin/env python</span>
+<span class="sd">        import sys</span>
+<span class="sd">        import swiftly.cli</span>
+<span class="sd">        sys.exit(swiftly.cli.CLI()())</span>
+
+<span class="sd">    See the output of ``swiftly help`` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c">#: The overall CLIContext containing attributes generated by the</span>
+        <span class="c">#: initial main_options parsing.</span>
+        <span class="c">#:</span>
+        <span class="c">#: The available attributes are:</span>
+        <span class="c">#:</span>
+        <span class="c">#: ==============  ====================================================</span>
+        <span class="c">#: cdn             True if the CDN URL should be used instead of the</span>
+        <span class="c">#:                 default Storage URL.</span>
+        <span class="c">#: client_manager  The :py:class:`swiftly.client.manager.ClientManager`</span>
+        <span class="c">#:                 to use for obtaining clients.</span>
+        <span class="c">#: concurrency     Number of concurrent actions to allow.</span>
+        <span class="c">#: io_manager      The :py:class:`swiftly.client.manager.IOManager` to</span>
+        <span class="c">#:                 use for input and output.</span>
+        <span class="c">#: eventlet        True if Eventlet is in use.</span>
+        <span class="c">#: original_args   The original args used by the CLI.</span>
+        <span class="c">#: original_begin  The original time.time() when the CLI was called.</span>
+        <span class="c">#: verbose         Function to call when you want to (optionally) emit</span>
+        <span class="c">#:                 verbose output. ``verbose(msg, *args)`` where the</span>
+        <span class="c">#:                 output will be constructed with ``msg % args``.</span>
+        <span class="c">#: verbosity       Level of verbosity. Just None or 1 right now.</span>
+        <span class="c">#: ==============  ====================================================</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">CLIContext</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">IOManager</span><span class="p">()</span>
+
+        <span class="c">#: A dictionary of the available commands and their CLICommand</span>
+        <span class="c">#: instances.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commands</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">COMMANDS</span><span class="p">:</span>
+            <span class="n">mod</span><span class="p">,</span> <span class="n">cls</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">rsplit</span><span class="p">(</span><span class="s">&#39;.&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">cls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">__import__</span><span class="p">(</span><span class="n">mod</span><span class="p">,</span> <span class="n">fromlist</span><span class="o">=</span><span class="p">[</span><span class="n">cls</span><span class="p">]),</span> <span class="n">cls</span><span class="p">)</span>
+            <span class="n">inst</span> <span class="o">=</span> <span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">[</span><span class="n">inst</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">inst</span>
+
+        <span class="c">#: The main :py:class:`swiftly.cli.optionparser.OptionParser`.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">optionparser</span><span class="o">.</span><span class="n">OptionParser</span><span class="p">(</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">swiftly</span><span class="o">.</span><span class="n">VERSION</span><span class="p">,</span>
+            <span class="n">usage</span><span class="o">=</span><span class="s">&#39;Usage: %prog [options] &lt;command&gt; [command_options] [args]&#39;</span><span class="p">,</span>
+            <span class="n">io_manager</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-h&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;help&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Shows this help text.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-A&#39;</span><span class="p">,</span> <span class="s">&#39;--auth-url&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;auth_url&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_AUTH_URL&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;URL&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;URL to auth system, example: &#39;</span>
+                 <span class="s">&#39;http://127.0.0.1:8080/auth/v1.0 You can also set this with &#39;</span>
+                 <span class="s">&#39;the environment variable SWIFTLY_AUTH_URL.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-U&#39;</span><span class="p">,</span> <span class="s">&#39;--auth-user&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;auth_user&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_AUTH_USER&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;USER&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;User name for auth system, example: test:tester You can &#39;</span>
+                 <span class="s">&#39;also set this with the environment variable &#39;</span>
+                 <span class="s">&#39;SWIFTLY_AUTH_USER.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-K&#39;</span><span class="p">,</span> <span class="s">&#39;--auth-key&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;auth_key&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_AUTH_KEY&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;KEY&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Key for auth system, example: testing You can also set this &#39;</span>
+                 <span class="s">&#39;with the environment variable SWIFTLY_AUTH_KEY.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-T&#39;</span><span class="p">,</span> <span class="s">&#39;--auth-tenant&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;auth_tenant&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_AUTH_TENANT&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;TENANT&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Tenant name for auth system, example: test You can &#39;</span>
+                 <span class="s">&#39;also set this with the environment variable &#39;</span>
+                 <span class="s">&#39;SWIFTLY_AUTH_TENANT. If not specified and needed, the auth &#39;</span>
+                 <span class="s">&#39;user will be used.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--auth-methods&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;auth_methods&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_AUTH_METHODS&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;name[,name[...]]&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Auth methods to use with the auth system, example: &#39;</span>
+                 <span class="s">&#39;auth2key,auth2password,auth2password_force_tenant,auth1 You &#39;</span>
+                 <span class="s">&#39;can also set this with the environment variable &#39;</span>
+                 <span class="s">&#39;SWIFTLY_AUTH_METHODS. Swiftly will try to determine the &#39;</span>
+                 <span class="s">&#39;best order for you; but if you notice it keeps making &#39;</span>
+                 <span class="s">&#39;useless auth attempts and that drives you crazy, you can &#39;</span>
+                 <span class="s">&#39;override that here. All the available auth methods are &#39;</span>
+                 <span class="s">&#39;listed in the example.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--region&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;region&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_REGION&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;VALUE&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Region to use, if supported by auth, example: DFW You can &#39;</span>
+                 <span class="s">&#39;also set this with the environment variable SWIFTLY_REGION. &#39;</span>
+                 <span class="s">&#39;Default: default region specified by the auth response.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-D&#39;</span><span class="p">,</span> <span class="s">&#39;--direct&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;direct&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_DIRECT&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;PATH&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Uses direct connect method to access Swift. Requires access &#39;</span>
+                 <span class="s">&#39;to rings and backend servers. The PATH is the account &#39;</span>
+                 <span class="s">&#39;path, example: /v1/AUTH_test You can also set this with the &#39;</span>
+                 <span class="s">&#39;environment variable SWIFTLY_DIRECT.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-P&#39;</span><span class="p">,</span> <span class="s">&#39;--proxy&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;proxy&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_PROXY&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">),</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;URL&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Uses the given proxy URL. You can also set this with the &#39;</span>
+                 <span class="s">&#39;environment variable SWIFTLY_PROXY.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-S&#39;</span><span class="p">,</span> <span class="s">&#39;--snet&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;snet&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_SNET&#39;</span><span class="p">,</span> <span class="s">&#39;false&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Prepends the storage URL host name with &quot;snet-&quot;. Mostly &#39;</span>
+                 <span class="s">&#39;only useful with Rackspace Cloud Files and Rackspace &#39;</span>
+                 <span class="s">&#39;ServiceNet. You can also set this with the environment &#39;</span>
+                 <span class="s">&#39;variable SWIFTLY_SNET (set to &quot;true&quot; or &quot;false&quot;).&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-R&#39;</span><span class="p">,</span> <span class="s">&#39;--retries&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;retries&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_RETRIES&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)),</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;INTEGER&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Indicates how many times to retry the request on a server &#39;</span>
+                 <span class="s">&#39;error. Default: 4. You can also set this with the &#39;</span>
+                 <span class="s">&#39;environment variable SWIFTLY_RETRIES.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-C&#39;</span><span class="p">,</span> <span class="s">&#39;--cache-auth&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;cache_auth&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s">&#39;SWIFTLY_CACHE_AUTH&#39;</span><span class="p">,</span> <span class="s">&#39;false&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s">&#39;true&#39;</span><span class="p">),</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;If set true, the storage URL and auth token are cached in &#39;</span>
+                 <span class="s">&#39;/tmp/&lt;user&gt;.swiftly for reuse. If there are already cached &#39;</span>
+                 <span class="s">&#39;values, they are used without authenticating first. You can &#39;</span>
+                 <span class="s">&#39;also set this with the environment variable &#39;</span>
+                 <span class="s">&#39;SWIFTLY_CACHE_AUTH (set to &quot;true&quot; or &quot;false&quot;).&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--cdn&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;cdn&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Directs requests to the CDN management interface.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--concurrency&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;concurrency&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_CONCURRENCY&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;INTEGER&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Sets the the number of actions that can be done &#39;</span>
+                 <span class="s">&#39;simultaneously when possible (currently requires using &#39;</span>
+                 <span class="s">&#39;Eventlet too). Default: 1. You can also set this with the &#39;</span>
+                 <span class="s">&#39;environment variable SWIFTLY_CONCURRENCY. Note that some &#39;</span>
+                 <span class="s">&#39;nested actions may amplify the number of concurrent &#39;</span>
+                 <span class="s">&#39;actions. For instance, a put of an entire directory will &#39;</span>
+                 <span class="s">&#39;use up to this number of concurrent actions. A put of a &#39;</span>
+                 <span class="s">&#39;segmented object will use up to this number of concurrent &#39;</span>
+                 <span class="s">&#39;actions. But, if a directory structure put is uploading &#39;</span>
+                 <span class="s">&#39;segmented objects, this nesting could cause up to INTEGER * &#39;</span>
+                 <span class="s">&#39;INTEGER concurrent actions.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--eventlet&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;eventlet&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Enables Eventlet, if installed. This is disabled by default &#39;</span>
+                 <span class="s">&#39;if Eventlet is not installed or is less than version 0.11.0 &#39;</span>
+                 <span class="s">&#39;(because older Swiftly+Eventlet tends to use excessive CPU.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--no-eventlet&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;no_eventlet&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Disables Eventlet, even if installed and version 0.11.0 or &#39;</span>
+                 <span class="s">&#39;greater.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-v&#39;</span><span class="p">,</span> <span class="s">&#39;--verbose&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;verbose&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Causes output to standard error indicating actions being &#39;</span>
+                 <span class="s">&#39;taken. These output lines will be prefixed with VERBOSE and &#39;</span>
+                 <span class="s">&#39;will also include the number of seconds elapsed since &#39;</span>
+                 <span class="s">&#39;Swiftly started.&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">raw_epilog</span> <span class="o">=</span> <span class="s">&#39;Commands:</span><span class="se">\n</span><span class="s">&#39;</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">):</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">get_usage</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">main_line</span> <span class="o">=</span> <span class="s">&#39;  &#39;</span> <span class="o">+</span> <span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;]&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="n">lines</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[:</span><span class="n">x</span><span class="p">]</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">main_line</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">24</span><span class="p">:</span>
+                <span class="n">initial_indent</span> <span class="o">=</span> <span class="n">main_line</span> <span class="o">+</span> <span class="s">&#39; &#39;</span> <span class="o">*</span> <span class="p">(</span><span class="mi">24</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">main_line</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">raw_epilog</span> <span class="o">+=</span> <span class="n">main_line</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+                <span class="n">initial_indent</span> <span class="o">=</span> <span class="s">&#39; &#39;</span> <span class="o">*</span> <span class="mi">24</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">raw_epilog</span> <span class="o">+=</span> <span class="n">textwrap</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span>
+                <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">),</span> <span class="n">width</span><span class="o">=</span><span class="mi">79</span><span class="p">,</span> <span class="n">initial_indent</span><span class="o">=</span><span class="n">initial_indent</span><span class="p">,</span>
+                <span class="n">subsequent_indent</span><span class="o">=</span><span class="s">&#39; &#39;</span> <span class="o">*</span> <span class="mi">24</span><span class="p">)</span> <span class="o">+</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">original_begin</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">original_args</span> <span class="o">=</span> <span class="n">args</span> <span class="k">if</span> <span class="n">args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">disable_interspersed_args</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">options</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">original_args</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">UnboundLocalError</span><span class="p">:</span>
+            <span class="c"># Happens sometimes with an error handler that doesn&#39;t raise its</span>
+            <span class="c"># own exception. We&#39;ll catch the error below with</span>
+            <span class="c"># error_encountered.</span>
+            <span class="k">pass</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">enable_interspersed_args</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">error_encountered</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">version</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">print_version</span><span class="p">()</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span> <span class="ow">or</span> <span class="n">options</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="k">return</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">eventlet</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">no_eventlet</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">eventlet</span> <span class="kn">import</span> <span class="n">__version__</span>
+                <span class="c"># Eventlet 0.11.0 fixed the CPU bug</span>
+                <span class="k">if</span> <span class="n">__version__</span> <span class="o">&gt;=</span> <span class="s">&#39;0.11.0&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+        <span class="n">subprocess_module</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">eventlet.green.subprocess</span>
+                <span class="n">subprocess_module</span> <span class="o">=</span> <span class="n">eventlet</span><span class="o">.</span><span class="n">green</span><span class="o">.</span><span class="n">subprocess</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="k">pass</span>
+        <span class="k">if</span> <span class="n">subprocess_module</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">subprocess</span>
+            <span class="n">subprocess_module</span> <span class="o">=</span> <span class="n">subprocess</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">subprocess_module</span> <span class="o">=</span> <span class="n">subprocess_module</span>
+
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">verbosity</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">direct</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">client_manager</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">ClientManager</span><span class="p">(</span>
+                <span class="n">swift_proxy</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">swift_proxy_storage_path</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">direct</span><span class="p">,</span>
+                <span class="n">retries</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">retries</span><span class="p">,</span> <span class="n">eventlet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span><span class="p">,</span>
+                <span class="n">region</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">region</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cache_path</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">cache_auth</span><span class="p">:</span>
+                <span class="n">cache_path</span> <span class="o">=</span> <span class="s">&#39;/tmp/</span><span class="si">%s</span><span class="s">.swiftly&#39;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;USER&#39;</span><span class="p">,</span> <span class="s">&#39;user&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">client_manager</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">ClientManager</span><span class="p">(</span>
+                <span class="n">auth_url</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">auth_url</span><span class="p">,</span> <span class="n">auth_user</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">auth_user</span><span class="p">,</span>
+                <span class="n">auth_key</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">auth_key</span><span class="p">,</span> <span class="n">auth_tenant</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">auth_tenant</span><span class="p">,</span>
+                <span class="n">auth_methods</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">auth_methods</span><span class="p">,</span> <span class="n">proxy</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">proxy</span><span class="p">,</span>
+                <span class="n">snet</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">snet</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">retries</span><span class="p">,</span>
+                <span class="n">cache_path</span><span class="o">=</span><span class="n">cache_path</span><span class="p">,</span> <span class="n">eventlet</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span><span class="p">,</span>
+                <span class="n">region</span><span class="o">=</span><span class="n">options</span><span class="o">.</span><span class="n">region</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_verbose</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">cdn</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">:</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;ERROR unknown command </span><span class="si">%r</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]](</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>
+                    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;ERROR &#39;</span><span class="p">)</span>
+                        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+                        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                        <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">&#39;code&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_verbose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">verbosity</span><span class="p">:</span>
+            <span class="n">skip_sub_command</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;skip_sub_command&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_debug</span><span class="p">(</span>
+                    <span class="n">skip_sub_command</span><span class="o">=</span><span class="n">skip_sub_command</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="s">&#39;VERBOSE </span><span class="si">%.02f</span><span class="s"> &#39;</span> <span class="o">%</span>
+                        <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">original_begin</span><span class="p">))</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">msg</span> <span class="o">%</span> <span class="n">args</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">: </span><span class="si">%r</span><span class="s"> </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
+    </div>
+  </body>
+</html>

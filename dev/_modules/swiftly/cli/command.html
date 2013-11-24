@@ -1,0 +1,250 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.command &mdash; Swiftly 1.99 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.99',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.99 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.command</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains the CLICommand class that can be subclassed to create new</span>
+<span class="sd">Swiftly commands.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">swiftly.cli.optionparser</span>
+
+
+<div class="viewcode-block" id="ReturnCode"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.command.ReturnCode">[docs]</a><span class="k">class</span> <span class="nc">ReturnCode</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Raise this to indicate the desire to exit.</span>
+
+<span class="sd">    :param text: The text to report as the reason for exiting.</span>
+<span class="sd">        Default: None</span>
+<span class="sd">    :param code: The return code to give back to the shell.</span>
+<span class="sd">        Default: 1</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">code</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="ne">Exception</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text</span> <span class="o">=</span> <span class="n">text</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">code</span> <span class="o">=</span> <span class="n">code</span>
+
+</div>
+<div class="viewcode-block" id="CLICommand"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.command.CLICommand">[docs]</a><span class="k">class</span> <span class="nc">CLICommand</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Subclass this to create new Swiftly commands.</span>
+
+<span class="sd">    Don&#39;t forget to add your new class to</span>
+<span class="sd">    :py:attr:`swiftly.cli.cli.COMMANDS`.</span>
+
+<span class="sd">    Your subclass will be created by :py:class:`swiftly.cli.cli.CLI`</span>
+<span class="sd">    with the CLI instance as the only parameter. You should then call</span>
+<span class="sd">    this superclass with that CLI instance, your command&#39;s name, and</span>
+<span class="sd">    any other options desired.</span>
+
+<span class="sd">    See the implemention for other commands like</span>
+<span class="sd">    :py:class:`swiftly.cli.auth.CLIAuth` for good starting points.</span>
+
+<span class="sd">    :param cli: The :py:class:`swiftly.cli.cli.CLI` instance.</span>
+<span class="sd">    :param name: The name of the command.</span>
+<span class="sd">    :param min_args: The minimum number of arguments required.</span>
+<span class="sd">    :param max_args: The maximum number of arguments allowed.</span>
+<span class="sd">    :param usage: The usage string for</span>
+<span class="sd">        :py:class:`swiftly.cli.optionparser.OptionParser`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cli</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">min_args</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">max_args</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cli</span> <span class="o">=</span> <span class="n">cli</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_args</span> <span class="o">=</span> <span class="n">min_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_args</span> <span class="o">=</span> <span class="n">max_args</span>
+        <span class="k">if</span> <span class="n">usage</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">usage</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">Usage: </span><span class="si">%%</span><span class="s">prog [main_options] </span><span class="si">%s</span><span class="s"></span>
+
+<span class="s">For help on [main_options] run </span><span class="si">%%</span><span class="s">prog with no args.</span>
+
+<span class="s">Executes the </span><span class="si">%s</span><span class="s"> command.&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">optionparser</span><span class="o">.</span><span class="n">OptionParser</span><span class="p">(</span>
+            <span class="n">usage</span><span class="o">=</span><span class="n">usage</span><span class="p">,</span> <span class="n">io_manager</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="p">,</span>
+            <span class="n">error_prefix</span><span class="o">=</span><span class="n">name</span> <span class="o">+</span> <span class="s">&#39; command: &#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CLICommand.parse_args_and_create_context"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.command.CLICommand.parse_args_and_create_context">[docs]</a>    <span class="k">def</span> <span class="nf">parse_args_and_create_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper method that will parse the args into options and</span>
+<span class="sd">        remaining args as well as create an initial</span>
+<span class="sd">        :py:class:`swiftly.cli.context.CLIContext`.</span>
+
+<span class="sd">        The new context will be a copy of</span>
+<span class="sd">        :py:attr:`swiftly.cli.cli.CLI.context` with the following</span>
+<span class="sd">        attributes added:</span>
+
+<span class="sd">        =======================  ===================================</span>
+<span class="sd">        muted_account_headers    The headers to omit when outputting</span>
+<span class="sd">                                 account headers.</span>
+<span class="sd">        muted_container_headers  The headers to omit when outputting</span>
+<span class="sd">                                 container headers.</span>
+<span class="sd">        muted_object_headers     The headers to omit when outputting</span>
+<span class="sd">                                 object headers.</span>
+<span class="sd">        =======================  ===================================</span>
+
+<span class="sd">        :returns: options, args, context</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">options</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">UnboundLocalError</span><span class="p">:</span>
+            <span class="c"># Happens sometimes with an error handler that doesn&#39;t raise its</span>
+            <span class="c"># own exception. We&#39;ll catch the error below with</span>
+            <span class="c"># error_encountered.</span>
+            <span class="k">pass</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">error_encountered</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_args</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;requires at least </span><span class="si">%s</span><span class="s"> args.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_args</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;requires no more than </span><span class="si">%s</span><span class="s"> args.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_args</span><span class="p">)</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">muted_account_headers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s">&#39;accept-ranges&#39;</span><span class="p">,</span> <span class="s">&#39;content-length&#39;</span><span class="p">,</span> <span class="s">&#39;content-type&#39;</span><span class="p">,</span> <span class="s">&#39;date&#39;</span><span class="p">]</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">muted_container_headers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s">&#39;accept-ranges&#39;</span><span class="p">,</span> <span class="s">&#39;content-length&#39;</span><span class="p">,</span> <span class="s">&#39;content-type&#39;</span><span class="p">,</span> <span class="s">&#39;date&#39;</span><span class="p">]</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">muted_object_headers</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;accept-ranges&#39;</span><span class="p">,</span> <span class="s">&#39;date&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span>
+</div>
+<div class="viewcode-block" id="CLICommand.options_list_to_lowered_dict"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.command.CLICommand.options_list_to_lowered_dict">[docs]</a>    <span class="k">def</span> <span class="nf">options_list_to_lowered_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">options_list</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Helper function that will convert an options list into a dict</span>
+<span class="sd">        of key/values.</span>
+
+<span class="sd">        This is used for the quite common -hheader:value and</span>
+<span class="sd">        -qparameter=value command line options, like this::</span>
+
+<span class="sd">            context.headers = self.options_list_to_lowered_dict(options.header)</span>
+<span class="sd">            context.query = self.options_list_to_lowered_dict(options.query)</span>
+
+<span class="sd">        For a full example, see</span>
+<span class="sd">        :py:func:`swiftly.cli.get.CLIGet.__call__`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">options_list</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">options_list</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+                <span class="n">colon</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">colon</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">colon</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="n">equal</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;=&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">equal</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">equal</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="k">if</span> <span class="n">colon</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">equal</span> <span class="ow">or</span> <span class="n">colon</span> <span class="o">&lt;</span> <span class="n">equal</span><span class="p">):</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">equal</span><span class="p">:</span>
+                    <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;=&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 1.99 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
+    </div>
+  </body>
+</html>
