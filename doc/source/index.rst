@@ -113,7 +113,16 @@ Output from `swiftly`::
       --concurrency=INTEGER
                             Sets the the number of actions that can be done
                             simultaneously when possible (currently requires using
-                            Eventlet too). Default: 1
+                            Eventlet too). Default: 1. You can also set this with
+                            the environment variable SWIFTLY_CONCURRENCY. Note
+                            that some nested actions may amplify the number of
+                            concurrent actions. For instance, a put of an entire
+                            directory will use up to this number of concurrent
+                            actions. A put of a segmented object will use up to
+                            this number of concurrent actions. But, if a directory
+                            structure put is uploading segmented objects, this
+                            nesting could cause up to INTEGER * INTEGER concurrent
+                            actions.
       --eventlet            Enables Eventlet, if installed. This is disabled by
                             default if Eventlet is not installed or is less than
                             version 0.11.0 (because older Swiftly+Eventlet tends
@@ -125,7 +134,8 @@ Output from `swiftly`::
                             VERBOSE and will also include the number of seconds
                             elapsed since Swiftly started.
     Commands:
-      auth                  Outputs auth information.
+      auth                  Authenticates and then outputs the resulting
+                            information.
       delete [options] [path]
                             Issues a DELETE request of the [path] given.
       get [options] [path]  Outputs the resulting contents from a GET request of
@@ -159,7 +169,42 @@ Output from `swiftly help auth`::
 
     For help on [main_options] run swiftly with no args.
 
-    Outputs auth information.
+    Authenticates and then outputs the resulting information.
+
+    Possible Output Values:
+
+        Auth Cache           The location where auth info may be cached.
+        Auth URL             The URL of the auth service if in use.
+        Auth User            The user to auth as if in use.
+        Auth Key             The key to auth with if in use.
+        Auth Tenant          The tenant to auth as if in use.
+        Auth Methods         The auth methods in use if any specified.
+        Direct Storage Path  The direct-mode path if in use.
+        Regions              The available regions as reported by the auth service.
+        Default Region       The default region as reported by the auth service.
+        Selected Region      The region selected for use by Swiftly.
+        SNet                 True if ServiceNet/InternalURL would be used.
+        Storage URL          The URL to use for storage as reported by the auth
+                             service.
+        CDN Management URL   The URL to use for CDN management as reported by the
+                             auth service.
+        Auth Token           The auth token to use as reported by the auth service.
+        Request Retries      The number retries to be done for any request.
+
+    Example Output:
+
+    Auth Cache:         /tmp/user.swiftly
+    Auth URL:           https://identity.api.rackspacecloud.com/v2.0
+    Auth User:          myusername
+    Auth Key:           mykey
+    Regions:            ORD DFW SYD IAD HKG
+    Default Region:     ORD
+    Selected Region:    IAD
+    SNet:               True
+    Storage URL:        https://snet-storage101.iad3.clouddrive.com/v1/account
+    CDN Management URL: https://cdn5.clouddrive.com/v1/account
+    Auth Token:         abcdef0123456789abcdef0123456789
+    Request Retries:    4
 
     Options:
       -?, --help  Shows this help text.
@@ -185,15 +230,8 @@ Output from `swiftly help delete`::
                             -qmultipart-manifest=get
       -i PATH, --input=PATH
                             Indicates where to read the DELETE request body from;
-                            default is standard input. This is not normally used
-                            with DELETE requests, so you must also specify -I if
-                            you want the body sent.
-      -I                    Since DELETEs do not normally take input, you must
-                            specify this option if you wish them to read from the
-                            input specified by -i (or the default standard input).
-                            This is useful with -qbulk-delete requests. For
-                            example: swiftly delete -qbulk-delete -Ii <my-bulk-
-                            deletes-file>
+                            use a dash (as in "-i -") to specify standard input
+                            since DELETEs do not normally take input.
       --recursive           Normally a delete for a non-empty container will error
                             with a 409 Conflict; --recursive will first delete all
                             objects in a container and then delete the container
@@ -303,6 +341,9 @@ Output from `swiftly help get`::
                             storing matching lines locally (--sub-command "gunzip
                             | grep keyword" or --sub-command "zgrep keyword" if
                             your system has that).
+      --remove-empty-files  Removes files that result as empty. This can be useful
+                            in conjunction with --sub-command so you are left only
+                            with the files that generated output.
 
 
 Output from `swiftly help head`::
@@ -379,13 +420,8 @@ Output from `swiftly help post`::
                             -qmultipart-manifest=get
       -i PATH, --input=PATH
                             Indicates where to read the POST request body from;
-                            default is standard input. This is not normally used
-                            with Swift POST requests, so you must also specify -I
-                            if you want the body sent.
-      -I                    Since Swift POSTs do not normally take input, you must
-                            specify this option if you wish them to read from the
-                            input specified by -i (or the default standard input).
-                            This is not known to be useful for anything yet.
+                            use a dash (as in "-i -") to specify standard input
+                            since POSTs to Swift do not normally take input.
 
 
 Output from `swiftly help put`::
@@ -441,14 +477,12 @@ Output from `swiftly help put`::
                             standard input. If the PATH is a directory, all files
                             in the directory will be uploaded as similarly named
                             objects and empty directories will create
-                            text/directory marker objects.
-      -I                    Since account and container PUTs do not normally take
-                            input, you must specify this option if you wish them
-                            to read from the input specified by -i (or the default
-                            standard input). This is useful with -qextract-
-                            archive=<format> bulk upload requests. For example:
-                            tar zc . | swiftly put -qextract-archive=tar.gz -I
-                            container
+                            text/directory marker objects. Use a dash (as in "-i
+                            -") to specify standard input for account and
+                            container PUTs, as those do not normally take input.
+                            This is useful with -qextract-archive=<format> bulk
+                            upload requests. For example: tar zc . | swiftly put
+                            -qextract-archive=tar.gz -i - container
       -n, --newer           For PUTs with an --input option, first performs a HEAD
                             on the object and compares the X-Object-Meta-Mtime
                             header with the modified time of the PATH obtained

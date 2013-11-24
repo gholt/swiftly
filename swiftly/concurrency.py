@@ -18,12 +18,14 @@ limitations under the License.
 
 __all__ = ['Concurrency']
 
-from Queue import Empty, Queue
+import sys
+import Queue
 
 try:
-    from eventlet import GreenPool
+    from eventlet import GreenPool, Timeout
 except ImportError:
     GreenPool = None
+    Timeout = None
 
 
 class Concurrency(object):
@@ -40,11 +42,16 @@ class Concurrency(object):
             self._pool = GreenPool(self.concurrency)
         else:
             self._pool = None
-        self._queue = Queue()
+        self._queue = Queue.Queue()
         self._results = {}
 
     def _spawner(self, ident, func, *args, **kwargs):
-        self._queue.put((ident, func(*args, **kwargs)))
+        exc_type = exc_value = exc_tb = result = None
+        try:
+            result = func(*args, **kwargs)
+        except (Exception, Timeout):
+            exc_type, exc_value, exc_tb = sys.exc_info()
+        self._queue.put((ident, (exc_type, exc_value, exc_tb, result)))
 
     def spawn(self, ident, func, *args, **kwargs):
         """
@@ -75,7 +82,7 @@ class Concurrency(object):
             while True:
                 ident, value = self._queue.get(block=False)
                 self._results[ident] = value
-        except Empty:
+        except Queue.Empty:
             pass
         return self._results
 

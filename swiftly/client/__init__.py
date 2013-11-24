@@ -1,5 +1,5 @@
 """
-Client API to Swift
+Client API to Swift.
 
 Copyright 2011-2013 Gregory Holt
 Portions Copyright (c) 2010-2012 OpenStack Foundation
@@ -27,11 +27,7 @@ from os import umask
 from time import time
 from urllib import quote
 from urlparse import urlparse, urlunparse
-
-try:
-    import simplejson as json
-except ImportError:
-    import json
+import json
 
 try:
     from swift.proxy.server import Application as SwiftProxy
@@ -369,14 +365,14 @@ class Client(object):
                     self._verbose(
                         'Cache %s was unrecognized format; discarding.',
                         self.cache_path)
-            except IOError, err:
+            except IOError as err:
                 if err.errno == ENOENT:
                     self._verbose('No cached values in %s.', self.cache_path)
                 else:
                     self._verbose(
                         'Exception attempting to read auth response values '
                         'from cache %s: %r', self.cache_path, err)
-            except Exception, err:
+            except Exception as err:
                 self._verbose(
                     'Exception attempting to read auth response values from '
                     'cache %s: %r', self.cache_path, err)
@@ -504,7 +500,7 @@ class Client(object):
                 resp.read()
                 resp.close()
                 conn.close()
-            except Exception, err:
+            except Exception as err:
                 status = 0
                 reason = str(err)
                 hdrs = {}
@@ -589,7 +585,7 @@ class Client(object):
                 body = resp.read()
                 resp.close()
                 conn.close()
-            except Exception, err:
+            except Exception as err:
                 status = 0
                 reason = str(err)
             if status == 401:
@@ -600,7 +596,7 @@ class Client(object):
                 # self._verbose('< %s', body)
                 try:
                     body = json.loads(body)
-                except ValueError, err:
+                except ValueError as err:
                     status = 500
                     reason = str(err)
                     break
@@ -711,32 +707,44 @@ class Client(object):
                 else:
                     raise self.HTTPException('%s %s failed' % (method, path),
                                              0, 'No connection')
-            hdrs = {'User-Agent': 'Swiftly v%s' % VERSION,
-                    'X-Auth-Token': self.auth_token}
+            titled_headers = dict((k.title(), v) for k, v in {
+                'User-Agent': 'Swiftly v%s' % VERSION,
+                'X-Auth-Token': self.auth_token}.iteritems())
             if headers:
-                hdrs.update(headers)
+                titled_headers.update(
+                    (k.title(), v) for k, v in headers.iteritems())
+            verbose_headers = '  '.join(
+                '%s: %s' % (k, v) for k, v in titled_headers.iteritems())
             resp = None
             if not hasattr(contents, 'read'):
                 if self.swift_proxy:
                     req = Request.blank(conn_path + path,
                                         environ={'REQUEST_METHOD': method},
-                                        headers=hdrs, body=contents)
-                    self._verbose('> %s %s', req.method, req.path)
+                                        headers=titled_headers, body=contents)
+                    self._verbose(
+                        '> %s %s %s', req.method, req.path, verbose_headers)
                     resp = req.get_response(self.swift_proxy)
                 else:
-                    self._verbose('> %s %s', method, conn_path + path)
-                    conn.request(method, conn_path + path, contents, hdrs)
+                    self._verbose(
+                        '> %s %s %s', method, conn_path + path,
+                        verbose_headers)
+                    conn.request(
+                        method, conn_path + path, contents, titled_headers)
             else:
                 req = None
                 if self.swift_proxy:
                     req = Request.blank(conn_path + path,
                                         environ={'REQUEST_METHOD': method},
-                                        headers=hdrs)
+                                        headers=titled_headers)
+                    self._verbose(
+                        '> %s %s %s', req.method, req.path, verbose_headers)
                 else:
-                    self._verbose('> %s %s', method, conn_path + path)
+                    self._verbose(
+                        '> %s %s %s', method, conn_path + path,
+                        verbose_headers)
                     conn.putrequest(method, conn_path + path)
                 content_length = None
-                for h, v in hdrs.iteritems():
+                for h, v in titled_headers.iteritems():
                     if h.lower() == 'content-length':
                         content_length = int(v)
                     if req:
@@ -784,7 +792,7 @@ class Client(object):
                     else:
                         value = resp.read()
                         resp.close()
-                except self.BadStatusLine, err:
+                except Exception as err:
                     status = 0
                     reason = str(err)
                     hdrs = {}
@@ -800,7 +808,7 @@ class Client(object):
             if resp:
                 self._verbose('< %s', resp.status)
             else:
-                self._verbose('< None (probably timed out)')
+                self._verbose('< - %s', reason)
             if status == 401:
                 if stream:
                     resp.close()
@@ -861,7 +869,7 @@ class Client(object):
 
     def get_account(self, headers=None, prefix=None, delimiter=None,
                     marker=None, end_marker=None, limit=None, query=None,
-                    cdn=False):
+                    cdn=False, decode_json=True):
         """
         GETs the account and returns the results. This is done to list
         the containers for the account. Some useful headers are also
@@ -917,6 +925,9 @@ class Client(object):
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param decode_json: If set False, the usual decoding of the
+            JSON response will be skipped and the raw contents will
+            be returned instead.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -924,7 +935,8 @@ class Client(object):
             :headers: is a dict with all lowercase keys of the HTTP
                 headers; if a header has multiple values, it will be a
                 list.
-            :contents: is the str for the HTTP body.
+            :contents: is the decoded JSON response or the raw str
+                for the HTTP body.
         """
         query = dict(query or {})
         query['format'] = 'json'
@@ -939,7 +951,8 @@ class Client(object):
         if limit:
             query['limit'] = limit
         return self._request(
-            'GET', '', '', headers, decode_json=True, query=query, cdn=cdn)
+            'GET', '', '', headers, decode_json=decode_json, query=query,
+            cdn=cdn)
 
     def put_account(self, headers=None, query=None, cdn=False, body=None):
         """
@@ -1082,7 +1095,7 @@ class Client(object):
 
     def get_container(self, container, headers=None, prefix=None,
                       delimiter=None, marker=None, end_marker=None,
-                      limit=None, query=None, cdn=False):
+                      limit=None, query=None, cdn=False, decode_json=True):
         """
         GETs the container and returns the results. This is done to
         list the objects for the container. Some useful headers are
@@ -1137,6 +1150,9 @@ class Client(object):
             query string of the request.
         :param cdn: If set True, the CDN management interface will be
             used.
+        :param decode_json: If set False, the usual decoding of the
+            JSON response will be skipped and the raw contents will
+            be returned instead.
         :returns: A tuple of (status, reason, headers, contents).
 
             :status: is an int for the HTTP status code.
@@ -1144,7 +1160,8 @@ class Client(object):
             :headers: is a dict with all lowercase keys of the HTTP
                 headers; if a header has multiple values, it will be a
                 list.
-            :contents: is the str for the HTTP body.
+            :contents: is the decoded JSON response or the raw str
+                for the HTTP body.
         """
         query = dict(query or {})
         query['format'] = 'json'
@@ -1160,7 +1177,7 @@ class Client(object):
             query['limit'] = limit
         return self._request(
             'GET', self._container_path(container), '', headers,
-            decode_json=True, query=query, cdn=cdn)
+            decode_json=decode_json, query=query, cdn=cdn)
 
     def put_container(self, container, headers=None, query=None, cdn=False,
                       body=None):
@@ -1328,7 +1345,7 @@ class Client(object):
         also be set, depending on the Swift cluster.
 
         Note that you can set the ETag header to the MD5 sum of the
-        contents for extra verifification the object was stored
+        contents for extra verification the object was stored
         correctly.
 
         :param container: The name of the container.
