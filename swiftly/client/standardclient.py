@@ -19,6 +19,7 @@ limitations under the License.
 import errno
 import json
 import os
+import StringIO
 import tempfile
 import urlparse
 
@@ -443,6 +444,8 @@ class StandardClient(Client):
                 ('%s=%s' % (quote(k), quote(v)) if v else quote(k))
                 for k, v in sorted(query.iteritems()))
         reset_func = self._default_reset_func
+        if isinstance(contents, basestring):
+            contents = StringIO.StringIO(contents)
         tell = getattr(contents, 'tell', None)
         seek = getattr(contents, 'seek', None)
         if tell and seek:
