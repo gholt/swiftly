@@ -234,6 +234,8 @@ def cli_put_object(context, path):
         if size > context.segment_size:
             new_context = context.copy()
             new_context.input_ = None
+            new_context.headers = None
+            new_context.query = None
             container = path.split('/', 1)[0] + '_segments'
             cli_put_container(new_context, container)
             prefix = container + '/' + path.split('/', 1)[1]
@@ -269,7 +271,6 @@ def cli_put_object(context, path):
                 body = json.dumps([
                     {'path': '/' + p, 'size_bytes': s, 'etag': e}
                     for p, (s, e) in sorted(path2info.iteritems())])
-                put_headers['content-type'] = 'application/json'
                 put_headers['content-length'] = str(len(body))
                 context.query['multipart-manifest'] = 'put'
             else:
