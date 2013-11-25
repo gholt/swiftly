@@ -25,8 +25,8 @@ limitations under the License.
 """
 import contextlib
 
-import swiftly.client
-import swiftly.cli.command
+from swiftly.client import generate_temp_url
+from swiftly.cli.command import CLICommand, ReturnCode
 
 
 def cli_tempurl(context, method, path, seconds=None):
@@ -52,25 +52,24 @@ def cli_tempurl(context, method, path, seconds=None):
         path = path.lstrip('/')
         seconds = seconds if seconds is not None else 3600
         if '/' not in path:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'invalid tempurl path %r; should have a / within it' % path)
         status, reason, headers, contents = client.head_account()
         if status // 100 != 2:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'obtaining X-Account-Meta-Temp-Url-Key: %s %s' %
                 (status, reason))
         key = headers.get('x-account-meta-temp-url-key')
         if not key:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'there is no X-Account-Meta-Temp-Url-Key set for this account')
         url = client.storage_url + '/' + path
-        fp.write(swiftly.client.generate_temp_url(
-            method, url, seconds, key))
+        fp.write(generate_temp_url(method, url, seconds, key))
         fp.write('\n')
         fp.flush()
 
 
-class CLITempURL(swiftly.cli.command.CLICommand):
+class CLITempURL(CLICommand):
     """
     A CLICommand for generating TempURLs.
 

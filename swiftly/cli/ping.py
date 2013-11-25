@@ -45,8 +45,8 @@ import time
 import traceback
 import uuid
 
-import swiftly.concurrency
-import swiftly.cli.command
+from swiftly.concurrency import Concurrency
+from swiftly.cli.command import CLICommand, ReturnCode
 
 
 def _cli_ping_status(context, heading, ident, status, reason, headers,
@@ -56,7 +56,7 @@ def _cli_ping_status(context, heading, ident, status, reason, headers,
     if hasattr(contents, 'read'):
         contents.read()
     if status and status // 100 != 2:
-        raise swiftly.cli.command.ReturnCode(
+        raise ReturnCode(
             'with %s: %s %s %s' % (heading, status, reason, ident))
     now = time.time()
     if context.ping_verbose:
@@ -103,16 +103,16 @@ def _cli_ping_object_put(context, results, container, obj):
             status, reason, headers, contents = client.put_object(
                 container, obj, StringIO.StringIO('swiftly-ping'))
         except Exception:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'putting object %r: %s' % (obj, traceback.format_exc()))
         if status // 100 != 2:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'putting object %r: %s %s %s' %
                 (obj, status, reason, headers.get('x-trans-id') or '-'))
         if context.object_ring:
             elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
-                    client.get_account_hash(), container, obj)[1]:
+                    client.connection.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
                     (elapsed, headers.get('x-trans-id') or obj))
 
@@ -124,16 +124,16 @@ def _cli_ping_object_get(context, results, container, obj):
             status, reason, headers, contents = client.get_object(
                 container, obj, stream=False)
         except Exception:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'getting object %r: %s' % (obj, traceback.format_exc()))
         if status // 100 != 2:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'getting object %r: %s %s %s' %
                 (obj, status, reason, headers.get('x-trans-id') or '-'))
         if context.object_ring:
             elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
-                    client.get_account_hash(), container, obj)[1]:
+                    client.connection.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
                     (elapsed, headers.get('x-trans-id') or obj))
 
@@ -145,16 +145,16 @@ def _cli_ping_object_delete(context, results, container, obj):
             status, reason, headers, contents = client.delete_object(
                 container, obj)
         except Exception:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'deleting object %r: %s' % (obj, traceback.format_exc()))
         if status // 100 != 2:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'deleting object %r: %s %s %s' %
                 (obj, status, reason, headers.get('x-trans-id') or '-'))
         if context.object_ring:
             elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
-                    client.get_account_hash(), container, obj)[1]:
+                    client.connection.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
                     (elapsed, headers.get('x-trans-id') or obj))
 
@@ -248,7 +248,7 @@ def cli_ping(context, prefix):
     context.ping_begin = context.ping_begin_last = time.time()
     container = prefix + '-' + uuid.uuid4().hex
     objects = [uuid.uuid4().hex for x in xrange(context.ping_count)]
-    conc = swiftly.concurrency.Concurrency(context.concurrency)
+    conc = Concurrency(context.concurrency)
     with context.client_manager.with_client() as client:
         client.auth()
         _cli_ping_status(context, 'auth', '-', None, None, None, None)
@@ -284,7 +284,7 @@ def cli_ping(context, prefix):
             _cli_ping_status(
                 context, 'container delete', '-',
                 *client.delete_container(container))
-        except swiftly.cli.command.ReturnCode as err:
+        except ReturnCode as err:
             with context.io_manager.with_stderr() as fp:
                 fp.write(str(err))
                 fp.write(
@@ -315,7 +315,7 @@ def cli_ping(context, prefix):
         _cli_ping_ring_report(context, ping_ring_overall, 'overall')
 
 
-class CLIPing(swiftly.cli.command.CLICommand):
+class CLIPing(CLICommand):
     """
     A CLICommand that implements ping test functionality.
 

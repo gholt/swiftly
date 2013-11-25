@@ -24,8 +24,8 @@ limitations under the License.
 """
 import time
 
-import swiftly.client
-import swiftly.cli.command
+from swiftly.client import get_trans_id_time
+from swiftly.cli.command import CLICommand
 
 
 def cli_trans(context, x_trans_id):
@@ -38,7 +38,7 @@ def cli_trans(context, x_trans_id):
     See :py:class:`CLITrans` for more information.
     """
     with context.io_manager.with_stdout() as fp:
-        trans_time = swiftly.client.get_trans_id_time(x_trans_id)
+        trans_time = get_trans_id_time(x_trans_id)
         trans_info = x_trans_id[34:]
         msg = 'X-Trans-Id:      ' + x_trans_id + '\n'
         if not trans_time:
@@ -55,7 +55,7 @@ def cli_trans(context, x_trans_id):
         fp.flush()
 
 
-class CLITrans(swiftly.cli.command.CLICommand):
+class CLITrans(CLICommand):
     """
     A CLICommand for translating transaction identifiers.
 

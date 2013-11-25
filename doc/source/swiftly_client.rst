@@ -9,6 +9,13 @@ swiftly.client
     :undoc-members:
     :show-inheritance:
 
+client
+======
+
+.. automodule:: swiftly.client.client
+    :members:
+    :undoc-members:
+ 
 manager
 =======
 
@@ -16,3 +23,39 @@ manager
     :members:
     :undoc-members:
     :show-inheritance:
+
+utils
+=====
+
+.. automodule:: swiftly.client.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+standardclient
+==============
+
+.. automodule:: swiftly.client.standardclient
+    :members:
+    :undoc-members:
+
+directclient
+============
+
+.. automodule:: swiftly.client.directclient
+    :members:
+    :undoc-members:
+
+localmemcache
+=============
+
+.. automodule:: swiftly.client.localmemcache
+    :members:
+    :undoc-members:
+
+nulllogger
+==========
+
+.. automodule:: swiftly.client.nulllogger
+    :members:
+    :undoc-members:

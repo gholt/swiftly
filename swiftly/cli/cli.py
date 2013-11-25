@@ -19,14 +19,16 @@ limitations under the License.
 import functools
 import os
 import sys
+import tempfile
 import textwrap
 import time
 import traceback
 
-import swiftly
-import swiftly.cli.context
-import swiftly.client.manager
-import swiftly.cli.optionparser
+from swiftly import VERSION
+from swiftly.cli.context import CLIContext
+from swiftly.cli.iomanager import IOManager
+from swiftly.cli.optionparser import OptionParser
+from swiftly.client import ClientManager, DirectClient, StandardClient
 
 
 #: The list of CLICommand classes avaiable to CLI. You'll want to add any new
@@ -70,7 +72,7 @@ class CLI(object):
         #: client_manager  The :py:class:`swiftly.client.manager.ClientManager`
         #:                 to use for obtaining clients.
         #: concurrency     Number of concurrent actions to allow.
-        #: io_manager      The :py:class:`swiftly.client.manager.IOManager` to
+        #: io_manager      The :py:class:`swiftly.cli.iomanager.IOManager` to
         #:                 use for input and output.
         #: eventlet        True if Eventlet is in use.
         #: original_args   The original args used by the CLI.
@@ -80,9 +82,9 @@ class CLI(object):
         #:                 output will be constructed with ``msg % args``.
         #: verbosity       Level of verbosity. Just None or 1 right now.
         #: ==============  ====================================================
-        self.context = swiftly.cli.context.CLIContext()
+        self.context = CLIContext()
         self.context.verbose = None
-        self.context.io_manager = swiftly.client.manager.IOManager()
+        self.context.io_manager = IOManager()
 
         #: A dictionary of the available commands and their CLICommand
         #: instances.
@@ -93,9 +95,9 @@ class CLI(object):
             inst = cls(self)
             self.commands[inst.name] = inst
 
-        #: The main :py:class:`swiftly.cli.optionparser.OptionParser`.
-        self.option_parser = swiftly.cli.optionparser.OptionParser(
-            version=swiftly.VERSION,
+        #: The main :py:class:`OptionParser`.
+        self.option_parser = OptionParser(
+            version=VERSION,
             usage='Usage: %prog [options] <command> [command_options] [args]',
             io_manager=self.context.io_manager)
         self.option_parser.add_option(
@@ -175,10 +177,11 @@ class CLI(object):
             default=(os.environ.get(
                 'SWIFTLY_CACHE_AUTH', 'false').lower() == 'true'),
             help='If set true, the storage URL and auth token are cached in '
-                 '/tmp/<user>.swiftly for reuse. If there are already cached '
-                 'values, they are used without authenticating first. You can '
-                 'also set this with the environment variable '
-                 'SWIFTLY_CACHE_AUTH (set to "true" or "false").')
+                 'your OS temporary directory as <user>.swiftly for reuse. If '
+                 'there are already cached values, they are used without '
+                 'authenticating first. You can also set this with the '
+                 'environment variable SWIFTLY_CACHE_AUTH (set to "true" or '
+                 '"false").')
         self.option_parser.add_option(
             '--cdn', dest='cdn', action='store_true',
             help='Directs requests to the CDN management interface.')
@@ -263,9 +266,9 @@ class CLI(object):
         if self.context.eventlet is None:
             self.context.eventlet = False
             try:
-                from eventlet import __version__
+                import eventlet
                 # Eventlet 0.11.0 fixed the CPU bug
-                if __version__ >= '0.11.0':
+                if eventlet.__version__ >= '0.11.0':
                     self.context.eventlet = True
             except ImportError:
                 pass
@@ -288,22 +291,25 @@ class CLI(object):
             self.context.io_manager.verbose = functools.partial(
                 self._verbose, skip_sub_command=True)
 
+        options.retries = int(options.retries)
         if options.direct:
-            self.context.client_manager = swiftly.client.manager.ClientManager(
-                swift_proxy=True, swift_proxy_storage_path=options.direct,
-                retries=options.retries, eventlet=self.context.eventlet,
-                region=options.region, verbose=self._verbose)
+            self.context.client_manager = ClientManager(
+                DirectClient, swift_proxy_storage_path=options.direct,
+                attempts=options.retries + 1, eventlet=self.context.eventlet,
+                verbose=self._verbose)
         else:
-            cache_path = None
+            auth_cache_path = None
             if options.cache_auth:
-                cache_path = '/tmp/%s.swiftly' % os.environ.get('USER', 'user')
-            self.context.client_manager = swiftly.client.manager.ClientManager(
-                auth_url=options.auth_url, auth_user=options.auth_user,
-                auth_key=options.auth_key, auth_tenant=options.auth_tenant,
-                auth_methods=options.auth_methods, proxy=options.proxy,
-                snet=options.snet, retries=options.retries,
-                cache_path=cache_path, eventlet=self.context.eventlet,
-                region=options.region, verbose=self._verbose)
+                auth_cache_path = os.path.join(
+                    tempfile.gettempdir(),
+                    '%s.swiftly' % os.environ.get('USER', 'user'))
+            self.context.client_manager = ClientManager(
+                StandardClient, auth_methods=options.auth_methods,
+                auth_url=options.auth_url, auth_tenant=options.auth_tenant,
+                auth_user=options.auth_user, auth_key=options.auth_key,
+                auth_cache_path=auth_cache_path, region=options.region,
+                snet=options.snet, attempts=options.retries + 1,
+                eventlet=self.context.eventlet, verbose=self._verbose)
 
         self.context.cdn = options.cdn
         self.context.concurrency = int(options.concurrency)

@@ -36,7 +36,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import swiftly.cli.command
+from swiftly.cli.command import CLICommand, ReturnCode
 
 
 def cli_head(context, path=None):
@@ -70,20 +70,19 @@ def cli_head(context, path=None):
         if status == 404 and context.ignore_404:
             return
         if not path:
-            raise swiftly.cli.command.ReturnCode(
-                'heading account: %s %s' % (status, reason))
+            raise ReturnCode('heading account: %s %s' % (status, reason))
         elif '/' not in path:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'heading container %r: %s %s' % (path, status, reason))
         else:
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'heading object %r: %s %s' % (path, status, reason))
     else:
         with context.io_manager.get_stdout() as fp:
             context.write_headers(fp, headers, mute)
 
 
-class CLIHead(swiftly.cli.command.CLICommand):
+class CLIHead(CLICommand):
     """
     A CLICommand that can issue HEAD requests.
 

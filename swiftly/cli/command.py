@@ -17,7 +17,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import swiftly.cli.optionparser
+from swiftly.cli.optionparser import OptionParser
 
 
 class ReturnCode(Exception):
@@ -56,7 +56,7 @@ class CLICommand(object):
     :param min_args: The minimum number of arguments required.
     :param max_args: The maximum number of arguments allowed.
     :param usage: The usage string for
-        :py:class:`swiftly.cli.optionparser.OptionParser`.
+        :py:class:`OptionParser`.
     """
 
     def __init__(self, cli, name, min_args=None, max_args=None, usage=None):
@@ -71,7 +71,7 @@ Usage: %%prog [main_options] %s
 For help on [main_options] run %%prog with no args.
 
 Executes the %s command.""".strip() % (name, name)
-        self.option_parser = swiftly.cli.optionparser.OptionParser(
+        self.option_parser = OptionParser(
             usage=usage, io_manager=self.cli.context.io_manager,
             error_prefix=name + ' command: ')
 

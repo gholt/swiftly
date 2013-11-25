@@ -22,7 +22,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import swiftly.cli.command
+from swiftly.cli.command import CLICommand, ReturnCode
 
 
 def cli_help(context, command_name, general_parser, command_parsers):
@@ -41,9 +41,8 @@ def cli_help(context, command_name, general_parser, command_parsers):
     :param general_parser: The
         :py:class:`swiftly.cli.optionparser.OptionParser` for general
         usage.
-    :param command_parsers: A dict of
-        (name, :py:class:`swiftly.cli.command.CLICommand`) for
-        specific command usage.
+    :param command_parsers: A dict of (name, :py:class:`CLICommand`)
+        for specific command usage.
     """
     with context.io_manager.with_stdout() as stdout:
         if not command_name:
@@ -51,11 +50,10 @@ def cli_help(context, command_name, general_parser, command_parsers):
         elif command_name in command_parsers:
             command_parsers[command_name].option_parser.print_help(stdout)
         else:
-            raise swiftly.cli.command.ReturnCode(
-                'unknown command %r' % command_name)
+            raise ReturnCode('unknown command %r' % command_name)
 
 
-class CLIHelp(swiftly.cli.command.CLICommand):
+class CLIHelp(CLICommand):
     """
     A CLICommand that outputs help information.
 

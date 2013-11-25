@@ -27,7 +27,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import swiftly.cli.command
+from swiftly.cli.command import CLICommand, ReturnCode
 
 
 def cli_post(context, path, body=None):
@@ -51,26 +51,25 @@ def cli_post(context, path, body=None):
                 headers=context.headers, query=context.query, cdn=context.cdn,
                 body=body)
             if status // 100 != 2:
-                raise swiftly.cli.command.ReturnCode(
-                    'posting account: %s %s' % (status, reason))
+                raise ReturnCode('posting account: %s %s' % (status, reason))
         elif '/' not in path.rstrip('/'):
             path = path.rstrip('/')
             status, reason, headers, contents = client.post_container(
                 path, headers=context.headers, query=context.query,
                 cdn=context.cdn, body=body)
             if status // 100 != 2:
-                raise swiftly.cli.command.ReturnCode(
+                raise ReturnCode(
                     'posting container %r: %s %s' % (path, status, reason))
         else:
             status, reason, headers, contents = client.post_object(
                 *path.split('/', 1), headers=context.headers,
                 query=context.query, cdn=context.cdn, body=body)
             if status // 100 != 2:
-                raise swiftly.cli.command.ReturnCode(
+                raise ReturnCode(
                     'posting object %r: %s %s' % (path, status, reason))
 
 
-class CLIPost(swiftly.cli.command.CLICommand):
+class CLIPost(CLICommand):
     """
     A CLICommand that can issue POST requests.
 

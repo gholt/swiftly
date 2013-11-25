@@ -69,9 +69,8 @@ limitations under the License.
 import os
 import time
 
-import swiftly.client
-import swiftly.concurrency
-import swiftly.cli.command
+from swiftly.concurrency import Concurrency
+from swiftly.cli.command import CLICommand, ReturnCode
 
 
 def cli_get_account_listing(context):
@@ -98,8 +97,7 @@ def cli_get_account_listing(context):
         if status // 100 != 2:
             if status == 404 and context.ignore_404:
                 return
-            raise swiftly.cli.command.ReturnCode(
-                'listing account: %s %s' % (status, reason))
+            raise ReturnCode('listing account: %s %s' % (status, reason))
         with context.io_manager.with_stdout() as fp:
             if context.output_headers:
                 context.write_headers(
@@ -116,8 +114,7 @@ def cli_get_account_listing(context):
                 return
             if hasattr(contents, 'read'):
                 contents.read()
-            raise swiftly.cli.command.ReturnCode(
-                'listing account: %s %s' % (status, reason))
+            raise ReturnCode('listing account: %s %s' % (status, reason))
     if context.output_headers and not context.all_objects:
         with context.io_manager.with_stdout() as fp:
             context.write_headers(
@@ -152,8 +149,7 @@ def cli_get_account_listing(context):
                     return
                 if hasattr(contents, 'read'):
                     contents.read()
-                raise swiftly.cli.command.ReturnCode(
-                    'listing account: %s %s' % (status, reason))
+                raise ReturnCode('listing account: %s %s' % (status, reason))
 
 
 def cli_get_container_listing(context, path=None):
@@ -166,7 +162,7 @@ def cli_get_container_listing(context, path=None):
     """
     path = path.strip('/') if path else None
     if not path or '/' in path:
-        raise swiftly.cli.command.ReturnCode(
+        raise ReturnCode(
             'tried to get a container listing for non-container path %r' %
             path)
     context.suppress_container_name = True
@@ -186,7 +182,7 @@ def cli_get_container_listing(context, path=None):
         if status // 100 != 2:
             if status == 404 and context.ignore_404:
                 return
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'listing container %r: %s %s' % (path, status, reason))
         with context.io_manager.with_stdout() as fp:
             if context.output_headers:
@@ -205,13 +201,13 @@ def cli_get_container_listing(context, path=None):
                 return
             if hasattr(contents, 'read'):
                 contents.read()
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'listing container %r: %s %s' % (path, status, reason))
     if context.output_headers and not context.all_objects:
         with context.io_manager.with_stdout() as fp:
             context.write_headers(
                 fp, headers, context.muted_container_headers)
-    conc = swiftly.concurrency.Concurrency(context.concurrency)
+    conc = Concurrency(context.concurrency)
     while contents:
         if context.all_objects:
             for item in contents:
@@ -250,7 +246,7 @@ def cli_get_container_listing(context, path=None):
                     return
                 if hasattr(contents, 'read'):
                     contents.read()
-                raise swiftly.cli.command.ReturnCode(
+                raise ReturnCode(
                     'listing container %r: %s %s' % (path, status, reason))
     conc.join()
     for (exc_type, exc_value, exc_tb, result) in \
@@ -282,7 +278,7 @@ def cli_get(context, path=None):
                 return
             if hasattr(contents, 'read'):
                 contents.read()
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'getting object %r: %s %s' % (path, status, reason))
 
         def disk_closed_callback(disk_path):
@@ -322,14 +318,14 @@ def cli_get(context, path=None):
                 context.write_headers(
                     fp, headers, context.muted_object_headers)
                 fp.write('\n')
-            chunk = contents.read(swiftly.client.CHUNK_SIZE)
+            chunk = contents.read(65536)
             while chunk:
                 fp.write(chunk)
-                chunk = contents.read(swiftly.client.CHUNK_SIZE)
+                chunk = contents.read(65536)
             fp.flush()
 
 
-class CLIGet(swiftly.cli.command.CLICommand):
+class CLIGet(CLICommand):
     """
     A CLICommand that can issue GET requests.
 

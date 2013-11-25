@@ -53,8 +53,8 @@ limitations under the License.
 import json
 import os
 
-import swiftly.concurrency
-import swiftly.cli.command
+from swiftly.concurrency import Concurrency
+from swiftly.cli.command import CLICommand, ReturnCode
 
 
 def cli_put_directory_structure(context, path):
@@ -67,13 +67,13 @@ def cli_put_directory_structure(context, path):
     See :py:class:`CLIPut` for more information.
     """
     if not context.input_:
-        raise swiftly.cli.command.ReturnCode(
+        raise ReturnCode(
             'called cli_put_directory_structure without context.input_ set')
     if not os.path.isdir(context.input_):
-        raise swiftly.cli.command.ReturnCode(
+        raise ReturnCode(
             '%r is not a directory' % context.input_)
     if not path:
-        raise swiftly.cli.command.ReturnCode(
+        raise ReturnCode(
             'uploading a directory structure requires at least a container '
             'name')
     new_context = context.copy()
@@ -83,7 +83,7 @@ def cli_put_directory_structure(context, path):
     ilen = len(context.input_)
     if not context.input_.endswith(os.sep):
         ilen += 1
-    conc = swiftly.concurrency.Concurrency(context.concurrency)
+    conc = Concurrency(context.concurrency)
     for (dirpath, dirnames, filenames) in os.walk(context.input_):
         if not dirnames and not filenames:
             new_context = context.copy()
@@ -147,8 +147,7 @@ def cli_put_account(context):
         if hasattr(contents, 'read'):
             contents.read()
     if status // 100 != 2:
-        raise swiftly.cli.command.ReturnCode(
-            'putting account: %s %s' % (status, reason))
+        raise ReturnCode('putting account: %s %s' % (status, reason))
 
 
 def cli_put_container(context, path):
@@ -161,8 +160,7 @@ def cli_put_container(context, path):
     """
     path = path.rstrip('/')
     if '/' in path:
-        raise swiftly.cli.command.ReturnCode(
-            'called cli_put_container with object %r' % path)
+        raise ReturnCode('called cli_put_container with object %r' % path)
     body = None
     if context.input_:
         if context.input_ == '-':
@@ -176,7 +174,7 @@ def cli_put_container(context, path):
         if hasattr(contents, 'read'):
             contents.read()
     if status // 100 != 2:
-        raise swiftly.cli.command.ReturnCode(
+        raise ReturnCode(
             'putting container %r: %s %s' % (path, status, reason))
 
 
@@ -222,7 +220,7 @@ def cli_put_object(context, path):
                     except ValueError:
                         r_size = None
             elif status != 404:
-                raise swiftly.cli.command.ReturnCode(
+                raise ReturnCode(
                     'could not head %r for conditional check; skipping put: '
                     '%s %s' % (path, status, reason))
             if context.newer and r_mtime is not None or l_mtime <= r_mtime:
@@ -240,7 +238,7 @@ def cli_put_object(context, path):
             cli_put_container(new_context, container)
             prefix = container + '/' + path.split('/', 1)[1]
             prefix = '%s/%s/%s/' % (prefix, l_mtime, size)
-            conc = swiftly.concurrency.Concurrency(context.concurrency)
+            conc = Concurrency(context.concurrency)
             start = 0
             segment = 0
             path2info = {}
@@ -288,7 +286,7 @@ def cli_put_object(context, path):
         if hasattr(contents, 'read'):
             contents = contents.read()
     if status // 100 != 2:
-        raise swiftly.cli.command.ReturnCode(
+        raise ReturnCode(
             'putting object %r: %s %s %r' % (path, status, reason, contents))
     if context.seek is not None:
         return put_headers.get('content-length'), headers.get('etag')
@@ -313,7 +311,7 @@ def cli_put(context, path):
         return cli_put_object(context, path)
 
 
-class CLIPut(swiftly.cli.command.CLICommand):
+class CLIPut(CLICommand):
     """
     A CLICommand that can issue PUT requests.
 
@@ -429,8 +427,7 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
         context.segment_size = int(
             context.segment_size or 5 * 1024 * 1024 * 1024)
         if context.segment_size < 1:
-            raise swiftly.cli.command.ReturnCode(
-                'invalid segment size %s' % options.segment_size)
+            raise ReturnCode('invalid segment size %s' % options.segment_size)
         context.empty = options.empty
         context.newer = options.newer
         context.different = options.different

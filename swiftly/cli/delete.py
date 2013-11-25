@@ -30,8 +30,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import swiftly.concurrency
-import swiftly.cli.command
+from swiftly.concurrency import Concurrency
+from swiftly.cli.command import CLICommand, ReturnCode
 
 
 def cli_empty_account(context, yes_empty_account=False):
@@ -44,7 +44,7 @@ def cli_empty_account(context, yes_empty_account=False):
     See :py:class:`CLIDelete` for more information.
     """
     if not yes_empty_account:
-        raise swiftly.cli.command.ReturnCode(
+        raise ReturnCode(
             'called cli_empty_account without setting yes_empty_account=True')
     marker = None
     while True:
@@ -55,8 +55,7 @@ def cli_empty_account(context, yes_empty_account=False):
         if status // 100 != 2:
             if status == 404 and context.ignore_404:
                 return
-            raise swiftly.cli.command.ReturnCode(
-                'listing account: %s %s' % (status, reason))
+            raise ReturnCode('listing account: %s %s' % (status, reason))
         if not contents:
             break
         for item in contents:
@@ -74,7 +73,7 @@ def cli_empty_container(context, path):
     See :py:class:`CLIDelete` for more information.
     """
     path = path.rstrip('/')
-    conc = swiftly.concurrency.Concurrency(context.concurrency)
+    conc = Concurrency(context.concurrency)
 
     def check_conc():
         for (exc_type, exc_value, exc_tb, result) in \
@@ -94,7 +93,7 @@ def cli_empty_container(context, path):
         if status // 100 != 2:
             if status == 404 and context.ignore_404:
                 return
-            raise swiftly.cli.command.ReturnCode(
+            raise ReturnCode(
                 'listing container %r: %s %s' % (path, status, reason))
         if not contents:
             break
@@ -148,7 +147,7 @@ def cli_delete(context, path, body=None, recursive=False,
                 if status // 100 != 2:
                     if status == 404 and context.ignore_404:
                         return
-                    raise swiftly.cli.command.ReturnCode(
+                    raise ReturnCode(
                         'deleting account: %s %s' % (status, reason))
     elif '/' not in path.rstrip('/'):
         path = path.rstrip('/')
@@ -161,7 +160,7 @@ def cli_delete(context, path, body=None, recursive=False,
             if status // 100 != 2:
                 if status == 404 and context.ignore_404:
                     return
-                raise swiftly.cli.command.ReturnCode(
+                raise ReturnCode(
                     'deleting container %r: %s %s' % (path, status, reason))
     else:
         with context.client_manager.with_client() as client:
@@ -171,11 +170,11 @@ def cli_delete(context, path, body=None, recursive=False,
             if status // 100 != 2:
                 if status == 404 and context.ignore_404:
                     return
-                raise swiftly.cli.command.ReturnCode(
+                raise ReturnCode(
                     'deleting object %r: %s %s' % (path, status, reason))
 
 
-class CLIDelete(swiftly.cli.command.CLICommand):
+class CLIDelete(CLICommand):
     """
     A CLICommand that can issue DELETE requests.
 
@@ -253,7 +252,7 @@ Issues a DELETE request of the [path] given.""".strip())
         if not path:
             if not recursive:
                 if not yes_delete_account:
-                    raise swiftly.cli.command.ReturnCode("""
+                    raise ReturnCode("""
 A delete directly on an account requires the --yes-i-mean-delete-the-account
 option as well.
 
@@ -265,7 +264,7 @@ the objects from the cluster in the backgound.
 THERE IS NO GOING BACK!""".strip())
             else:
                 if not yes_empty_account:
-                    raise swiftly.cli.command.ReturnCode("""
+                    raise ReturnCode("""
 A delete --recursive directly on an account requires the
 --yes-i-mean-empty-the-account option as well.
 

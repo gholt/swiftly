@@ -26,7 +26,7 @@ limitations under the License.
 """
 import contextlib
 
-import swiftly.cli.command
+from swiftly.cli.command import CLICommand
 
 
 def cli_auth(context):
@@ -41,42 +41,44 @@ def cli_auth(context):
             context.io_manager.with_stdout(),
             context.client_manager.with_client()) as (fp, client):
         info = []
-        if client.cache_path:
-            info.append(('Auth Cache', client.cache_path))
-        if client.auth_url:
+        client.auth()
+        if getattr(client, 'auth_cache_path', None):
+            info.append(('Auth Cache', client.auth_cache_path))
+        if getattr(client, 'auth_url', None):
             info.append(('Auth URL', client.auth_url))
-        if client.auth_user:
+        if getattr(client, 'auth_user', None):
             info.append(('Auth User', client.auth_user))
-        if client.auth_key:
+        if getattr(client, 'auth_key', None):
             info.append(('Auth Key', client.auth_key))
-        if client.auth_tenant:
+        if getattr(client, 'auth_tenant', None):
             info.append(('Auth Tenant', client.auth_tenant))
-        if client.auth_methods:
+        if getattr(client, 'auth_methods', None):
             info.append(('Auth Methods', client.auth_methods))
-        if client.swift_proxy:
+        if getattr(client, 'storage_path', None):
             info.append(('Direct Storage Path', client.storage_path))
-        else:
-            client.auth()
-            if client.regions:
-                info.append(('Regions', ' '.join(client.regions)))
-            if client.regions_default:
-                info.append(('Default Region', client.regions_default))
-            if client.region:
-                info.append(('Selected Region', client.region))
-            if client.snet:
-                info.append(('SNet', 'True'))
+        if getattr(client, 'cdn_path', None):
+            info.append(('Direct CDN Path', client.cdn_path))
+        if getattr(client, 'regions', None):
+            info.append(('Regions', ' '.join(client.regions)))
+        if getattr(client, 'default_region', None):
+            info.append(('Default Region', client.default_region))
+        if getattr(client, 'region', None):
+            info.append(('Selected Region', client.region))
+        if getattr(client, 'snet', None):
+            info.append(('SNet', client.snet))
+        if getattr(client, 'storage_url', None):
             info.append(('Storage URL', client.storage_url))
-            if client.cdn_url:
-                info.append(('CDN Management URL', client.cdn_url))
+        if getattr(client, 'cdn_url', None):
+            info.append(('CDN URL', client.cdn_url))
+        if getattr(client, 'auth_token', None):
             info.append(('Auth Token', client.auth_token))
-        info.append(('Request Retries', client.attempts - 1))
         fmt = '%%-%ds %%s\n' % (max(len(t) for t, v in info) + 1)
         for t, v in info:
             fp.write(fmt % (t + ':', v))
         fp.flush()
 
 
-class CLIAuth(swiftly.cli.command.CLICommand):
+class CLIAuth(CLICommand):
     """
     A CLICommand that authenticates and then outputs the resulting
     information.
@@ -102,31 +104,30 @@ Possible Output Values:
     Auth Tenant          The tenant to auth as if in use.
     Auth Methods         The auth methods in use if any specified.
     Direct Storage Path  The direct-mode path if in use.
+    Direct CDN Path      The direct-mode CDN path if in use.
     Regions              The available regions as reported by the auth service.
     Default Region       The default region as reported by the auth service.
     Selected Region      The region selected for use by Swiftly.
     SNet                 True if ServiceNet/InternalURL would be used.
     Storage URL          The URL to use for storage as reported by the auth
                          service.
-    CDN Management URL   The URL to use for CDN management as reported by the
+    CDN URL              The URL to use for CDN management as reported by the
                          auth service.
     Auth Token           The auth token to use as reported by the auth service.
-    Request Retries      The number retries to be done for any request.
 
 Example Output:
 
-Auth Cache:         /tmp/user.swiftly
-Auth URL:           https://identity.api.rackspacecloud.com/v2.0
-Auth User:          myusername
-Auth Key:           mykey
-Regions:            ORD DFW SYD IAD HKG
-Default Region:     ORD
-Selected Region:    IAD
-SNet:               True
-Storage URL:        https://snet-storage101.iad3.clouddrive.com/v1/account
-CDN Management URL: https://cdn5.clouddrive.com/v1/account
-Auth Token:         abcdef0123456789abcdef0123456789
-Request Retries:    4
+Auth Cache:      /tmp/user.swiftly
+Auth URL:        https://identity.api.rackspacecloud.com/v2.0
+Auth User:       myusername
+Auth Key:        mykey
+Regions:         ORD DFW SYD IAD HKG
+Default Region:  ORD
+Selected Region: IAD
+SNet:            True
+Storage URL:     https://snet-storage101.iad3.clouddrive.com/v1/account
+CDN URL:         https://cdn5.clouddrive.com/v1/account
+Auth Token:      abcdef0123456789abcdef0123456789
             """.strip())
 
     def __call__(self, args):

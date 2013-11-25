@@ -30,8 +30,8 @@ except ImportError:
 
 class Concurrency(object):
     """
-    Convenience class to support concurrency, if Eventlet is available;
-    otherwise it just performs at single concurrency.
+    Convenience class to support concurrency, if Eventlet is
+    available; otherwise it just performs at single concurrency.
 
     :param concurrency: The level of concurrency desired. Default: 10
     """
@@ -55,14 +55,16 @@ class Concurrency(object):
 
     def spawn(self, ident, func, *args, **kwargs):
         """
-        Returns immediately to the caller and begins executing the func in
-        the background. Use get_results and the ident given to retrieve the
-        results of the func.
+        Returns immediately to the caller and begins executing the
+        func in the background. Use get_results and the ident given
+        to retrieve the results of the func. If the func causes an
+        exception, this exception will be caught and the
+        sys.exc_info() will be returned via get_results.
 
-        :param ident: An identifier to find the results of the func from
-            get_results. This identifier can be anything unique to
-            the Concurrency instance.
-        :param func: The function to execute in the concurrently.
+        :param ident: An identifier to find the results of the func
+            from get_results. This identifier can be anything unique
+            to the Concurrency instance.
+        :param func: The function to execute concurrently.
         :param args: The args to give the func.
         :param kwargs: The keyword args to the give the func.
         :returns: None
@@ -74,9 +76,18 @@ class Concurrency(object):
 
     def get_results(self):
         """
-        Returns a dict of the results currently available. The keys are the
-        ident values given with the calls to spawn. The values are the return
-        values of the funcs.
+        Returns a dict of the results currently available. The keys
+        are the ident values given with the calls to spawn. The
+        values are tuples of (exc_type, exc_value, exc_tb, result)
+        where:
+
+        =========  ============================================
+        exc_type   The type of any exception raised.
+        exc_value  The actual exception if any was raised.
+        exc_tb     The traceback if any exception was raised.
+        result     If no exception was raised, this will be the
+                   return value of the called function.
+        =========  ============================================
         """
         try:
             while True:
