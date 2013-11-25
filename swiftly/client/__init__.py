@@ -3,13 +3,13 @@ Contains tools for connecting to Swift services.
 
 For convenience, the following names are imported from submodules:
 
-=================  ================================================
-StandardClient     :py:class:`swiftly.client.client.StandardClient`
-DirectClient       :py:class:`swiftly.client.client.DirectClient`
+=================  ========================================================
+StandardClient     :py:class:`swiftly.client.standardclient.StandardClient`
+DirectClient       :py:class:`swiftly.client.directclient.DirectClient`
 ClientManager      :py:class:`swiftly.client.manager.ClientManager`
 generate_temp_url  :py:func:`swiftly.client.utils.generate_temp_url`
 get_trans_id_time  :py:func:`swiftly.client.utils.get_trans_id_time`
-=================  ================================================
+=================  ========================================================
 
 Copyright 2011-2013 Gregory Holt
 Portions Copyright (c) 2010-2012 OpenStack Foundation
