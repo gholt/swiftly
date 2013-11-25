@@ -103,8 +103,8 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">os</span>
 
-<span class="kn">import</span> <span class="nn">swiftly.concurrency</span>
-<span class="kn">import</span> <span class="nn">swiftly.cli.command</span>
+<span class="kn">from</span> <span class="nn">swiftly.concurrency</span> <span class="kn">import</span> <span class="n">Concurrency</span>
+<span class="kn">from</span> <span class="nn">swiftly.cli.command</span> <span class="kn">import</span> <span class="n">CLICommand</span><span class="p">,</span> <span class="n">ReturnCode</span>
 
 
 <div class="viewcode-block" id="cli_put_directory_structure"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put_directory_structure">[docs]</a><span class="k">def</span> <span class="nf">cli_put_directory_structure</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
@@ -117,13 +117,13 @@
 <span class="sd">    See :py:class:`CLIPut` for more information.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
             <span class="s">&#39;called cli_put_directory_structure without context.input_ set&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
             <span class="s">&#39;</span><span class="si">%r</span><span class="s"> is not a directory&#39;</span> <span class="o">%</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
             <span class="s">&#39;uploading a directory structure requires at least a container &#39;</span>
             <span class="s">&#39;name&#39;</span><span class="p">)</span>
     <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -133,7 +133,7 @@
     <span class="n">ilen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">sep</span><span class="p">):</span>
         <span class="n">ilen</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="n">conc</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">concurrency</span><span class="o">.</span><span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
+    <span class="n">conc</span> <span class="o">=</span> <span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">dirpath</span><span class="p">,</span> <span class="n">dirnames</span><span class="p">,</span> <span class="n">filenames</span><span class="p">)</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">dirnames</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">filenames</span><span class="p">:</span>
             <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -197,8 +197,7 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
             <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
-            <span class="s">&#39;putting account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;putting account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
 
 </div>
 <div class="viewcode-block" id="cli_put_container"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put_container">[docs]</a><span class="k">def</span> <span class="nf">cli_put_container</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
@@ -211,8 +210,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="s">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
-            <span class="s">&#39;called cli_put_container with object </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;called cli_put_container with object </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
     <span class="n">body</span> <span class="o">=</span> <span class="bp">None</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
@@ -226,7 +224,7 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
             <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
             <span class="s">&#39;putting container </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
 
 </div>
@@ -272,7 +270,7 @@
                     <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
                         <span class="n">r_size</span> <span class="o">=</span> <span class="bp">None</span>
             <span class="k">elif</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">404</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                     <span class="s">&#39;could not head </span><span class="si">%r</span><span class="s"> for conditional check; skipping put: &#39;</span>
                     <span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">newer</span> <span class="ow">and</span> <span class="n">r_mtime</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">l_mtime</span> <span class="o">&lt;=</span> <span class="n">r_mtime</span><span class="p">:</span>
@@ -290,7 +288,7 @@
             <span class="n">cli_put_container</span><span class="p">(</span><span class="n">new_context</span><span class="p">,</span> <span class="n">container</span><span class="p">)</span>
             <span class="n">prefix</span> <span class="o">=</span> <span class="n">container</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
             <span class="n">prefix</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">/</span><span class="si">%s</span><span class="s">/</span><span class="si">%s</span><span class="s">/&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">l_mtime</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
-            <span class="n">conc</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">concurrency</span><span class="o">.</span><span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
+            <span class="n">conc</span> <span class="o">=</span> <span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
             <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">segment</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="n">path2info</span> <span class="o">=</span> <span class="p">{}</span>
@@ -338,7 +336,7 @@
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
             <span class="n">contents</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
             <span class="s">&#39;putting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">contents</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">seek</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">put_headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">),</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;etag&#39;</span><span class="p">)</span>
@@ -363,7 +361,7 @@
         <span class="k">return</span> <span class="n">cli_put_object</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
 
 </div>
-<div class="viewcode-block" id="CLIPut"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.CLIPut">[docs]</a><span class="k">class</span> <span class="nc">CLIPut</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">CLICommand</span><span class="p">):</span>
+<div class="viewcode-block" id="CLIPut"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.CLIPut">[docs]</a><span class="k">class</span> <span class="nc">CLIPut</span><span class="p">(</span><span class="n">CLICommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A CLICommand that can issue PUT requests.</span>
 
@@ -479,8 +477,7 @@
         <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
             <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="ow">or</span> <span class="mi">5</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
-                <span class="s">&#39;invalid segment size </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;invalid segment size </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">options</span><span class="o">.</span><span class="n">segment_size</span><span class="p">)</span>
         <span class="n">context</span><span class="o">.</span><span class="n">empty</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">empty</span>
         <span class="n">context</span><span class="o">.</span><span class="n">newer</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">newer</span>
         <span class="n">context</span><span class="o">.</span><span class="n">different</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">different</span>

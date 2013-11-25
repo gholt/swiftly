@@ -57,10 +57,15 @@
  | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
  | <a href="#J"><strong>J</strong></a>
+ | <a href="#L"><strong>L</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
+ | <a href="#Q"><strong>Q</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
+ | <a href="#T"><strong>T</strong></a>
+ | <a href="#U"><strong>U</strong></a>
  | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
  
@@ -69,9 +74,15 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.auth">auth() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.auth">auth() (swiftly.client.client.Client method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="swiftly_client.html#swiftly.client.standardclient.StandardClient.auth">(swiftly.client.standardclient.StandardClient method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
 </tr></table>
 
@@ -173,11 +184,15 @@
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client">Client (class in swiftly.client)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client">Client (class in swiftly.client.client)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.client_path_to_os_path">client_path_to_os_path() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.client_ip">client_ip (swiftly.client.nulllogger.NullLogger attribute)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.client_path_to_os_path">client_path_to_os_path() (swiftly.cli.iomanager.IOManager method)</a>
   </dt>
 
       
@@ -243,17 +258,33 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.delete_account">delete_account() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.debug">debug() (swiftly.client.nulllogger.NullLogger method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.delete_container">delete_container() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.decr">decr() (swiftly.client.localmemcache.LocalMemcache method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.delete">delete() (swiftly.client.localmemcache.LocalMemcache method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.delete_account">delete_account() (swiftly.client.client.Client method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.delete_object">delete_object() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.delete_container">delete_container() (swiftly.client.client.Client method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.delete_object">delete_object() (swiftly.client.client.Client method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.directclient.DirectClient">DirectClient (class in swiftly.client.directclient)</a>
   </dt>
 
   </dl></td>
@@ -266,14 +297,24 @@
   <dt><a href="swiftly_cli.html#swiftly.cli.optionparser.OptionParser.error">error() (swiftly.cli.optionparser.OptionParser method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.error">(swiftly.client.nulllogger.NullLogger method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="swiftly_cli.html#swiftly.cli.optionparser.OptionParser.error_encountered">error_encountered (swiftly.cli.optionparser.OptionParser attribute)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_cli.html#swiftly.cli.optionparser.OptionParser.error_prefix">error_prefix (swiftly.cli.optionparser.OptionParser attribute)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_cli.html#swiftly.cli.optionparser.OptionParser.error_prefix">error_prefix (swiftly.cli.optionparser.OptionParser attribute)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.exception">exception() (swiftly.client.nulllogger.NullLogger method)</a>
   </dt>
 
       
@@ -287,29 +328,51 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.get_account">get_account() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.utils.generate_temp_url">generate_temp_url() (in module swiftly.client.utils)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.get_account_hash">get_account_hash() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.get">get() (swiftly.client.localmemcache.LocalMemcache method)</a>
   </dt>
 
+      
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.get_account">get_account() (swiftly.client.client.Client method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.get_account_hash">get_account_hash() (swiftly.client.client.Client method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="swiftly_client.html#swiftly.client.directclient.DirectClient.get_account_hash">(swiftly.client.directclient.DirectClient method)</a>
+  </dt>
+
+        
+  <dt><a href="swiftly_client.html#swiftly.client.standardclient.StandardClient.get_account_hash">(swiftly.client.standardclient.StandardClient method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="swiftly_client.html#swiftly.client.manager.ClientManager.get_client">get_client() (swiftly.client.manager.ClientManager method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.get_container">get_container() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.get_container">get_container() (swiftly.client.client.Client method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.get_debug">get_debug() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.get_debug">get_debug() (swiftly.cli.iomanager.IOManager method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.get_object">get_object() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.get_multi">get_multi() (swiftly.client.localmemcache.LocalMemcache method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.get_object">get_object() (swiftly.client.client.Client method)</a>
   </dt>
 
       
@@ -317,15 +380,19 @@
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.get_stderr">get_stderr() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.get_stderr">get_stderr() (swiftly.cli.iomanager.IOManager method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.get_stdin">get_stdin() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.get_stdin">get_stdin() (swiftly.cli.iomanager.IOManager method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.get_stdout">get_stdout() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.get_stdout">get_stdout() (swiftly.cli.iomanager.IOManager method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.utils.get_trans_id_time">get_trans_id_time() (in module swiftly.client.utils)</a>
   </dt>
 
   </dl></td>
@@ -335,17 +402,21 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.head_account">head_account() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.head_account">head_account() (swiftly.client.client.Client method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.head_container">head_container() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.head_container">head_container() (swiftly.client.client.Client method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.head_object">head_object() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.head_object">head_object() (swiftly.client.client.Client method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.utils.headers_to_dict">headers_to_dict() (in module swiftly.client.utils)</a>
   </dt>
 
   </dl></td>
@@ -355,7 +426,17 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager">IOManager (class in swiftly.client.manager)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.incr">incr() (swiftly.client.localmemcache.LocalMemcache method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.increment">increment() (swiftly.client.nulllogger.NullLogger method)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager">IOManager (class in swiftly.cli.iomanager)</a>
   </dt>
 
   </dl></td>
@@ -366,6 +447,26 @@
   <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="swiftly_concurrency.html#swiftly.concurrency.Concurrency.join">join() (swiftly.concurrency.Concurrency method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="L">L</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="swiftly_client.html#swiftly.client.localmemcache.LocalMemcache">LocalMemcache (class in swiftly.client.localmemcache)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger">NullLogger (class in swiftly.client.nulllogger)</a>
   </dt>
 
   </dl></td>
@@ -389,7 +490,7 @@
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.os_path_to_client_path">os_path_to_client_path() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.os_path_to_client_path">os_path_to_client_path() (swiftly.cli.iomanager.IOManager method)</a>
   </dt>
 
   </dl></td>
@@ -403,15 +504,15 @@
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.post_account">post_account() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.post_account">post_account() (swiftly.client.client.Client method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.post_container">post_container() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.post_container">post_container() (swiftly.client.client.Client method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.post_object">post_object() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.post_object">post_object() (swiftly.client.client.Client method)</a>
   </dt>
 
       
@@ -429,7 +530,7 @@
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.put_account">put_account() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.put_account">put_account() (swiftly.client.client.Client method)</a>
   </dt>
 
       
@@ -437,11 +538,21 @@
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.put_container">put_container() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.put_container">put_container() (swiftly.client.client.Client method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.put_object">put_object() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.put_object">put_object() (swiftly.client.client.Client method)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="Q">Q</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="swiftly_client.html#swiftly.client.utils.quote">quote() (in module swiftly.client.utils)</a>
   </dt>
 
   </dl></td>
@@ -455,11 +566,31 @@
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.Client.reset">reset() (swiftly.client.Client method)</a>
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.request">request() (swiftly.client.client.Client method)</a>
   </dt>
 
+      <dd><dl>
+        
+  <dt><a href="swiftly_client.html#swiftly.client.directclient.DirectClient.request">(swiftly.client.directclient.DirectClient method)</a>
+  </dt>
+
+        
+  <dt><a href="swiftly_client.html#swiftly.client.standardclient.StandardClient.request">(swiftly.client.standardclient.StandardClient method)</a>
+  </dt>
+
+      </dl></dd>
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.reset">reset() (swiftly.client.client.Client method)</a>
+  </dt>
+
+      <dd><dl>
+        
+  <dt><a href="swiftly_client.html#swiftly.client.standardclient.StandardClient.reset">(swiftly.client.standardclient.StandardClient method)</a>
+  </dt>
+
+      </dl></dd>
       
   <dt><a href="swiftly_cli.html#swiftly.cli.command.ReturnCode">ReturnCode</a>
   </dt>
@@ -471,7 +602,23 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.set">set() (swiftly.client.localmemcache.LocalMemcache method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.set_multi">set_multi() (swiftly.client.localmemcache.LocalMemcache method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.set_statsd_prefix">set_statsd_prefix() (swiftly.client.nulllogger.NullLogger method)</a>
+  </dt>
+
+      
   <dt><a href="swiftly_concurrency.html#swiftly.concurrency.Concurrency.spawn">spawn() (swiftly.concurrency.Concurrency method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.standardclient.StandardClient">StandardClient (class in swiftly.client.standardclient)</a>
   </dt>
 
       
@@ -510,12 +657,16 @@
   <dt><a href="swiftly_cli.html#module-swiftly.cli.head">swiftly.cli.head (module)</a>
   </dt>
 
-  </dl></td>
-  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="swiftly_cli.html#module-swiftly.cli.help">swiftly.cli.help (module)</a>
   </dt>
 
+      
+  <dt><a href="swiftly_cli.html#module-swiftly.cli.iomanager">swiftly.cli.iomanager (module)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
       
   <dt><a href="swiftly_cli.html#module-swiftly.cli.optionparser">swiftly.cli.optionparser (module)</a>
   </dt>
@@ -545,11 +696,61 @@
   </dt>
 
       
+  <dt><a href="swiftly_client.html#module-swiftly.client.client">swiftly.client.client (module)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#module-swiftly.client.directclient">swiftly.client.directclient (module)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#module-swiftly.client.localmemcache">swiftly.client.localmemcache (module)</a>
+  </dt>
+
+      
   <dt><a href="swiftly_client.html#module-swiftly.client.manager">swiftly.client.manager (module)</a>
   </dt>
 
       
+  <dt><a href="swiftly_client.html#module-swiftly.client.nulllogger">swiftly.client.nulllogger (module)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#module-swiftly.client.standardclient">swiftly.client.standardclient (module)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#module-swiftly.client.utils">swiftly.client.utils (module)</a>
+  </dt>
+
+      
   <dt><a href="swiftly_concurrency.html#module-swiftly.concurrency">swiftly.concurrency (module)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="T">T</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.thread_locals">thread_locals (swiftly.client.nulllogger.NullLogger attribute)</a>
+  </dt>
+
+  </dl></td>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.txn_id">txn_id (swiftly.client.nulllogger.NullLogger attribute)</a>
+  </dt>
+
+  </dl></td>
+</tr></table>
+
+<h2 id="U">U</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%" valign="top"><dl>
+      
+  <dt><a href="swiftly_client.html#swiftly.client.client.Client.user_agent">user_agent (swiftly.client.client.Client attribute)</a>
   </dt>
 
   </dl></td>
@@ -569,25 +770,33 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%" valign="top"><dl>
       
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.warn">warn() (swiftly.client.nulllogger.NullLogger method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_client.html#swiftly.client.nulllogger.NullLogger.warning">warning() (swiftly.client.nulllogger.NullLogger method)</a>
+  </dt>
+
+      
   <dt><a href="swiftly_client.html#swiftly.client.manager.ClientManager.with_client">with_client() (swiftly.client.manager.ClientManager method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.with_debug">with_debug() (swiftly.client.manager.IOManager method)</a>
-  </dt>
-
-      
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.with_stderr">with_stderr() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.with_debug">with_debug() (swiftly.cli.iomanager.IOManager method)</a>
   </dt>
 
   </dl></td>
   <td style="width: 33%" valign="top"><dl>
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.with_stdin">with_stdin() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.with_stderr">with_stderr() (swiftly.cli.iomanager.IOManager method)</a>
   </dt>
 
       
-  <dt><a href="swiftly_client.html#swiftly.client.manager.IOManager.with_stdout">with_stdout() (swiftly.client.manager.IOManager method)</a>
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.with_stdin">with_stdin() (swiftly.cli.iomanager.IOManager method)</a>
+  </dt>
+
+      
+  <dt><a href="swiftly_cli.html#swiftly.cli.iomanager.IOManager.with_stdout">with_stdout() (swiftly.cli.iomanager.IOManager method)</a>
   </dt>
 
       

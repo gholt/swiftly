@@ -80,8 +80,8 @@
 
 <div class="viewcode-block" id="Concurrency"><a class="viewcode-back" href="../../swiftly_concurrency.html#swiftly.concurrency.Concurrency">[docs]</a><span class="k">class</span> <span class="nc">Concurrency</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Convenience class to support concurrency, if Eventlet is available;</span>
-<span class="sd">    otherwise it just performs at single concurrency.</span>
+<span class="sd">    Convenience class to support concurrency, if Eventlet is</span>
+<span class="sd">    available; otherwise it just performs at single concurrency.</span>
 
 <span class="sd">    :param concurrency: The level of concurrency desired. Default: 10</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -105,14 +105,16 @@
 
 <div class="viewcode-block" id="Concurrency.spawn"><a class="viewcode-back" href="../../swiftly_concurrency.html#swiftly.concurrency.Concurrency.spawn">[docs]</a>    <span class="k">def</span> <span class="nf">spawn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ident</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Returns immediately to the caller and begins executing the func in</span>
-<span class="sd">        the background. Use get_results and the ident given to retrieve the</span>
-<span class="sd">        results of the func.</span>
+<span class="sd">        Returns immediately to the caller and begins executing the</span>
+<span class="sd">        func in the background. Use get_results and the ident given</span>
+<span class="sd">        to retrieve the results of the func. If the func causes an</span>
+<span class="sd">        exception, this exception will be caught and the</span>
+<span class="sd">        sys.exc_info() will be returned via get_results.</span>
 
-<span class="sd">        :param ident: An identifier to find the results of the func from</span>
-<span class="sd">            get_results. This identifier can be anything unique to</span>
-<span class="sd">            the Concurrency instance.</span>
-<span class="sd">        :param func: The function to execute in the concurrently.</span>
+<span class="sd">        :param ident: An identifier to find the results of the func</span>
+<span class="sd">            from get_results. This identifier can be anything unique</span>
+<span class="sd">            to the Concurrency instance.</span>
+<span class="sd">        :param func: The function to execute concurrently.</span>
 <span class="sd">        :param args: The args to give the func.</span>
 <span class="sd">        :param kwargs: The keyword args to the give the func.</span>
 <span class="sd">        :returns: None</span>
@@ -124,9 +126,18 @@
 </div>
 <div class="viewcode-block" id="Concurrency.get_results"><a class="viewcode-back" href="../../swiftly_concurrency.html#swiftly.concurrency.Concurrency.get_results">[docs]</a>    <span class="k">def</span> <span class="nf">get_results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Returns a dict of the results currently available. The keys are the</span>
-<span class="sd">        ident values given with the calls to spawn. The values are the return</span>
-<span class="sd">        values of the funcs.</span>
+<span class="sd">        Returns a dict of the results currently available. The keys</span>
+<span class="sd">        are the ident values given with the calls to spawn. The</span>
+<span class="sd">        values are tuples of (exc_type, exc_value, exc_tb, result)</span>
+<span class="sd">        where:</span>
+
+<span class="sd">        =========  ============================================</span>
+<span class="sd">        exc_type   The type of any exception raised.</span>
+<span class="sd">        exc_value  The actual exception if any was raised.</span>
+<span class="sd">        exc_tb     The traceback if any exception was raised.</span>
+<span class="sd">        result     If no exception was raised, this will be the</span>
+<span class="sd">                   return value of the called function.</span>
+<span class="sd">        =========  ============================================</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>

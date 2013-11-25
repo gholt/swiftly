@@ -72,7 +72,7 @@
 <span class="sd">See the License for the specific language governing permissions and</span>
 <span class="sd">limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">import</span> <span class="nn">swiftly.cli.command</span>
+<span class="kn">from</span> <span class="nn">swiftly.cli.command</span> <span class="kn">import</span> <span class="n">CLICommand</span><span class="p">,</span> <span class="n">ReturnCode</span>
 
 
 <div class="viewcode-block" id="cli_help"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.help.cli_help">[docs]</a><span class="k">def</span> <span class="nf">cli_help</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">command_name</span><span class="p">,</span> <span class="n">general_parser</span><span class="p">,</span> <span class="n">command_parsers</span><span class="p">):</span>
@@ -91,9 +91,8 @@
 <span class="sd">    :param general_parser: The</span>
 <span class="sd">        :py:class:`swiftly.cli.optionparser.OptionParser` for general</span>
 <span class="sd">        usage.</span>
-<span class="sd">    :param command_parsers: A dict of</span>
-<span class="sd">        (name, :py:class:`swiftly.cli.command.CLICommand`) for</span>
-<span class="sd">        specific command usage.</span>
+<span class="sd">    :param command_parsers: A dict of (name, :py:class:`CLICommand`)</span>
+<span class="sd">        for specific command usage.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">stdout</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">command_name</span><span class="p">:</span>
@@ -101,11 +100,10 @@
         <span class="k">elif</span> <span class="n">command_name</span> <span class="ow">in</span> <span class="n">command_parsers</span><span class="p">:</span>
             <span class="n">command_parsers</span><span class="p">[</span><span class="n">command_name</span><span class="p">]</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
-                <span class="s">&#39;unknown command </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">command_name</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;unknown command </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">command_name</span><span class="p">)</span>
 
 </div>
-<div class="viewcode-block" id="CLIHelp"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.help.CLIHelp">[docs]</a><span class="k">class</span> <span class="nc">CLIHelp</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">CLICommand</span><span class="p">):</span>
+<div class="viewcode-block" id="CLIHelp"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.help.CLIHelp">[docs]</a><span class="k">class</span> <span class="nc">CLIHelp</span><span class="p">(</span><span class="n">CLICommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A CLICommand that outputs help information.</span>
 

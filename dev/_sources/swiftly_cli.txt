@@ -41,6 +41,14 @@ optionparser
     :undoc-members:
     :show-inheritance:
 
+iomanager
+=========
+
+.. automodule:: swiftly.cli.iomanager
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 auth
 ====
 

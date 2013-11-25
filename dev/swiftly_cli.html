@@ -57,6 +57,7 @@
 <p>Contains <a class="reference internal" href="#swiftly.cli.cli.CLI" title="swiftly.cli.cli.CLI"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.cli.CLI</span></tt></a> that implements the
 <tt class="docutils literal"><span class="pre">swiftly</span></tt> command line interface and all the surrounding
 implementation modules.</p>
+<p>CLI is imported here for convenience.</p>
 <p>Copyright 2011-2013 Gregory Holt</p>
 <p>Licensed under the Apache License, Version 2.0 (the &#8220;License&#8221;);
 you may not use this file except in compliance with the License.
@@ -115,7 +116,7 @@ to use for obtaining clients.</td>
 <td>Number of concurrent actions to allow.</td>
 </tr>
 <tr class="row-even"><td>io_manager</td>
-<td>The <a class="reference internal" href="swiftly_client.html#swiftly.client.manager.IOManager" title="swiftly.client.manager.IOManager"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.client.manager.IOManager</span></tt></a> to
+<td>The <a class="reference internal" href="#swiftly.cli.iomanager.IOManager" title="swiftly.cli.iomanager.IOManager"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.iomanager.IOManager</span></tt></a> to
 use for input and output.</td>
 </tr>
 <tr class="row-odd"><td>eventlet</td>
@@ -142,7 +143,7 @@ output will be constructed with <tt class="docutils literal"><span class="pre">m
 <dl class="attribute">
 <dt id="swiftly.cli.cli.CLI.option_parser">
 <tt class="descname">option_parser</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.cli.CLI.option_parser" title="Permalink to this definition">¶</a></dt>
-<dd><p>The main <a class="reference internal" href="#swiftly.cli.optionparser.OptionParser" title="swiftly.cli.optionparser.OptionParser"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.optionparser.OptionParser</span></tt></a>.</p>
+<dd><p>The main <tt class="xref py py-class docutils literal"><span class="pre">OptionParser</span></tt>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -213,7 +214,7 @@ any other options desired.</p>
 <li><strong>min_args</strong> &#8211; The minimum number of arguments required.</li>
 <li><strong>max_args</strong> &#8211; The maximum number of arguments allowed.</li>
 <li><strong>usage</strong> &#8211; The usage string for
-<a class="reference internal" href="#swiftly.cli.optionparser.OptionParser" title="swiftly.cli.optionparser.OptionParser"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.optionparser.OptionParser</span></tt></a>.</li>
+<tt class="xref py py-class docutils literal"><span class="pre">OptionParser</span></tt>.</li>
 </ul>
 </td>
 </tr>
@@ -304,7 +305,7 @@ command line applications that may call other command line
 applications or use multiple parsers.</p>
 <dl class="class">
 <dt id="swiftly.cli.optionparser.OptionParser">
-<em class="property">class </em><tt class="descclassname">swiftly.cli.optionparser.</tt><tt class="descname">OptionParser</tt><big>(</big><em>usage=None</em>, <em>option_list=None</em>, <em>option_class=&lt;class optparse.Option at 0x1ed5120&gt;</em>, <em>version=None</em>, <em>conflict_handler='error'</em>, <em>description=None</em>, <em>formatter=None</em>, <em>add_help_option=True</em>, <em>prog=None</em>, <em>epilog=None</em>, <em>io_manager=None</em>, <em>raw_epilog=''</em>, <em>error_prefix=''</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">swiftly.cli.optionparser.</tt><tt class="descname">OptionParser</tt><big>(</big><em>usage=None</em>, <em>option_list=None</em>, <em>option_class=&lt;class optparse.Option at 0x1696120&gt;</em>, <em>version=None</em>, <em>conflict_handler='error'</em>, <em>description=None</em>, <em>formatter=None</em>, <em>add_help_option=True</em>, <em>prog=None</em>, <em>epilog=None</em>, <em>io_manager=None</em>, <em>raw_epilog=''</em>, <em>error_prefix=''</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">optparse.OptionParser</span></tt>, <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Extended optparse.OptionParser that supports an io_manager,
 raw_epilog output, and an error prefix. It also does not exit
@@ -363,6 +364,213 @@ the io_manager&#8217;s stdout if available, or to sys.stdout.</p>
 <tt class="descname">raw_epilog</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.raw_epilog" title="Permalink to this definition">¶</a></dt>
 <dd><p>Output just after the standard print_help output, in it&#8217;s raw form.
 This is different than epilog in that epilog is reformatted.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.iomanager">
+<span id="iomanager"></span><h2>iomanager<a class="headerlink" href="#module-swiftly.cli.iomanager" title="Permalink to this headline">¶</a></h2>
+<p>Contains IOManager for managing access to input, output, error, and
+debug file-like objects.</p>
+<dl class="class">
+<dt id="swiftly.cli.iomanager.IOManager">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.iomanager.</tt><tt class="descname">IOManager</tt><big>(</big><em>stdin=None</em>, <em>stdout=None</em>, <em>stderr=None</em>, <em>debug=None</em>, <em>stdin_root=None</em>, <em>stdout_root=None</em>, <em>stderr_root=None</em>, <em>debug_root=None</em>, <em>stdin_sub_command=None</em>, <em>stdout_sub_command=None</em>, <em>stderr_sub_command=None</em>, <em>debug_sub_command=None</em>, <em>subprocess_module=None</em>, <em>verbose=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Manages access to IO in ways that are mostly specific to
+<a class="reference internal" href="#module-swiftly.cli" title="swiftly.cli"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli</span></tt></a> but might be generally useful.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>stdin</strong> &#8211; The file-like object to use for default stdin or
+sys.stdin if None.</li>
+<li><strong>stdout</strong> &#8211; The file-like object to use for default stdout or
+sys.stdout if None.</li>
+<li><strong>stderr</strong> &#8211; The file-like object to use for default stderr or
+sys.stderr if None.</li>
+<li><strong>debug</strong> &#8211; The file-like object to use for default debug
+output or sys.stderr if None.</li>
+<li><strong>stdin_root</strong> &#8211; The root path to use for requests for pathed
+stdin file-like objects.</li>
+<li><strong>stdout_root</strong> &#8211; The root path to use for requests for pathed
+stdout file-like objects.</li>
+<li><strong>stderr_root</strong> &#8211; The root path to use for requests for pathed
+stderr file-like objects.</li>
+<li><strong>debug_root</strong> &#8211; The root path to use for requests for pathed
+debug file-like objects.</li>
+<li><strong>stdin_sub_command</strong> &#8211; A shell line to pipe any stdin
+file-like objects through.</li>
+<li><strong>stdout_sub_command</strong> &#8211; A shell line to pipe any stdout
+file-like objects through.</li>
+<li><strong>stderr_sub_command</strong> &#8211; A shell line to pipe any stderr
+file-like objects through.</li>
+<li><strong>debug_sub_command</strong> &#8211; A shell line to pipe any debug
+file-like objects through.</li>
+<li><strong>subprocess_module</strong> &#8211; The subprocess module to use; for
+instance, you might use eventlet.green.subprocess instead of
+the standard subprocess module.</li>
+<li><strong>verbose</strong> &#8211; A function to call with <tt class="docutils literal"><span class="pre">(msg)</span></tt> when waiting
+for subcommands to complete and for logging the subcommands&#8217;
+return codes.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.client_path_to_os_path">
+<tt class="descname">client_path_to_os_path</tt><big>(</big><em>client_path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.client_path_to_os_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.client_path_to_os_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a client path into the operating system&#8217;s path by
+replacing instances of &#8216;/&#8217; with os.path.sep.</p>
+<p>Note: If the client path contains any instances of
+os.path.sep already, they will be replaced with &#8216;-&#8216;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.get_debug">
+<tt class="descname">get_debug</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.get_debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.get_debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a debug-output-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.get_stderr">
+<tt class="descname">get_stderr</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.get_stderr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.get_stderr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stderr-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.get_stdin">
+<tt class="descname">get_stdin</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.get_stdin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.get_stdin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stdin-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.get_stdout">
+<tt class="descname">get_stdout</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.get_stdout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.get_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stdout-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.os_path_to_client_path">
+<tt class="descname">os_path_to_client_path</tt><big>(</big><em>os_path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.os_path_to_client_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.os_path_to_client_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts an operating system path into a client path by
+replacing instances of os.path.sep with &#8216;/&#8217;.</p>
+<p>Note: If the client path contains any instances of &#8216;/&#8217;
+already, they will be replaced with &#8216;-&#8216;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.with_debug">
+<tt class="descname">with_debug</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.with_debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.with_debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a debug-output-suitable file-like
+object based on the optional os_path and optionally skipping
+any configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.with_stderr">
+<tt class="descname">with_stderr</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.with_stderr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.with_stderr" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stderr-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.with_stdin">
+<tt class="descname">with_stdin</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.with_stdin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.with_stdin" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stdin-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.with_stdout">
+<tt class="descname">with_stdout</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.with_stdout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.with_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stdout-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -730,9 +938,8 @@ help information.</li>
 <li><strong>general_parser</strong> &#8211; The
 <a class="reference internal" href="#swiftly.cli.optionparser.OptionParser" title="swiftly.cli.optionparser.OptionParser"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.optionparser.OptionParser</span></tt></a> for general
 usage.</li>
-<li><strong>command_parsers</strong> &#8211; A dict of
-(name, <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a>) for
-specific command usage.</li>
+<li><strong>command_parsers</strong> &#8211; A dict of (name, <tt class="xref py py-class docutils literal"><span class="pre">CLICommand</span></tt>)
+for specific command usage.</li>
 </ul>
 </td>
 </tr>
@@ -1098,6 +1305,7 @@ x_trans_id and sends that to the context.io_manager&#8217;s stdout.</p>
 <li><a class="reference internal" href="#module-swiftly.cli.context">context</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.command">command</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.optionparser">optionparser</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.iomanager">iomanager</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.auth">auth</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.delete">delete</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.get">get</a></li>

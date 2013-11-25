@@ -76,7 +76,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">contextlib</span>
 
-<span class="kn">import</span> <span class="nn">swiftly.cli.command</span>
+<span class="kn">from</span> <span class="nn">swiftly.cli.command</span> <span class="kn">import</span> <span class="n">CLICommand</span>
 
 
 <div class="viewcode-block" id="cli_auth"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.auth.cli_auth">[docs]</a><span class="k">def</span> <span class="nf">cli_auth</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
@@ -91,42 +91,44 @@
             <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">(),</span>
             <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">())</span> <span class="k">as</span> <span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">client</span><span class="p">):</span>
         <span class="n">info</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">cache_path</span><span class="p">:</span>
-            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Cache&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">cache_path</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_url</span><span class="p">:</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">auth</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;auth_cache_path&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Cache&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_cache_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;auth_url&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth URL&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_url</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_user</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;auth_user&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth User&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_user</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_key</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;auth_key&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Key&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_key</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_tenant</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;auth_tenant&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Tenant&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_tenant</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_methods</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;auth_methods&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Methods&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_methods</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">swift_proxy</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;storage_path&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Direct Storage Path&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">storage_path</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">client</span><span class="o">.</span><span class="n">auth</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">regions</span><span class="p">:</span>
-                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Regions&#39;</span><span class="p">,</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">regions</span><span class="p">)))</span>
-            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">regions_default</span><span class="p">:</span>
-                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Default Region&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">regions_default</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">region</span><span class="p">:</span>
-                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Selected Region&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">region</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">snet</span><span class="p">:</span>
-                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;SNet&#39;</span><span class="p">,</span> <span class="s">&#39;True&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;cdn_path&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Direct CDN Path&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">cdn_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;regions&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Regions&#39;</span><span class="p">,</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">regions</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;default_region&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Default Region&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">default_region</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;region&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Selected Region&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">region</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;snet&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;SNet&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">snet</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;storage_url&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Storage URL&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">storage_url</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">client</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">:</span>
-                <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;CDN Management URL&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;cdn_url&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;CDN URL&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;auth_token&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Token&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_token</span><span class="p">))</span>
-        <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Request Retries&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">attempts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">fmt</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%%</span><span class="s">-</span><span class="si">%d</span><span class="s">s </span><span class="si">%%</span><span class="s">s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">info</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">info</span><span class="p">:</span>
             <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fmt</span> <span class="o">%</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
 </div>
-<div class="viewcode-block" id="CLIAuth"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.auth.CLIAuth">[docs]</a><span class="k">class</span> <span class="nc">CLIAuth</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">CLICommand</span><span class="p">):</span>
+<div class="viewcode-block" id="CLIAuth"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.auth.CLIAuth">[docs]</a><span class="k">class</span> <span class="nc">CLIAuth</span><span class="p">(</span><span class="n">CLICommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A CLICommand that authenticates and then outputs the resulting</span>
 <span class="sd">    information.</span>
@@ -152,31 +154,30 @@
 <span class="s">    Auth Tenant          The tenant to auth as if in use.</span>
 <span class="s">    Auth Methods         The auth methods in use if any specified.</span>
 <span class="s">    Direct Storage Path  The direct-mode path if in use.</span>
+<span class="s">    Direct CDN Path      The direct-mode CDN path if in use.</span>
 <span class="s">    Regions              The available regions as reported by the auth service.</span>
 <span class="s">    Default Region       The default region as reported by the auth service.</span>
 <span class="s">    Selected Region      The region selected for use by Swiftly.</span>
 <span class="s">    SNet                 True if ServiceNet/InternalURL would be used.</span>
 <span class="s">    Storage URL          The URL to use for storage as reported by the auth</span>
 <span class="s">                         service.</span>
-<span class="s">    CDN Management URL   The URL to use for CDN management as reported by the</span>
+<span class="s">    CDN URL              The URL to use for CDN management as reported by the</span>
 <span class="s">                         auth service.</span>
 <span class="s">    Auth Token           The auth token to use as reported by the auth service.</span>
-<span class="s">    Request Retries      The number retries to be done for any request.</span>
 
 <span class="s">Example Output:</span>
 
-<span class="s">Auth Cache:         /tmp/user.swiftly</span>
-<span class="s">Auth URL:           https://identity.api.rackspacecloud.com/v2.0</span>
-<span class="s">Auth User:          myusername</span>
-<span class="s">Auth Key:           mykey</span>
-<span class="s">Regions:            ORD DFW SYD IAD HKG</span>
-<span class="s">Default Region:     ORD</span>
-<span class="s">Selected Region:    IAD</span>
-<span class="s">SNet:               True</span>
-<span class="s">Storage URL:        https://snet-storage101.iad3.clouddrive.com/v1/account</span>
-<span class="s">CDN Management URL: https://cdn5.clouddrive.com/v1/account</span>
-<span class="s">Auth Token:         abcdef0123456789abcdef0123456789</span>
-<span class="s">Request Retries:    4</span>
+<span class="s">Auth Cache:      /tmp/user.swiftly</span>
+<span class="s">Auth URL:        https://identity.api.rackspacecloud.com/v2.0</span>
+<span class="s">Auth User:       myusername</span>
+<span class="s">Auth Key:        mykey</span>
+<span class="s">Regions:         ORD DFW SYD IAD HKG</span>
+<span class="s">Default Region:  ORD</span>
+<span class="s">Selected Region: IAD</span>
+<span class="s">SNet:            True</span>
+<span class="s">Storage URL:     https://snet-storage101.iad3.clouddrive.com/v1/account</span>
+<span class="s">CDN URL:         https://cdn5.clouddrive.com/v1/account</span>
+<span class="s">Auth Token:      abcdef0123456789abcdef0123456789</span>
 <span class="s">            &quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>

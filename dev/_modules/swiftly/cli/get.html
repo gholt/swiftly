@@ -119,9 +119,8 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
-<span class="kn">import</span> <span class="nn">swiftly.client</span>
-<span class="kn">import</span> <span class="nn">swiftly.concurrency</span>
-<span class="kn">import</span> <span class="nn">swiftly.cli.command</span>
+<span class="kn">from</span> <span class="nn">swiftly.concurrency</span> <span class="kn">import</span> <span class="n">Concurrency</span>
+<span class="kn">from</span> <span class="nn">swiftly.cli.command</span> <span class="kn">import</span> <span class="n">CLICommand</span><span class="p">,</span> <span class="n">ReturnCode</span>
 
 
 <div class="viewcode-block" id="cli_get_account_listing"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.get.cli_get_account_listing">[docs]</a><span class="k">def</span> <span class="nf">cli_get_account_listing</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
@@ -148,8 +147,7 @@
         <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
                 <span class="k">return</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
-                <span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
         <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span><span class="p">:</span>
                 <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
@@ -166,8 +164,7 @@
                 <span class="k">return</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
                 <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
-                <span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">all_objects</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
             <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
@@ -202,8 +199,7 @@
                     <span class="k">return</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
                     <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-                <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
-                    <span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
 
 </div>
 <div class="viewcode-block" id="cli_get_container_listing"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.get.cli_get_container_listing">[docs]</a><span class="k">def</span> <span class="nf">cli_get_container_listing</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -216,7 +212,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">path</span> <span class="k">else</span> <span class="bp">None</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="s">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
             <span class="s">&#39;tried to get a container listing for non-container path </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span>
             <span class="n">path</span><span class="p">)</span>
     <span class="n">context</span><span class="o">.</span><span class="n">suppress_container_name</span> <span class="o">=</span> <span class="bp">True</span>
@@ -236,7 +232,7 @@
         <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
                 <span class="k">return</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                 <span class="s">&#39;listing container </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
         <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span><span class="p">:</span>
@@ -255,13 +251,13 @@
                 <span class="k">return</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
                 <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                 <span class="s">&#39;listing container </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">all_objects</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
             <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
                 <span class="n">fp</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">muted_container_headers</span><span class="p">)</span>
-    <span class="n">conc</span> <span class="o">=</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">concurrency</span><span class="o">.</span><span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
+    <span class="n">conc</span> <span class="o">=</span> <span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
     <span class="k">while</span> <span class="n">contents</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">all_objects</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">:</span>
@@ -300,7 +296,7 @@
                     <span class="k">return</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
                     <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-                <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                     <span class="s">&#39;listing container </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
     <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
     <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
@@ -332,7 +328,7 @@
                 <span class="k">return</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
                 <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                 <span class="s">&#39;getting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
 
         <span class="k">def</span> <span class="nf">disk_closed_callback</span><span class="p">(</span><span class="n">disk_path</span><span class="p">):</span>
@@ -372,14 +368,14 @@
                 <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
                     <span class="n">fp</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">muted_object_headers</span><span class="p">)</span>
                 <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
-            <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">CHUNK_SIZE</span><span class="p">)</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">65536</span><span class="p">)</span>
             <span class="k">while</span> <span class="n">chunk</span><span class="p">:</span>
                 <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-                <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">CHUNK_SIZE</span><span class="p">)</span>
+                <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">65536</span><span class="p">)</span>
             <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
 </div>
-<div class="viewcode-block" id="CLIGet"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.get.CLIGet">[docs]</a><span class="k">class</span> <span class="nc">CLIGet</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">CLICommand</span><span class="p">):</span>
+<div class="viewcode-block" id="CLIGet"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.get.CLIGet">[docs]</a><span class="k">class</span> <span class="nc">CLIGet</span><span class="p">(</span><span class="n">CLICommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A CLICommand that can issue GET requests.</span>
 

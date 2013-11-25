@@ -75,8 +75,8 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">contextlib</span>
 
-<span class="kn">import</span> <span class="nn">swiftly.client</span>
-<span class="kn">import</span> <span class="nn">swiftly.cli.command</span>
+<span class="kn">from</span> <span class="nn">swiftly.client</span> <span class="kn">import</span> <span class="n">generate_temp_url</span>
+<span class="kn">from</span> <span class="nn">swiftly.cli.command</span> <span class="kn">import</span> <span class="n">CLICommand</span><span class="p">,</span> <span class="n">ReturnCode</span>
 
 
 <div class="viewcode-block" id="cli_tempurl"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.tempurl.cli_tempurl">[docs]</a><span class="k">def</span> <span class="nf">cli_tempurl</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">seconds</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
@@ -102,25 +102,24 @@
         <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
         <span class="n">seconds</span> <span class="o">=</span> <span class="n">seconds</span> <span class="k">if</span> <span class="n">seconds</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">else</span> <span class="mi">3600</span>
         <span class="k">if</span> <span class="s">&#39;/&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                 <span class="s">&#39;invalid tempurl path </span><span class="si">%r</span><span class="s">; should have a / within it&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
         <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">head_account</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                 <span class="s">&#39;obtaining X-Account-Meta-Temp-Url-Key: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
                 <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
         <span class="n">key</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-account-meta-temp-url-key&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                 <span class="s">&#39;there is no X-Account-Meta-Temp-Url-Key set for this account&#39;</span><span class="p">)</span>
         <span class="n">url</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">path</span>
-        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">generate_temp_url</span><span class="p">(</span>
-            <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">seconds</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">generate_temp_url</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">seconds</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
         <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
 </div>
-<div class="viewcode-block" id="CLITempURL"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.tempurl.CLITempURL">[docs]</a><span class="k">class</span> <span class="nc">CLITempURL</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">command</span><span class="o">.</span><span class="n">CLICommand</span><span class="p">):</span>
+<div class="viewcode-block" id="CLITempURL"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.tempurl.CLITempURL">[docs]</a><span class="k">class</span> <span class="nc">CLITempURL</span><span class="p">(</span><span class="n">CLICommand</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A CLICommand for generating TempURLs.</span>
 
