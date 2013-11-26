@@ -189,7 +189,7 @@ class DirectClient(Client):
                 value = iter_reader
             else:
                 value = resp.body
-            self.verbose('< %s %s', resp.status, resp.reason)
+            self.verbose('< %s %s', status, reason)
             if status and status // 100 != 5:
                 if not stream and decode_json and status // 100 == 2:
                     if value:
