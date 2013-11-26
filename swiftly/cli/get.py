@@ -252,7 +252,7 @@ def cli_get_container_listing(context, path=None):
     for (exc_type, exc_value, exc_tb, result) in \
             conc.get_results().itervalues():
         if exc_value:
-            return exc_value
+            raise exc_value
 
 
 def cli_get(context, path=None):
