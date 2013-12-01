@@ -64,8 +64,8 @@ all back end servers.</p>
 <tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">chmod</span> <span class="pre">-R</span> <span class="pre">og+r</span> <span class="pre">/Library/Python/2.7/site-packages</span></tt> in order to run
 swiftly.</p>
 </div></blockquote>
-<div class="section" id="contents">
-<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
@@ -317,7 +317,7 @@ Issues a DELETE request of the [path] given.
 
 Options:
   -?, --help            Shows this help text.
-  -h HEADER:VALUE, --header=HEADER:VALUE
+  -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hx-some-header
                         :some-value -h "X-Some-Other-Header: Some other value"
@@ -381,7 +381,7 @@ Outputs the resulting contents from a GET request of the [path] given. If no
 Options:
   -?, --help            Shows this help text.
   --headers             Output headers as well as the contents.
-  -h HEADER:VALUE, --header=HEADER:VALUE
+  -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hif-
                         match:6f432df40167a4af05ca593acc6b3e4c -h "If-
@@ -476,7 +476,7 @@ Outputs the resulting headers from a HEAD request of the [path] given. If no
 
 Options:
   -?, --help            Shows this help text.
-  -h HEADER:VALUE, --header=HEADER:VALUE
+  -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hif-
                         match:6f432df40167a4af05ca593acc6b3e4c -h "If-
@@ -531,7 +531,7 @@ request on the account is performed.
 
 Options:
   -?, --help            Shows this help text.
-  -h HEADER:VALUE, --header=HEADER:VALUE
+  -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hx-object-meta-
                         color:blue -h "Content-Type: text/html"
@@ -586,7 +586,7 @@ http://greg.brim.net/post/2013/05/16/1834.html
 
 Options:
   -?, --help            Shows this help text.
-  -h HEADER:VALUE, --header=HEADER:VALUE
+  -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hx-object-meta-
                         color:blue -h "Content-Type: text/html"
@@ -688,7 +688,7 @@ Options:
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Swiftly</a><ul>
-<li><a class="reference internal" href="#contents">Contents</a><ul>
+<li><a class="reference internal" href="#api-reference">API Reference</a><ul>
 </ul>
 </li>
 <li><a class="reference internal" href="#overview">Overview</a><ul>

@@ -154,6 +154,8 @@
             <span class="c"># error_encountered.</span>
             <span class="k">pass</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">error_encountered</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&#39;-h&#39;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
             <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>

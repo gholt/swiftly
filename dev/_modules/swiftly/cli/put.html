@@ -238,6 +238,10 @@
 
 <span class="sd">    See :py:class:`CLIPut` for more information.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">different</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;context.different will not work properly with context.encrypt &#39;</span>
+            <span class="s">&#39;since encryption may change the object size&#39;</span><span class="p">)</span>
     <span class="n">put_headers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
         <span class="n">body</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
@@ -453,7 +457,7 @@
 <span class="s">static list of the object segments. For more information on the tradeoffs, see</span>
 <span class="s">http://greg.brim.net/post/2013/05/16/1834.html&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
-            <span class="s">&#39;-h&#39;</span><span class="p">,</span> <span class="s">&#39;--header&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;header&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
+            <span class="s">&#39;-h&#39;</span><span class="p">,</span> <span class="s">&#39;-H&#39;</span><span class="p">,</span> <span class="s">&#39;--header&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;header&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
             <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;HEADER:VALUE&#39;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Add a header to the request. This can be used multiple &#39;</span>
                  <span class="s">&#39;times for multiple headers. Examples: &#39;</span>
@@ -533,6 +537,10 @@
         <span class="n">context</span><span class="o">.</span><span class="n">newer</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">newer</span>
         <span class="n">context</span><span class="o">.</span><span class="n">different</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">different</span>
         <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">encrypt</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">different</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;--different will not work properly with --encrypt since &#39;</span>
+                <span class="s">&#39;encryption may change the object size&#39;</span><span class="p">)</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="bp">None</span>
         <span class="k">return</span> <span class="n">cli_put</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
 </pre></div>
