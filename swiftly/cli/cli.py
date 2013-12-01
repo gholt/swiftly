@@ -35,7 +35,9 @@ from swiftly.client import ClientManager, DirectClient, StandardClient
 #: CLICommand you create to this list.
 COMMANDS = [
     'swiftly.cli.auth.CLIAuth',
+    'swiftly.cli.decrypt.CLIDecrypt',
     'swiftly.cli.delete.CLIDelete',
+    'swiftly.cli.encrypt.CLIEncrypt',
     'swiftly.cli.get.CLIGet',
     'swiftly.cli.head.CLIHead',
     'swiftly.cli.help.CLIHelp',

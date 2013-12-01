@@ -216,6 +216,22 @@ Output from `swiftly help auth`::
       -?, --help  Shows this help text.
 
 
+Output from `swiftly help decrypt`::
+
+    Usage: swiftly [main_options] decrypt <key>
+
+    For help on [main_options] run swiftly with no args.
+
+    Decrypts standard input using the given <key> and sends that to standard
+    output.
+
+    This currently only supports AES 256 in CBC mode but other algorithms may be
+    offered in the future.
+
+    Options:
+      -?, --help  Shows this help text.
+
+
 Output from `swiftly help delete`::
 
     Usage: swiftly [main_options] delete [options] [path]
@@ -258,6 +274,22 @@ Output from `swiftly help delete`::
                             backgound. THERE IS NO GOING BACK!
       --ignore-404          Ignores 404 Not Found responses; the exit code will be
                             0 instead of 1.
+
+
+Output from `swiftly help encrypt`::
+
+    Usage: swiftly [main_options] encrypt <key>
+
+    For help on [main_options] run swiftly with no args.
+
+    Encrypts standard input using the given <key> and sends that to standard
+    output.
+
+    This currently uses AES 256 in CBC mode but other algorithms may be offered in
+    the future.
+
+    Options:
+      -?, --help  Shows this help text.
 
 
 Output from `swiftly help get`::
@@ -351,7 +383,7 @@ Output from `swiftly help get`::
                             in conjunction with --sub-command so you are left only
                             with the files that generated output.
       --decrypt=KEY         Will decrypt the downloaded object data with KEY. This
-                            currently only support AES 256 in CBC mode but other
+                            currently only supports AES 256 in CBC mode but other
                             algorithms may be offered in the future.
 
 

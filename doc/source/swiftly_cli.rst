@@ -57,10 +57,26 @@ auth
     :undoc-members:
     :show-inheritance:
 
+decrypt
+=======
+
+.. automodule:: swiftly.cli.decrypt
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 delete
 ======
 
 .. automodule:: swiftly.cli.delete
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+encrypt
+=======
+
+.. automodule:: swiftly.cli.encrypt
     :members:
     :undoc-members:
     :show-inheritance:

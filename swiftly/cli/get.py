@@ -456,7 +456,7 @@ Outputs the resulting contents from a GET request of the [path] given. If no
         self.option_parser.add_option(
             '--decrypt', dest='decrypt', metavar='KEY',
             help='Will decrypt the downloaded object data with KEY. This '
-                 'currently only support AES 256 in CBC mode but other '
+                 'currently only supports AES 256 in CBC mode but other '
                  'algorithms may be offered in the future.')
 
     def __call__(self, args):
