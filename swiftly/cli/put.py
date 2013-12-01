@@ -195,6 +195,10 @@ def cli_put_object(context, path):
     elif not context.input_ or context.input_ == '-':
         body = context.io_manager.get_stdin()
     elif context.seek is not None:
+        if context.encrypt:
+            raise ReturnCode(
+                'putting object %r: Cannot use encryption and context.seek' %
+                path)
         body = open(context.input_, 'rb')
         body.seek(context.seek)
     else:
@@ -234,6 +238,10 @@ def cli_put_object(context, path):
         put_headers['x-object-meta-mtime'] = '%f' % l_mtime
         size = os.path.getsize(context.input_)
         if size > context.segment_size:
+            if context.encrypt:
+                raise ReturnCode(
+                    'putting object %r: Cannot use encryption for objects '
+                    'greater than the segment size' % path)
             new_context = context.copy()
             new_context.input_ = None
             new_context.headers = None
@@ -283,14 +291,21 @@ def cli_put_object(context, path):
             body = open(context.input_, 'rb')
     with context.client_manager.with_client() as client:
         if context.encrypt:
+            content_length = put_headers.get('content-length')
+            if content_length:
+                content_length = int(content_length)
             if hasattr(body, 'read'):
                 body = FileLikeIter(aes_encrypt(
                     context.encrypt, body, preamble=AES256CBC,
-                    chunk_size=getattr(client, 'chunk_size', 65536)))
+                    chunk_size=getattr(client, 'chunk_size', 65536),
+                    content_length=content_length))
             else:
                 body = FileLikeIter(aes_encrypt(
                     context.encrypt, FileLikeIter([body]), preamble=AES256CBC,
-                    chunk_size=getattr(client, 'chunk_size', 65536)))
+                    chunk_size=getattr(client, 'chunk_size', 65536),
+                    content_length=content_length))
+            if 'content-length' in put_headers:
+                del put_headers['content-length']
         container, obj = path.split('/', 1)
         status, reason, headers, contents = client.put_object(
             container, obj, body, headers=put_headers, query=context.query,
@@ -301,7 +316,26 @@ def cli_put_object(context, path):
         raise ReturnCode(
             'putting object %r: %s %s %r' % (path, status, reason, contents))
     if context.seek is not None:
-        return put_headers.get('content-length'), headers.get('etag')
+        content_length = put_headers.get('content-length')
+        etag = headers.get('etag')
+        if content_length and etag:
+            content_length = int(content_length)
+        else:
+            with context.client_manager.with_client() as client:
+                container, obj = path.split('/', 1)
+                status, reason, headers, contents = client.head_object(
+                    container, obj, cdn=context.cdn)
+                if hasattr(contents, 'read'):
+                    contents = contents.read()
+            if status // 100 != 2:
+                raise ReturnCode(
+                    'heading object %r: %s %s %r' %
+                    (path, status, reason, contents))
+            content_length = headers.get('content-length')
+            etag = headers.get('etag')
+            if content_length:
+                content_length = int(content_length)
+        return content_length, etag
 
 
 def cli_put(context, path):

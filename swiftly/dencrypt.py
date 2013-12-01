@@ -28,14 +28,19 @@ import Crypto.Random
 AES256CBC = '\x00'
 
 
-def aes_encrypt(key, stdin, preamble=None, chunk_size=65536):
+def aes_encrypt(key, stdin, preamble=None, chunk_size=65536,
+                content_length=None):
     """
     Generator that encrypts a content stream using AES 256 in CBC
     mode.
 
     :param key: Any string to use as the encryption key.
     :param stdin: Where to read the contents from.
+    :param preamble: str to yield initially useful for providing a
+        hint for future readers as to the algorithm in use.
     :param chunk_size: Largest amount to read at once.
+    :param content_length: The number of bytes to read from stdin.
+        None or < 0 indicates reading until EOF.
     """
     if preamble:
         yield preamble
@@ -47,20 +52,41 @@ def aes_encrypt(key, stdin, preamble=None, chunk_size=65536):
     yield iv
     encryptor = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
     reading = True
+    left = None
+    if content_length is not None and content_length >= 0:
+        left = content_length
     while reading:
-        chunk = stdin.read(chunk_size)
+        size = chunk_size
+        if left is not None and size > left:
+            size = left
+        chunk = stdin.read(size)
         if not chunk:
+            if left is not None and left > 0:
+                raise IOError('Early EOF from input')
             # Indicates how many usable bytes in last block
             yield encryptor.encrypt('\x00' * 16)
             break
+        if left is not None:
+            left -= len(chunk)
+            if left <= 0:
+                reading = False
         block = chunk
         trailing = len(block) % 16
         while trailing:
-            chunk = stdin.read(16 - trailing)
+            size = 16 - trailing
+            if left is not None and size > left:
+                size = left
+            chunk = stdin.read(size)
             if not chunk:
+                if left is not None and left > 0:
+                    raise IOError('Early EOF from input')
                 reading = False
                 # Indicates how many usable bytes in last block
                 chunk = chr(trailing) * (16 - trailing)
+            elif left is not None:
+                left -= len(chunk)
+                if left <= 0:
+                    reading = False
             block += chunk
             trailing = len(block) % 16
         yield encryptor.encrypt(block)

@@ -521,6 +521,8 @@ class StandardClient(Client):
                             if size > left:
                                 size = left
                             chunk = contents.read(size)
+                            if not chunk:
+                                raise IOError('Early EOF from input')
                             conn.send(chunk)
                             left -= len(chunk)
                 resp = conn.getresponse()
