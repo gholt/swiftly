@@ -407,7 +407,7 @@ objects are very similar as described above, except the manifest contains a
 static list of the object segments. For more information on the tradeoffs, see
 http://greg.brim.net/post/2013/05/16/1834.html""".strip())
         self.option_parser.add_option(
-            '-h', '--header', dest='header', action='append',
+            '-h', '-H', '--header', dest='header', action='append',
             metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '

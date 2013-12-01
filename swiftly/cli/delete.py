@@ -190,7 +190,7 @@ For help on [main_options] run %prog with no args.
 
 Issues a DELETE request of the [path] given.""".strip())
         self.option_parser.add_option(
-            '-h', '--header', dest='header', action='append',
+            '-h', '-H', '--header', dest='header', action='append',
             metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '

@@ -357,7 +357,7 @@ Outputs the resulting contents from a GET request of the [path] given. If no
             '--headers', dest='headers', action='store_true',
             help='Output headers as well as the contents.')
         self.option_parser.add_option(
-            '-h', '--header', dest='header', action='append',
+            '-h', '-H', '--header', dest='header', action='append',
             metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '

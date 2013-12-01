@@ -254,7 +254,7 @@ Output from `swiftly help delete`::
 
     Options:
       -?, --help            Shows this help text.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hx-some-header
                             :some-value -h "X-Some-Other-Header: Some other value"
@@ -322,7 +322,7 @@ Output from `swiftly help get`::
     Options:
       -?, --help            Shows this help text.
       --headers             Output headers as well as the contents.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hif-
                             match:6f432df40167a4af05ca593acc6b3e4c -h "If-
@@ -419,7 +419,7 @@ Output from `swiftly help head`::
 
     Options:
       -?, --help            Shows this help text.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hif-
                             match:6f432df40167a4af05ca593acc6b3e4c -h "If-
@@ -478,7 +478,7 @@ Output from `swiftly help post`::
 
     Options:
       -?, --help            Shows this help text.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hx-object-meta-
                             color:blue -h "Content-Type: text/html"
@@ -535,7 +535,7 @@ Output from `swiftly help put`::
 
     Options:
       -?, --help            Shows this help text.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hx-object-meta-
                             color:blue -h "Content-Type: text/html"

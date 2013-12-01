@@ -86,7 +86,7 @@ For help on [main_options] run %prog with no args.
 Issues a POST request of the [path] given. If no [path] is given, a POST
 request on the account is performed.""".strip())
         self.option_parser.add_option(
-            '-h', '--header', dest='header', action='append',
+            '-h', '-H', '--header', dest='header', action='append',
             metavar='HEADER:VALUE',
             help='Add a header to the request. This can be used multiple '
                  'times for multiple headers. Examples: '

@@ -104,6 +104,8 @@ Executes the %s command.""".strip() % (name, name)
             # error_encountered.
             pass
         if self.option_parser.error_encountered:
+            if '-h' in args:
+                self.option_parser.print_help()
             raise ReturnCode()
         if options.help:
             self.option_parser.print_help()
