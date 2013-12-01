@@ -56,6 +56,9 @@ Example as a administrator direct user::
 Command Line Tool Usage
 .......................
 
+help
+^^^^
+
 Output from `swiftly`::
 
     Usage: swiftly [options] <command> [command_options] [args]
@@ -169,6 +172,9 @@ Output from `swiftly`::
                             such as the embedded transaction time.
 
 
+auth
+^^^^
+
 Output from `swiftly help auth`::
 
     Usage: swiftly [main_options] auth
@@ -216,6 +222,9 @@ Output from `swiftly help auth`::
       -?, --help  Shows this help text.
 
 
+decrypt
+^^^^^^^
+
 Output from `swiftly help decrypt`::
 
     Usage: swiftly [main_options] decrypt <key>
@@ -231,6 +240,9 @@ Output from `swiftly help decrypt`::
     Options:
       -?, --help  Shows this help text.
 
+
+delete
+^^^^^^
 
 Output from `swiftly help delete`::
 
@@ -276,6 +288,9 @@ Output from `swiftly help delete`::
                             0 instead of 1.
 
 
+encrypt
+^^^^^^^
+
 Output from `swiftly help encrypt`::
 
     Usage: swiftly [main_options] encrypt <key>
@@ -291,6 +306,9 @@ Output from `swiftly help encrypt`::
     Options:
       -?, --help  Shows this help text.
 
+
+get
+^^^
 
 Output from `swiftly help get`::
 
@@ -387,6 +405,9 @@ Output from `swiftly help get`::
                             algorithms may be offered in the future.
 
 
+head
+^^^^
+
 Output from `swiftly help head`::
 
     Usage: swiftly [main_options] head [options] [path]
@@ -410,6 +431,9 @@ Output from `swiftly help head`::
       --ignore-404          Ignores 404 Not Found responses. Nothing will be
                             output, but the exit code will be 0 instead of 1.
 
+
+ping
+^^^^
 
 Output from `swiftly help ping`::
 
@@ -440,6 +464,9 @@ Output from `swiftly help ping`::
                             2.
 
 
+post
+^^^^
+
 Output from `swiftly help post`::
 
     Usage: swiftly [main_options] post [options] [path]
@@ -464,6 +491,9 @@ Output from `swiftly help post`::
                             use a dash (as in "-i -") to specify standard input
                             since POSTs to Swift do not normally take input.
 
+
+put
+^^^
 
 Output from `swiftly help put`::
 
@@ -557,6 +587,9 @@ Output from `swiftly help put`::
                             algorithms may be offered in the future.
 
 
+tempurl
+^^^^^^^
+
 Output from `swiftly help tempurl`::
 
     Usage: swiftly [main_options] tempurl <method> <path> [seconds]
@@ -570,6 +603,9 @@ Output from `swiftly help tempurl`::
     Options:
       -?, --help  Shows this help text.
 
+
+trans
+^^^^^
 
 Output from `swiftly help trans`::
 

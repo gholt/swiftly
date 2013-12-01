@@ -127,6 +127,8 @@ swiftly.</p>
 </div>
 <div class="section" id="command-line-tool-usage">
 <h3>Command Line Tool Usage<a class="headerlink" href="#command-line-tool-usage" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="help">
+<h4>help<a class="headerlink" href="#help" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [options] &lt;command&gt; [command_options] [args]
 
@@ -238,6 +240,9 @@ Commands:
                         Outputs information about the &lt;x-trans-id-value&gt; given,
                         such as the embedded transaction time.</pre>
 </div>
+</div>
+<div class="section" id="auth">
+<h4>auth<a class="headerlink" href="#auth" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help auth</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] auth
 
@@ -283,6 +288,9 @@ Request Retries:    4
 Options:
   -?, --help  Shows this help text.</pre>
 </div>
+</div>
+<div class="section" id="decrypt">
+<h4>decrypt<a class="headerlink" href="#decrypt" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help decrypt</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] decrypt &lt;key&gt;
 
@@ -297,6 +305,9 @@ offered in the future.
 Options:
   -?, --help  Shows this help text.</pre>
 </div>
+</div>
+<div class="section" id="delete">
+<h4>delete<a class="headerlink" href="#delete" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help delete</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] delete [options] [path]
 
@@ -339,6 +350,9 @@ Options:
   --ignore-404          Ignores 404 Not Found responses; the exit code will be
                         0 instead of 1.</pre>
 </div>
+</div>
+<div class="section" id="encrypt">
+<h4>encrypt<a class="headerlink" href="#encrypt" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help encrypt</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] encrypt &lt;key&gt;
 
@@ -353,6 +367,9 @@ the future.
 Options:
   -?, --help  Shows this help text.</pre>
 </div>
+</div>
+<div class="section" id="get">
+<h4>get<a class="headerlink" href="#get" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help get</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] get [options] [path]
 
@@ -446,6 +463,9 @@ Options:
                         currently only supports AES 256 in CBC mode but other
                         algorithms may be offered in the future.</pre>
 </div>
+</div>
+<div class="section" id="head">
+<h4>head<a class="headerlink" href="#head" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help head</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] head [options] [path]
 
@@ -468,6 +488,9 @@ Options:
   --ignore-404          Ignores 404 Not Found responses. Nothing will be
                         output, but the exit code will be 0 instead of 1.</pre>
 </div>
+</div>
+<div class="section" id="ping">
+<h4>ping<a class="headerlink" href="#ping" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help ping</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] ping [options] [path]
 
@@ -495,6 +518,9 @@ Options:
                         reports. This will define the value of x, defaults to
                         2.</pre>
 </div>
+</div>
+<div class="section" id="post">
+<h4>post<a class="headerlink" href="#post" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help post</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] post [options] [path]
 
@@ -518,6 +544,9 @@ Options:
                         use a dash (as in "-i -") to specify standard input
                         since POSTs to Swift do not normally take input.</pre>
 </div>
+</div>
+<div class="section" id="put">
+<h4>put<a class="headerlink" href="#put" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help put</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] put [options] [path]
 
@@ -608,6 +637,9 @@ Options:
                         currently uses AES 256 in CBC mode but other
                         algorithms may be offered in the future.</pre>
 </div>
+</div>
+<div class="section" id="tempurl">
+<h4>tempurl<a class="headerlink" href="#tempurl" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help tempurl</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] tempurl &lt;method&gt; &lt;path&gt; [seconds]
 
@@ -620,6 +652,9 @@ The &lt;path&gt; should be to an object or object-prefix.
 Options:
   -?, --help  Shows this help text.</pre>
 </div>
+</div>
+<div class="section" id="trans">
+<h4>trans<a class="headerlink" href="#trans" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help trans</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] trans &lt;x-trans-id-value&gt;
 
@@ -630,6 +665,7 @@ transaction time.
 
 Options:
   -?, --help  Shows this help text.</pre>
+</div>
 </div>
 </div>
 </div>
@@ -657,7 +693,21 @@ Options:
 </li>
 <li><a class="reference internal" href="#overview">Overview</a><ul>
 <li><a class="reference internal" href="#client-class-usage">Client Class Usage</a></li>
-<li><a class="reference internal" href="#command-line-tool-usage">Command Line Tool Usage</a></li>
+<li><a class="reference internal" href="#command-line-tool-usage">Command Line Tool Usage</a><ul>
+<li><a class="reference internal" href="#help">help</a></li>
+<li><a class="reference internal" href="#auth">auth</a></li>
+<li><a class="reference internal" href="#decrypt">decrypt</a></li>
+<li><a class="reference internal" href="#delete">delete</a></li>
+<li><a class="reference internal" href="#encrypt">encrypt</a></li>
+<li><a class="reference internal" href="#get">get</a></li>
+<li><a class="reference internal" href="#head">head</a></li>
+<li><a class="reference internal" href="#ping">ping</a></li>
+<li><a class="reference internal" href="#post">post</a></li>
+<li><a class="reference internal" href="#put">put</a></li>
+<li><a class="reference internal" href="#tempurl">tempurl</a></li>
+<li><a class="reference internal" href="#trans">trans</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
