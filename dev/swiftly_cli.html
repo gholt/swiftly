@@ -150,7 +150,7 @@ output will be constructed with <tt class="docutils literal"><span class="pre">m
 
 <dl class="data">
 <dt id="swiftly.cli.cli.COMMANDS">
-<tt class="descclassname">swiftly.cli.cli.</tt><tt class="descname">COMMANDS</tt><em class="property"> = ['swiftly.cli.auth.CLIAuth', 'swiftly.cli.delete.CLIDelete', 'swiftly.cli.get.CLIGet', 'swiftly.cli.head.CLIHead', 'swiftly.cli.help.CLIHelp', 'swiftly.cli.ping.CLIPing', 'swiftly.cli.post.CLIPost', 'swiftly.cli.put.CLIPut', 'swiftly.cli.tempurl.CLITempURL', 'swiftly.cli.trans.CLITrans']</em><a class="headerlink" href="#swiftly.cli.cli.COMMANDS" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">swiftly.cli.cli.</tt><tt class="descname">COMMANDS</tt><em class="property"> = ['swiftly.cli.auth.CLIAuth', 'swiftly.cli.decrypt.CLIDecrypt', 'swiftly.cli.delete.CLIDelete', 'swiftly.cli.encrypt.CLIEncrypt', 'swiftly.cli.get.CLIGet', 'swiftly.cli.head.CLIHead', 'swiftly.cli.help.CLIHelp', 'swiftly.cli.ping.CLIPing', 'swiftly.cli.post.CLIPost', 'swiftly.cli.put.CLIPut', 'swiftly.cli.tempurl.CLITempURL', 'swiftly.cli.trans.CLITrans']</em><a class="headerlink" href="#swiftly.cli.cli.COMMANDS" title="Permalink to this definition">¶</a></dt>
 <dd><p>The list of CLICommand classes avaiable to CLI. You&#8217;ll want to add any new
 CLICommand you create to this list.</p>
 </dd></dl>
@@ -305,7 +305,7 @@ command line applications that may call other command line
 applications or use multiple parsers.</p>
 <dl class="class">
 <dt id="swiftly.cli.optionparser.OptionParser">
-<em class="property">class </em><tt class="descclassname">swiftly.cli.optionparser.</tt><tt class="descname">OptionParser</tt><big>(</big><em>usage=None</em>, <em>option_list=None</em>, <em>option_class=&lt;class optparse.Option at 0x1696120&gt;</em>, <em>version=None</em>, <em>conflict_handler='error'</em>, <em>description=None</em>, <em>formatter=None</em>, <em>add_help_option=True</em>, <em>prog=None</em>, <em>epilog=None</em>, <em>io_manager=None</em>, <em>raw_epilog=''</em>, <em>error_prefix=''</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">swiftly.cli.optionparser.</tt><tt class="descname">OptionParser</tt><big>(</big><em>usage=None</em>, <em>option_list=None</em>, <em>option_class=&lt;class optparse.Option at 0x2b4d120&gt;</em>, <em>version=None</em>, <em>conflict_handler='error'</em>, <em>description=None</em>, <em>formatter=None</em>, <em>add_help_option=True</em>, <em>prog=None</em>, <em>epilog=None</em>, <em>io_manager=None</em>, <em>raw_epilog=''</em>, <em>error_prefix=''</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">optparse.OptionParser</span></tt>, <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Extended optparse.OptionParser that supports an io_manager,
 raw_epilog output, and an error prefix. It also does not exit
@@ -613,6 +613,39 @@ information.</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-swiftly.cli.decrypt">
+<span id="decrypt"></span><h2>decrypt<a class="headerlink" href="#module-swiftly.cli.decrypt" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand for decrypting stdin to stdout.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="68%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.decrypt.CLIDecrypt">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.decrypt.</tt><tt class="descname">CLIDecrypt</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/decrypt.html#CLIDecrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.decrypt.CLIDecrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand for decrypting stdin and sending that to stdout.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">decrypt</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.decrypt.cli_decrypt">
+<tt class="descclassname">swiftly.cli.decrypt.</tt><tt class="descname">cli_decrypt</tt><big>(</big><em>context</em>, <em>key</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/decrypt.html#cli_decrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.decrypt.cli_decrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decrypts context.io_manager&#8217;s stdin and sends that to
+context.io_manager&#8217;s stdout.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.decrypt" title="swiftly.cli.decrypt"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.decrypt</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.decrypt.CLIDecrypt" title="swiftly.cli.decrypt.CLIDecrypt"><tt class="xref py py-class docutils literal"><span class="pre">CLIDecrypt</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
 <div class="section" id="module-swiftly.cli.delete">
 <span id="delete"></span><h2>delete<a class="headerlink" href="#module-swiftly.cli.delete" title="Permalink to this headline">¶</a></h2>
 <p>Contains a CLICommand that can issue DELETE requests.</p>
@@ -705,6 +738,43 @@ yes_empty_account to True to verify you really want to do this.</p>
 <dd><p>Empties the container at the path of all objects.</p>
 <p>See <a class="reference internal" href="#module-swiftly.cli.delete" title="swiftly.cli.delete"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.delete</span></tt></a> for context usage information.</p>
 <p>See <a class="reference internal" href="#swiftly.cli.delete.CLIDelete" title="swiftly.cli.delete.CLIDelete"><tt class="xref py py-class docutils literal"><span class="pre">CLIDelete</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.encrypt">
+<span id="encrypt"></span><h2>encrypt<a class="headerlink" href="#module-swiftly.cli.encrypt" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand for encrypting stdin to stdout.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="68%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.encrypt.CLIEncrypt">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.encrypt.</tt><tt class="descname">CLIEncrypt</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/encrypt.html#CLIEncrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.encrypt.CLIEncrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand for encrypting stdin and sending that to stdout.</p>
+<p>This can be useful to encrypt to disk before attempting to
+upload, allowing uploads retries and segmented encrypted objects.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">encrypt</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.encrypt.cli_encrypt">
+<tt class="descclassname">swiftly.cli.encrypt.</tt><tt class="descname">cli_encrypt</tt><big>(</big><em>context</em>, <em>key</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/encrypt.html#cli_encrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.encrypt.cli_encrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encrypts context.io_manager&#8217;s stdin and sends that to
+context.io_manager&#8217;s stdout.</p>
+<p>This can be useful to encrypt to disk before attempting to
+upload, allowing uploads retries and segmented encrypted objects.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.encrypt" title="swiftly.cli.encrypt"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.encrypt</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.encrypt.CLIEncrypt" title="swiftly.cli.encrypt.CLIEncrypt"><tt class="xref py py-class docutils literal"><span class="pre">CLIEncrypt</span></tt></a> for more information.</p>
 </dd></dl>
 
 </div>
@@ -1307,7 +1377,9 @@ x_trans_id and sends that to the context.io_manager&#8217;s stdout.</p>
 <li><a class="reference internal" href="#module-swiftly.cli.optionparser">optionparser</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.iomanager">iomanager</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.auth">auth</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.decrypt">decrypt</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.delete">delete</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.encrypt">encrypt</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.get">get</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.head">head</a></li>
 <li><a class="reference internal" href="#module-swiftly.cli.help">help</a></li>

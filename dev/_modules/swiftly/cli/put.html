@@ -103,8 +103,10 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">os</span>
 
-<span class="kn">from</span> <span class="nn">swiftly.concurrency</span> <span class="kn">import</span> <span class="n">Concurrency</span>
 <span class="kn">from</span> <span class="nn">swiftly.cli.command</span> <span class="kn">import</span> <span class="n">CLICommand</span><span class="p">,</span> <span class="n">ReturnCode</span>
+<span class="kn">from</span> <span class="nn">swiftly.concurrency</span> <span class="kn">import</span> <span class="n">Concurrency</span>
+<span class="kn">from</span> <span class="nn">swiftly.dencrypt</span> <span class="kn">import</span> <span class="n">AES256CBC</span><span class="p">,</span> <span class="n">aes_encrypt</span>
+<span class="kn">from</span> <span class="nn">swiftly.filelikeiter</span> <span class="kn">import</span> <span class="n">FileLikeIter</span>
 
 
 <div class="viewcode-block" id="cli_put_directory_structure"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put_directory_structure">[docs]</a><span class="k">def</span> <span class="nf">cli_put_directory_structure</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
@@ -243,6 +245,10 @@
     <span class="k">elif</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="ow">or</span> <span class="n">context</span><span class="o">.</span><span class="n">input_</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
         <span class="n">body</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">get_stdin</span><span class="p">()</span>
     <span class="k">elif</span> <span class="n">context</span><span class="o">.</span><span class="n">seek</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;putting object </span><span class="si">%r</span><span class="s">: Cannot use encryption and context.seek&#39;</span> <span class="o">%</span>
+                <span class="n">path</span><span class="p">)</span>
         <span class="n">body</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
         <span class="n">body</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">seek</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -282,8 +288,14 @@
         <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;x-object-meta-mtime&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">l_mtime</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">context</span><span class="o">.</span><span class="n">segment_size</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;putting object </span><span class="si">%r</span><span class="s">: Cannot use encryption for objects &#39;</span>
+                    <span class="s">&#39;greater than the segment size&#39;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
             <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
             <span class="n">new_context</span><span class="o">.</span><span class="n">input_</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="bp">None</span>
             <span class="n">container</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&#39;_segments&#39;</span>
             <span class="n">cli_put_container</span><span class="p">(</span><span class="n">new_context</span><span class="p">,</span> <span class="n">container</span><span class="p">)</span>
             <span class="n">prefix</span> <span class="o">=</span> <span class="n">container</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
@@ -319,7 +331,6 @@
                 <span class="n">body</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">([</span>
                     <span class="p">{</span><span class="s">&#39;path&#39;</span><span class="p">:</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="p">,</span> <span class="s">&#39;size_bytes&#39;</span><span class="p">:</span> <span class="n">s</span><span class="p">,</span> <span class="s">&#39;etag&#39;</span><span class="p">:</span> <span class="n">e</span><span class="p">}</span>
                     <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">path2info</span><span class="o">.</span><span class="n">iteritems</span><span class="p">())])</span>
-                <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;content-type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;application/json&#39;</span>
                 <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;content-length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">body</span><span class="p">))</span>
                 <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="s">&#39;multipart-manifest&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;put&#39;</span>
             <span class="k">else</span><span class="p">:</span>
@@ -329,6 +340,22 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">body</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">input_</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span><span class="p">:</span>
+            <span class="n">content_length</span> <span class="o">=</span> <span class="n">put_headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">content_length</span><span class="p">:</span>
+                <span class="n">content_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">content_length</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="n">FileLikeIter</span><span class="p">(</span><span class="n">aes_encrypt</span><span class="p">(</span>
+                    <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">preamble</span><span class="o">=</span><span class="n">AES256CBC</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">65536</span><span class="p">),</span>
+                    <span class="n">content_length</span><span class="o">=</span><span class="n">content_length</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="n">FileLikeIter</span><span class="p">(</span><span class="n">aes_encrypt</span><span class="p">(</span>
+                    <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span><span class="p">,</span> <span class="n">FileLikeIter</span><span class="p">([</span><span class="n">body</span><span class="p">]),</span> <span class="n">preamble</span><span class="o">=</span><span class="n">AES256CBC</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">65536</span><span class="p">),</span>
+                    <span class="n">content_length</span><span class="o">=</span><span class="n">content_length</span><span class="p">))</span>
+            <span class="k">if</span> <span class="s">&#39;content-length&#39;</span> <span class="ow">in</span> <span class="n">put_headers</span><span class="p">:</span>
+                <span class="k">del</span> <span class="n">put_headers</span><span class="p">[</span><span class="s">&#39;content-length&#39;</span><span class="p">]</span>
         <span class="n">container</span><span class="p">,</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span>
             <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">put_headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span>
@@ -339,7 +366,26 @@
         <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
             <span class="s">&#39;putting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">contents</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">seek</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">put_headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">),</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;etag&#39;</span><span class="p">)</span>
+        <span class="n">content_length</span> <span class="o">=</span> <span class="n">put_headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">)</span>
+        <span class="n">etag</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;etag&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">content_length</span> <span class="ow">and</span> <span class="n">etag</span><span class="p">:</span>
+            <span class="n">content_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">content_length</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+                <span class="n">container</span><span class="p">,</span> <span class="n">obj</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">head_object</span><span class="p">(</span>
+                    <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                    <span class="n">contents</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;heading object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span>
+                    <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">contents</span><span class="p">))</span>
+            <span class="n">content_length</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">)</span>
+            <span class="n">etag</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;etag&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">content_length</span><span class="p">:</span>
+                <span class="n">content_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">content_length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">content_length</span><span class="p">,</span> <span class="n">etag</span>
 
 </div>
 <div class="viewcode-block" id="cli_put"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.put.cli_put">[docs]</a><span class="k">def</span> <span class="nf">cli_put</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
@@ -463,6 +509,11 @@
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Indicates the maximum size of an object before uploading it &#39;</span>
                  <span class="s">&#39;as a segmented object. See full help text for more &#39;</span>
                  <span class="s">&#39;information.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--encrypt&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;encrypt&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;KEY&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Will encrypt the uploaded object data with KEY. This &#39;</span>
+                 <span class="s">&#39;currently uses AES 256 in CBC mode but other algorithms may &#39;</span>
+                 <span class="s">&#39;be offered in the future.&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
         <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args_and_create_context</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
@@ -481,6 +532,7 @@
         <span class="n">context</span><span class="o">.</span><span class="n">empty</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">empty</span>
         <span class="n">context</span><span class="o">.</span><span class="n">newer</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">newer</span>
         <span class="n">context</span><span class="o">.</span><span class="n">different</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">different</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">encrypt</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="bp">None</span>
         <span class="k">return</span> <span class="n">cli_put</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
 </pre></div>

@@ -56,6 +56,9 @@
 functions. Works both with access as a standard external user and as an
 internal administrator of a cluster with direct access to the rings and to
 all back end servers.</p>
+<p>Can optionally make use of Eventlet (0.11.0 or later recommended)
+&lt;<a class="reference external" href="http://eventlet.net/">http://eventlet.net/</a>&gt; or PyCrypto (2.6.1 or later)
+&lt;<a class="reference external" href="https://www.dlitz.net/software/pycrypto/">https://www.dlitz.net/software/pycrypto/</a>&gt;.</p>
 <p>Source code available at &lt;<a class="reference external" href="http://github.com/gholt/swiftly">http://github.com/gholt/swiftly</a>&gt;</p>
 <p>Note: If you <tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">easy_install</span> <span class="pre">swiftly</span></tt> on Mac OS X, you may need to run
 <tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">chmod</span> <span class="pre">-R</span> <span class="pre">og+r</span> <span class="pre">/Library/Python/2.7/site-packages</span></tt> in order to run
@@ -74,7 +77,9 @@ swiftly.</p>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.optionparser">optionparser</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.iomanager">iomanager</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.auth">auth</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.decrypt">decrypt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.delete">delete</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.encrypt">encrypt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.get">get</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.head">head</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.help">help</a></li>
@@ -96,6 +101,8 @@ swiftly.</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="swiftly_concurrency.html">swiftly.concurrency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="swiftly_dencrypt.html">swiftly.dencrypt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="swiftly_filelikeiter.html">swiftly.filelikeiter</a></li>
 </ul>
 </div>
 </div>
@@ -276,6 +283,20 @@ Request Retries:    4
 Options:
   -?, --help  Shows this help text.</pre>
 </div>
+<p>Output from <cite>swiftly help decrypt</cite>:</p>
+<div class="highlight-python"><pre>Usage: swiftly [main_options] decrypt &lt;key&gt;
+
+For help on [main_options] run swiftly with no args.
+
+Decrypts standard input using the given &lt;key&gt; and sends that to standard
+output.
+
+This currently only supports AES 256 in CBC mode but other algorithms may be
+offered in the future.
+
+Options:
+  -?, --help  Shows this help text.</pre>
+</div>
 <p>Output from <cite>swiftly help delete</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] delete [options] [path]
 
@@ -317,6 +338,20 @@ Options:
                         backgound. THERE IS NO GOING BACK!
   --ignore-404          Ignores 404 Not Found responses; the exit code will be
                         0 instead of 1.</pre>
+</div>
+<p>Output from <cite>swiftly help encrypt</cite>:</p>
+<div class="highlight-python"><pre>Usage: swiftly [main_options] encrypt &lt;key&gt;
+
+For help on [main_options] run swiftly with no args.
+
+Encrypts standard input using the given &lt;key&gt; and sends that to standard
+output.
+
+This currently uses AES 256 in CBC mode but other algorithms may be offered in
+the future.
+
+Options:
+  -?, --help  Shows this help text.</pre>
 </div>
 <p>Output from <cite>swiftly help get</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] get [options] [path]
@@ -406,7 +441,10 @@ Options:
                         your system has that).
   --remove-empty-files  Removes files that result as empty. This can be useful
                         in conjunction with --sub-command so you are left only
-                        with the files that generated output.</pre>
+                        with the files that generated output.
+  --decrypt=KEY         Will decrypt the downloaded object data with KEY. This
+                        currently only supports AES 256 in CBC mode but other
+                        algorithms may be offered in the future.</pre>
 </div>
 <p>Output from <cite>swiftly help head</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] head [options] [path]
@@ -565,7 +603,10 @@ Options:
   -s BYTES, --segment-size=BYTES
                         Indicates the maximum size of an object before
                         uploading it as a segmented object. See full help text
-                        for more information.</pre>
+                        for more information.
+  --encrypt=KEY         Will encrypt the uploaded object data with KEY. This
+                        currently uses AES 256 in CBC mode but other
+                        algorithms may be offered in the future.</pre>
 </div>
 <p>Output from <cite>swiftly help tempurl</cite>:</p>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] tempurl &lt;method&gt; &lt;path&gt; [seconds]

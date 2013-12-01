@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.filelikeiter &mdash; Swiftly 1.99 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.99',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.99 documentation" href="index.html" />
+    <link rel="prev" title="swiftly.dencrypt" href="swiftly_dencrypt.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="swiftly_dencrypt.html" title="swiftly.dencrypt"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Swiftly 1.99 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-swiftly.filelikeiter">
+<span id="swiftly-filelikeiter"></span><span id="swiftly-filelikeiter-module"></span><h1>swiftly.filelikeiter<a class="headerlink" href="#module-swiftly.filelikeiter" title="Permalink to this headline">¶</a></h1>
+<p>Wraps an iterable to behave as a file-like object.</p>
+<p>Copyright (c) 2010-2012 OpenStack Foundation</p>
+<p>Licensed under the Apache License, Version 2.0 (the &#8220;License&#8221;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+<blockquote>
+<div><a class="reference external" href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></div></blockquote>
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &#8220;AS IS&#8221; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+<dl class="class">
+<dt id="swiftly.filelikeiter.FileLikeIter">
+<em class="property">class </em><tt class="descclassname">swiftly.filelikeiter.</tt><tt class="descname">FileLikeIter</tt><big>(</big><em>iterable</em><big>)</big><a class="reference internal" href="_modules/swiftly/filelikeiter.html#FileLikeIter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.filelikeiter.FileLikeIter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Wraps an iterable to behave as a file-like object.</p>
+<p>Taken from work I did for OpenStack Swift
+swift.common.utils.FileLikeIter, Copyright (c) 2010-2012
+OpenStack Foundation.</p>
+<dl class="method">
+<dt id="swiftly.filelikeiter.FileLikeIter.close">
+<tt class="descname">close</tt><big>(</big><big>)</big> &rarr; None or (perhaps) an integer.  Close the file.<a class="reference internal" href="_modules/swiftly/filelikeiter.html#FileLikeIter.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.filelikeiter.FileLikeIter.close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets data attribute .closed to True.  A closed file cannot be used for
+further I/O operations.  close() may be called more than once without
+error.  Some kinds of file objects (for example, opened by popen())
+may return an exit status upon closing.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.filelikeiter.FileLikeIter.next">
+<tt class="descname">next</tt><big>(</big><big>)</big> &rarr; the next value, or raise StopIteration<a class="reference internal" href="_modules/swiftly/filelikeiter.html#FileLikeIter.next"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.filelikeiter.FileLikeIter.next" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="swiftly.filelikeiter.FileLikeIter.read">
+<tt class="descname">read</tt><big>(</big><span class="optional">[</span><em>size</em><span class="optional">]</span><big>)</big> &rarr; read at most size bytes, returned as a string.<a class="reference internal" href="_modules/swiftly/filelikeiter.html#FileLikeIter.read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.filelikeiter.FileLikeIter.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>If the size argument is negative or omitted, read until EOF is reached.
+Notice that when in non-blocking mode, less data than what was
+requested may be returned, even if no size parameter was given.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.filelikeiter.FileLikeIter.readline">
+<tt class="descname">readline</tt><big>(</big><span class="optional">[</span><em>size</em><span class="optional">]</span><big>)</big> &rarr; next line from the file, as a string.<a class="reference internal" href="_modules/swiftly/filelikeiter.html#FileLikeIter.readline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.filelikeiter.FileLikeIter.readline" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retain newline.  A non-negative size argument limits the maximum
+number of bytes to return (an incomplete line may be returned then).
+Return an empty string at EOF.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.filelikeiter.FileLikeIter.readlines">
+<tt class="descname">readlines</tt><big>(</big><span class="optional">[</span><em>size</em><span class="optional">]</span><big>)</big> &rarr; list of strings, each a line from the file.<a class="reference internal" href="_modules/swiftly/filelikeiter.html#FileLikeIter.readlines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.filelikeiter.FileLikeIter.readlines" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call readline() repeatedly and return a list of the lines so read.
+The optional size argument, if given, is an approximate bound on the
+total number of bytes in the lines returned.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="swiftly_dencrypt.html"
+                        title="previous chapter">swiftly.dencrypt</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/swiftly_filelikeiter.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="swiftly_dencrypt.html" title="swiftly.dencrypt"
+             >previous</a> |</li>
+        <li><a href="index.html">Swiftly 1.99 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
+    </div>
+  </body>
+</html>

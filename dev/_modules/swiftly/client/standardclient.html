@@ -69,6 +69,7 @@
 <span class="kn">import</span> <span class="nn">errno</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">StringIO</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
 <span class="kn">import</span> <span class="nn">urlparse</span>
 
@@ -493,6 +494,8 @@
                 <span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">=</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">quote</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">quote</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">if</span> <span class="n">v</span> <span class="k">else</span> <span class="n">quote</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
                 <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">query</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()))</span>
         <span class="n">reset_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_reset_func</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="n">contents</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
         <span class="n">tell</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;tell&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
         <span class="n">seek</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;seek&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">tell</span> <span class="ow">and</span> <span class="n">seek</span><span class="p">:</span>
@@ -568,6 +571,8 @@
                             <span class="k">if</span> <span class="n">size</span> <span class="o">&gt;</span> <span class="n">left</span><span class="p">:</span>
                                 <span class="n">size</span> <span class="o">=</span> <span class="n">left</span>
                             <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">chunk</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">IOError</span><span class="p">(</span><span class="s">&#39;Early EOF from input&#39;</span><span class="p">)</span>
                             <span class="n">conn</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
                             <span class="n">left</span> <span class="o">-=</span> <span class="nb">len</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
                 <span class="n">resp</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">getresponse</span><span class="p">()</span>
