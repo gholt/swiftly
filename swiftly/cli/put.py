@@ -188,6 +188,10 @@ def cli_put_object(context, path):
 
     See :py:class:`CLIPut` for more information.
     """
+    if context.different and context.encrypt:
+        raise ReturnCode(
+            'context.different will not work properly with context.encrypt '
+            'since encryption may change the object size')
     put_headers = dict(context.headers)
     if context.empty:
         body = ''
@@ -483,5 +487,9 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
         context.newer = options.newer
         context.different = options.different
         context.encrypt = options.encrypt
+        if context.encrypt and context.different:
+            raise ReturnCode(
+                '--different will not work properly with --encrypt since '
+                'encryption may change the object size')
         path = args.pop(0).lstrip('/') if args else None
         return cli_put(context, path)
