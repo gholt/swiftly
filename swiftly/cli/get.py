@@ -69,8 +69,10 @@ limitations under the License.
 import os
 import time
 
-from swiftly.concurrency import Concurrency
 from swiftly.cli.command import CLICommand, ReturnCode
+from swiftly.concurrency import Concurrency
+from swiftly.dencrypt import AES256CBC, aes_decrypt
+from swiftly.filelikeiter import FileLikeIter
 
 
 def cli_get_account_listing(context):
@@ -280,6 +282,16 @@ def cli_get(context, path=None):
                 contents.read()
             raise ReturnCode(
                 'getting object %r: %s %s' % (path, status, reason))
+        if context.decrypt:
+            crypt_type = contents.read(1)
+            if crypt_type == AES256CBC:
+                contents = FileLikeIter(aes_decrypt(
+                    context.decrypt, contents,
+                    chunk_size=getattr(client, 'chunk_size', 65536)))
+            else:
+                raise ReturnCode(
+                    'getting object %r: contents encrypted with unsupported '
+                    'type %r' % (path, crypt_type))
 
         def disk_closed_callback(disk_path):
             if context.remove_empty_files and not os.path.getsize(disk_path):
@@ -441,6 +453,11 @@ Outputs the resulting contents from a GET request of the [path] given. If no
             help='Removes files that result as empty. This can be useful in '
                  'conjunction with --sub-command so you are left only with '
                  'the files that generated output.')
+        self.option_parser.add_option(
+            '--decrypt', dest='decrypt', metavar='KEY',
+            help='Will decrypt the downloaded object data with KEY. This '
+                 'currently only support AES 256 in CBC mode but other '
+                 'algorithms may be offered in the future.')
 
     def __call__(self, args):
         options, args, context = self.parse_args_and_create_context(args)
@@ -470,5 +487,6 @@ Outputs the resulting contents from a GET request of the [path] given. If no
             context.query['marker'] = options.marker
         if options.end_marker:
             context.query['end_marker'] = options.end_marker
+        context.decrypt = options.decrypt
         path = args.pop(0).lstrip('/') if args else None
         return cli_get(context, path)

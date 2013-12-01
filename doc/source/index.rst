@@ -8,6 +8,10 @@ Swiftly
     internal administrator of a cluster with direct access to the rings and to
     all back end servers.
 
+    Can optionally make use of Eventlet (0.11.0 or later recommended)
+    <http://eventlet.net/> or PyCrypto (2.6.1 or later)
+    <https://www.dlitz.net/software/pycrypto/>.
+
     Source code available at <http://github.com/gholt/swiftly>
 
     Note: If you ``sudo easy_install swiftly`` on Mac OS X, you may need to run
@@ -25,6 +29,8 @@ Contents
     swiftly_cli
     swiftly_client
     swiftly_concurrency
+    swiftly_dencrypt
+    swiftly_filelikeiter
 
 Overview
 --------
@@ -344,6 +350,9 @@ Output from `swiftly help get`::
       --remove-empty-files  Removes files that result as empty. This can be useful
                             in conjunction with --sub-command so you are left only
                             with the files that generated output.
+      --decrypt=KEY         Will decrypt the downloaded object data with KEY. This
+                            currently only support AES 256 in CBC mode but other
+                            algorithms may be offered in the future.
 
 
 Output from `swiftly help head`::
@@ -511,6 +520,9 @@ Output from `swiftly help put`::
                             Indicates the maximum size of an object before
                             uploading it as a segmented object. See full help text
                             for more information.
+      --encrypt=KEY         Will encrypt the uploaded object data with KEY. This
+                            currently uses AES 256 in CBC mode but other
+                            algorithms may be offered in the future.
 
 
 Output from `swiftly help tempurl`::

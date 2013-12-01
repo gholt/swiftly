@@ -53,8 +53,10 @@ limitations under the License.
 import json
 import os
 
-from swiftly.concurrency import Concurrency
 from swiftly.cli.command import CLICommand, ReturnCode
+from swiftly.concurrency import Concurrency
+from swiftly.dencrypt import AES256CBC, aes_encrypt
+from swiftly.filelikeiter import FileLikeIter
 
 
 def cli_put_directory_structure(context, path):
@@ -280,6 +282,15 @@ def cli_put_object(context, path):
         else:
             body = open(context.input_, 'rb')
     with context.client_manager.with_client() as client:
+        if context.encrypt:
+            if hasattr(body, 'read'):
+                body = FileLikeIter(aes_encrypt(
+                    context.encrypt, body, preamble=AES256CBC,
+                    chunk_size=getattr(client, 'chunk_size', 65536)))
+            else:
+                body = FileLikeIter(aes_encrypt(
+                    context.encrypt, FileLikeIter([body]), preamble=AES256CBC,
+                    chunk_size=getattr(client, 'chunk_size', 65536)))
         container, obj = path.split('/', 1)
         status, reason, headers, contents = client.put_object(
             container, obj, body, headers=put_headers, query=context.query,
@@ -414,6 +425,11 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
             help='Indicates the maximum size of an object before uploading it '
                  'as a segmented object. See full help text for more '
                  'information.')
+        self.option_parser.add_option(
+            '--encrypt', dest='encrypt', metavar='KEY',
+            help='Will encrypt the uploaded object data with KEY. This '
+                 'currently uses AES 256 in CBC mode but other algorithms may '
+                 'be offered in the future.')
 
     def __call__(self, args):
         options, args, context = self.parse_args_and_create_context(args)
@@ -432,5 +448,6 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
         context.empty = options.empty
         context.newer = options.newer
         context.different = options.different
+        context.encrypt = options.encrypt
         path = args.pop(0).lstrip('/') if args else None
         return cli_put(context, path)
