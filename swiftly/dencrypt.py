@@ -20,8 +20,12 @@ limitations under the License.
 """
 import hashlib
 
-import Crypto.Cipher.AES
-import Crypto.Random
+try:
+    import Crypto.Cipher.AES
+    import Crypto.Random
+    AES256CBC_Support = True
+except ImportError:
+    AES256CBC_Support = False
 
 
 #: Constant that can be used a preamble for algorithm detection.
@@ -42,6 +46,9 @@ def aes_encrypt(key, stdin, preamble=None, chunk_size=65536,
     :param content_length: The number of bytes to read from stdin.
         None or < 0 indicates reading until EOF.
     """
+    if not AES256CBC_Support:
+        raise Exception(
+            'AES256CBC not supported; likely pycrypto is not installed')
     if preamble:
         yield preamble
     # Always use 256-bit key
@@ -101,6 +108,9 @@ def aes_decrypt(key, stdin, chunk_size=65536):
     :param stdin: Where to read the encrypted data from.
     :param chunk_size: Largest amount to read at once.
     """
+    if not AES256CBC_Support:
+        raise Exception(
+            'AES256CBC not supported; likely pycrypto is not installed')
     # Always use 256-bit key
     key = hashlib.sha256(key).digest()
     # At least 16 and a multiple of 16
