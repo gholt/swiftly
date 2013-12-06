@@ -467,7 +467,9 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
             '--encrypt', dest='encrypt', metavar='KEY',
             help='Will encrypt the uploaded object data with KEY. This '
                  'currently uses AES 256 in CBC mode but other algorithms may '
-                 'be offered in the future.')
+                 'be offered in the future. You may specify a single dash "-" '
+                 'as the KEY and instead the KEY will be loaded from the '
+                 'SWIFTLY_CRYPT_KEY environment variable.')
 
     def __call__(self, args):
         options, args, context = self.parse_args_and_create_context(args)
@@ -487,6 +489,13 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
         context.newer = options.newer
         context.different = options.different
         context.encrypt = options.encrypt
+        if context.encrypt == '-':
+            context.encrypt = os.environ.get('SWIFTLY_CRYPT_KEY')
+            if not context.encrypt:
+                raise ReturnCode(
+                    'A single dash "-" was given as the encryption key, but '
+                    'no key was found in the SWIFTLY_CRYPT_KEY environment '
+                    'variable.')
         if context.encrypt and context.different:
             raise ReturnCode(
                 '--different will not work properly with --encrypt since '

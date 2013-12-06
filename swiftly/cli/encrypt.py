@@ -22,7 +22,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from swiftly.cli.command import CLICommand
+import os
+
+from swiftly.cli.command import CLICommand, ReturnCode
 from swiftly.dencrypt import AES256CBC, aes_encrypt
 
 
@@ -57,13 +59,14 @@ class CLIEncrypt(CLICommand):
 
     def __init__(self, cli):
         super(CLIEncrypt, self).__init__(
-            cli, 'encrypt', min_args=1, max_args=1, usage="""
-Usage: %prog [main_options] encrypt <key>
+            cli, 'encrypt', max_args=1, usage="""
+Usage: %prog [main_options] encrypt [key]
 
 For help on [main_options] run %prog with no args.
 
-Encrypts standard input using the given <key> and sends that to standard
-output.
+Encrypts standard input using the given [key] and sends that to standard
+output. If the key is not provided on the command line or is a single dash "-",
+it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
 
 This currently uses AES 256 in CBC mode but other algorithms may be offered in
 the future.
@@ -71,5 +74,10 @@ the future.
 
     def __call__(self, args):
         options, args, context = self.parse_args_and_create_context(args)
-        key = args.pop(0)
+        key = args.pop(0) if args else None
+        if not key or key == '-':
+            key = os.environ.get('SWIFTLY_CRYPT_KEY')
+        if not key:
+            raise ReturnCode(
+                'No key provided and no SWIFTLY_CRYPT_KEY in the environment.')
         return cli_encrypt(context, key)

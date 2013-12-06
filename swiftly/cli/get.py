@@ -457,7 +457,9 @@ Outputs the resulting contents from a GET request of the [path] given. If no
             '--decrypt', dest='decrypt', metavar='KEY',
             help='Will decrypt the downloaded object data with KEY. This '
                  'currently only supports AES 256 in CBC mode but other '
-                 'algorithms may be offered in the future.')
+                 'algorithms may be offered in the future. You may specify a '
+                 'single dash "-" as the KEY and instead the KEY will be '
+                 'loaded from the SWIFTLY_CRYPT_KEY environment variable.')
 
     def __call__(self, args):
         options, args, context = self.parse_args_and_create_context(args)
@@ -488,5 +490,12 @@ Outputs the resulting contents from a GET request of the [path] given. If no
         if options.end_marker:
             context.query['end_marker'] = options.end_marker
         context.decrypt = options.decrypt
+        if context.decrypt == '-':
+            context.decrypt = os.environ.get('SWIFTLY_CRYPT_KEY')
+            if not context.decrypt:
+                raise ReturnCode(
+                    'A single dash "-" was given as the decryption key, but '
+                    'no key was found in the SWIFTLY_CRYPT_KEY environment '
+                    'variable.')
         path = args.pop(0).lstrip('/') if args else None
         return cli_get(context, path)
