@@ -292,12 +292,13 @@ Options:
 <div class="section" id="decrypt">
 <h4>decrypt<a class="headerlink" href="#decrypt" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help decrypt</cite>:</p>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] decrypt &lt;key&gt;
+<div class="highlight-python"><pre>Usage: swiftly [main_options] decrypt [key]
 
 For help on [main_options] run swiftly with no args.
 
-Decrypts standard input using the given &lt;key&gt; and sends that to standard
-output.
+Decrypts standard input using the given [key] and sends that to standard
+output. If the key is not provided on the command line or is a single dash "-",
+it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
 
 This currently only supports AES 256 in CBC mode but other algorithms may be
 offered in the future.
@@ -354,12 +355,13 @@ Options:
 <div class="section" id="encrypt">
 <h4>encrypt<a class="headerlink" href="#encrypt" title="Permalink to this headline">¶</a></h4>
 <p>Output from <cite>swiftly help encrypt</cite>:</p>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] encrypt &lt;key&gt;
+<div class="highlight-python"><pre>Usage: swiftly [main_options] encrypt [key]
 
 For help on [main_options] run swiftly with no args.
 
-Encrypts standard input using the given &lt;key&gt; and sends that to standard
-output.
+Encrypts standard input using the given [key] and sends that to standard
+output. If the key is not provided on the command line or is a single dash "-",
+it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
 
 This currently uses AES 256 in CBC mode but other algorithms may be offered in
 the future.
@@ -461,7 +463,10 @@ Options:
                         with the files that generated output.
   --decrypt=KEY         Will decrypt the downloaded object data with KEY. This
                         currently only supports AES 256 in CBC mode but other
-                        algorithms may be offered in the future.</pre>
+                        algorithms may be offered in the future. You may
+                        specify a single dash "-" as the KEY and instead the
+                        KEY will be loaded from the SWIFTLY_CRYPT_KEY
+                        environment variable.</pre>
 </div>
 </div>
 <div class="section" id="head">
@@ -635,7 +640,10 @@ Options:
                         for more information.
   --encrypt=KEY         Will encrypt the uploaded object data with KEY. This
                         currently uses AES 256 in CBC mode but other
-                        algorithms may be offered in the future.</pre>
+                        algorithms may be offered in the future. You may
+                        specify a single dash "-" as the KEY and instead the
+                        KEY will be loaded from the SWIFTLY_CRYPT_KEY
+                        environment variable.</pre>
 </div>
 </div>
 <div class="section" id="tempurl">

@@ -227,12 +227,13 @@ decrypt
 
 Output from `swiftly help decrypt`::
 
-    Usage: swiftly [main_options] decrypt <key>
+    Usage: swiftly [main_options] decrypt [key]
 
     For help on [main_options] run swiftly with no args.
 
-    Decrypts standard input using the given <key> and sends that to standard
-    output.
+    Decrypts standard input using the given [key] and sends that to standard
+    output. If the key is not provided on the command line or is a single dash "-",
+    it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
 
     This currently only supports AES 256 in CBC mode but other algorithms may be
     offered in the future.
@@ -293,12 +294,13 @@ encrypt
 
 Output from `swiftly help encrypt`::
 
-    Usage: swiftly [main_options] encrypt <key>
+    Usage: swiftly [main_options] encrypt [key]
 
     For help on [main_options] run swiftly with no args.
 
-    Encrypts standard input using the given <key> and sends that to standard
-    output.
+    Encrypts standard input using the given [key] and sends that to standard
+    output. If the key is not provided on the command line or is a single dash "-",
+    it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
 
     This currently uses AES 256 in CBC mode but other algorithms may be offered in
     the future.
@@ -402,7 +404,10 @@ Output from `swiftly help get`::
                             with the files that generated output.
       --decrypt=KEY         Will decrypt the downloaded object data with KEY. This
                             currently only supports AES 256 in CBC mode but other
-                            algorithms may be offered in the future.
+                            algorithms may be offered in the future. You may
+                            specify a single dash "-" as the KEY and instead the
+                            KEY will be loaded from the SWIFTLY_CRYPT_KEY
+                            environment variable.
 
 
 head
@@ -584,7 +589,10 @@ Output from `swiftly help put`::
                             for more information.
       --encrypt=KEY         Will encrypt the uploaded object data with KEY. This
                             currently uses AES 256 in CBC mode but other
-                            algorithms may be offered in the future.
+                            algorithms may be offered in the future. You may
+                            specify a single dash "-" as the KEY and instead the
+                            KEY will be loaded from the SWIFTLY_CRYPT_KEY
+                            environment variable.
 
 
 tempurl

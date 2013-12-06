@@ -517,7 +517,9 @@
             <span class="s">&#39;--encrypt&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;encrypt&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;KEY&#39;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Will encrypt the uploaded object data with KEY. This &#39;</span>
                  <span class="s">&#39;currently uses AES 256 in CBC mode but other algorithms may &#39;</span>
-                 <span class="s">&#39;be offered in the future.&#39;</span><span class="p">)</span>
+                 <span class="s">&#39;be offered in the future. You may specify a single dash &quot;-&quot; &#39;</span>
+                 <span class="s">&#39;as the KEY and instead the KEY will be loaded from the &#39;</span>
+                 <span class="s">&#39;SWIFTLY_CRYPT_KEY environment variable.&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
         <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args_and_create_context</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
@@ -537,6 +539,13 @@
         <span class="n">context</span><span class="o">.</span><span class="n">newer</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">newer</span>
         <span class="n">context</span><span class="o">.</span><span class="n">different</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">different</span>
         <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">encrypt</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_CRYPT_KEY&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;A single dash &quot;-&quot; was given as the encryption key, but &#39;</span>
+                    <span class="s">&#39;no key was found in the SWIFTLY_CRYPT_KEY environment &#39;</span>
+                    <span class="s">&#39;variable.&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">encrypt</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">different</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                 <span class="s">&#39;--different will not work properly with --encrypt since &#39;</span>

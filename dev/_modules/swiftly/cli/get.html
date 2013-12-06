@@ -507,7 +507,9 @@
             <span class="s">&#39;--decrypt&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;decrypt&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;KEY&#39;</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s">&#39;Will decrypt the downloaded object data with KEY. This &#39;</span>
                  <span class="s">&#39;currently only supports AES 256 in CBC mode but other &#39;</span>
-                 <span class="s">&#39;algorithms may be offered in the future.&#39;</span><span class="p">)</span>
+                 <span class="s">&#39;algorithms may be offered in the future. You may specify a &#39;</span>
+                 <span class="s">&#39;single dash &quot;-&quot; as the KEY and instead the KEY will be &#39;</span>
+                 <span class="s">&#39;loaded from the SWIFTLY_CRYPT_KEY environment variable.&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
         <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args_and_create_context</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
@@ -538,6 +540,13 @@
         <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">end_marker</span><span class="p">:</span>
             <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="s">&#39;end_marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">end_marker</span>
         <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">decrypt</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_CRYPT_KEY&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;A single dash &quot;-&quot; was given as the decryption key, but &#39;</span>
+                    <span class="s">&#39;no key was found in the SWIFTLY_CRYPT_KEY environment &#39;</span>
+                    <span class="s">&#39;variable.&#39;</span><span class="p">)</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="bp">None</span>
         <span class="k">return</span> <span class="n">cli_get</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
 </pre></div>

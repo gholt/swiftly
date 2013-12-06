@@ -70,8 +70,12 @@
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 
-<span class="kn">import</span> <span class="nn">Crypto.Cipher.AES</span>
-<span class="kn">import</span> <span class="nn">Crypto.Random</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">Crypto.Cipher.AES</span>
+    <span class="kn">import</span> <span class="nn">Crypto.Random</span>
+    <span class="n">AES256CBC_Support</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">AES256CBC_Support</span> <span class="o">=</span> <span class="bp">False</span>
 
 
 <span class="c">#: Constant that can be used a preamble for algorithm detection.</span>
@@ -92,6 +96,9 @@
 <span class="sd">    :param content_length: The number of bytes to read from stdin.</span>
 <span class="sd">        None or &lt; 0 indicates reading until EOF.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">AES256CBC_Support</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+            <span class="s">&#39;AES256CBC not supported; likely pycrypto is not installed&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">preamble</span><span class="p">:</span>
         <span class="k">yield</span> <span class="n">preamble</span>
     <span class="c"># Always use 256-bit key</span>
@@ -151,6 +158,9 @@
 <span class="sd">    :param stdin: Where to read the encrypted data from.</span>
 <span class="sd">    :param chunk_size: Largest amount to read at once.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">AES256CBC_Support</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+            <span class="s">&#39;AES256CBC not supported; likely pycrypto is not installed&#39;</span><span class="p">)</span>
     <span class="c"># Always use 256-bit key</span>
     <span class="n">key</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">digest</span><span class="p">()</span>
     <span class="c"># At least 16 and a multiple of 16</span>
