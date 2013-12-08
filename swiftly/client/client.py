@@ -36,6 +36,8 @@ class Client(object):
     def __init__(self):
         #: The string to use for the User-Agent request header.
         self.user_agent = 'Swiftly v%s' % VERSION
+        #: These HTTP methods do not allow contents
+        self.no_content_methods = ['COPY', 'DELETE', 'GET', 'HEAD']
 
     def reset(self):
         """

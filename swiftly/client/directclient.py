@@ -142,37 +142,42 @@ class DirectClient(Client):
             if headers:
                 titled_headers.update(
                     (k.title(), v) for k, v in headers.iteritems())
-            verbose_headers = '  '.join(
-                '%s: %s' % (k, v) for k, v in titled_headers.iteritems())
             resp = None
             if not hasattr(contents, 'read'):
+                if method not in self.no_content_methods and contents and \
+                        'Content-Length' not in titled_headers and \
+                        'Transfer-Encoding' not in titled_headers:
+                    titled_headers['Content-Length'] = str(
+                        len(contents or ''))
                 req = self.Request.blank(
                     conn_path + path, environ={'REQUEST_METHOD': method},
                     headers=titled_headers, body=contents)
+                verbose_headers = '  '.join(
+                    '%s: %s' % (k, v) for k, v in titled_headers.iteritems())
                 self.verbose(
-                    '> %s %s %s', req.method, req.path, verbose_headers)
+                    '> %s %s %s', method, conn_path + path, verbose_headers)
                 resp = req.get_response(self.swift_proxy)
             else:
                 req = self.Request.blank(
                     conn_path + path, environ={'REQUEST_METHOD': method},
                     headers=titled_headers)
-                self.verbose(
-                    '> %s %s %s', req.method, req.path, verbose_headers)
                 content_length = None
                 for h, v in titled_headers.iteritems():
                     if h.lower() == 'content-length':
                         content_length = int(v)
                     req.headers[h] = v
-                if content_length is None:
+                if method not in self.no_content_methods and \
+                        content_length is None:
+                    titled_headers['Transfer-Encoding'] = 'chunked'
                     req.headers['Transfer-Encoding'] = 'chunked'
-                    req.body_file = contents
-                    self.verbose('> %s %s', req.method, req.path)
-                    resp = req.get_response(self.swift_proxy)
                 else:
-                    req.body_file = contents
                     req.content_length = content_length
-                    self.verbose('> %s %s', req.method, req.path)
-                    resp = req.get_response(self.swift_proxy)
+                req.body_file = contents
+                verbose_headers = '  '.join(
+                    '%s: %s' % (k, v) for k, v in titled_headers.iteritems())
+                self.verbose(
+                    '> %s %s %s', method, conn_path + path, verbose_headers)
+                resp = req.get_response(self.swift_proxy)
             status = resp.status_int
             reason = resp.status.split(' ', 1)[1]
             hdrs = headers_to_dict(resp.headers.items())

@@ -485,36 +485,47 @@ class StandardClient(Client):
             if headers:
                 titled_headers.update(
                     (k.title(), v) for k, v in headers.iteritems())
-            verbose_headers = '  '.join(
-                '%s: %s' % (k, v)
-                for k, v in sorted(titled_headers.iteritems()))
             try:
                 if not hasattr(contents, 'read'):
+                    if method not in self.no_content_methods and contents and \
+                            'Content-Length' not in titled_headers and \
+                            'Transfer-Encoding' not in titled_headers:
+                        titled_headers['Content-Length'] = str(
+                            len(contents or ''))
+                    verbose_headers = '  '.join(
+                        '%s: %s' % (k, v)
+                        for k, v in sorted(titled_headers.iteritems()))
                     self.verbose(
                         '> %s %s %s', method, conn_path + path,
                         verbose_headers)
                     conn.request(
                         method, conn_path + path, contents, titled_headers)
                 else:
-                    self.verbose(
-                        '> %s %s %s', method, conn_path + path,
-                        verbose_headers)
                     conn.putrequest(method, conn_path + path)
                     content_length = None
                     for h, v in sorted(titled_headers.iteritems()):
-                        if h.lower() == 'content-length':
+                        if h == 'Content-Length':
                             content_length = int(v)
                         conn.putheader(h, v)
-                    if content_length is None:
+                    if method not in self.no_content_methods and \
+                            content_length is None:
+                        titled_headers['Transfer-Encoding'] = 'chunked'
                         conn.putheader('Transfer-Encoding', 'chunked')
-                        conn.endheaders()
+                    conn.endheaders()
+                    verbose_headers = '  '.join(
+                        '%s: %s' % (k, v)
+                        for k, v in sorted(titled_headers.iteritems()))
+                    self.verbose(
+                        '> %s %s %s', method, conn_path + path,
+                        verbose_headers)
+                    if method not in self.no_content_methods and \
+                            content_length is None:
                         chunk = contents.read(self.chunk_size)
                         while chunk:
                             conn.send('%x\r\n%s\r\n' % (len(chunk), chunk))
                             chunk = contents.read(self.chunk_size)
                         conn.send('0\r\n\r\n')
                     else:
-                        conn.endheaders()
                         left = content_length
                         while left > 0:
                             size = self.chunk_size
