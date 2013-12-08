@@ -150,7 +150,8 @@ class DirectClient(Client):
                     titled_headers['Content-Length'] = str(
                         len(contents or ''))
                 req = self.Request.blank(
-                    conn_path + path, environ={'REQUEST_METHOD': method},
+                    conn_path + path,
+                    environ={'REQUEST_METHOD': method, 'swift_owner': True},
                     headers=titled_headers, body=contents)
                 verbose_headers = '  '.join(
                     '%s: %s' % (k, v) for k, v in titled_headers.iteritems())
@@ -159,7 +160,8 @@ class DirectClient(Client):
                 resp = req.get_response(self.swift_proxy)
             else:
                 req = self.Request.blank(
-                    conn_path + path, environ={'REQUEST_METHOD': method},
+                    conn_path + path,
+                    environ={'REQUEST_METHOD': method, 'swift_owner': True},
                     headers=titled_headers)
                 content_length = None
                 for h, v in titled_headers.iteritems():
