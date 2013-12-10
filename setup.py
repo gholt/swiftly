@@ -21,5 +21,6 @@ import swiftly
 setup(
     name='swiftly', version=swiftly.VERSION, description='Client for Swift',
     author='Gregory Holt', author_email='swiftly@brim.net',
-    url='http://gholt.github.com/swiftly/', packages=['swiftly'],
+    url='http://gholt.github.com/swiftly/',
+    packages=['swiftly', 'swiftly.cli', 'swiftly.client'],
     scripts=['bin/swiftly'])
