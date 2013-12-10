@@ -207,6 +207,8 @@ def cli_put_object(context, path):
         body.seek(context.seek)
     else:
         l_mtime = os.path.getmtime(context.input_)
+        l_size = os.path.getsize(context.input_)
+        put_headers['content-length'] = str(l_size)
         if context.newer or context.different:
             r_mtime = None
             r_size = None
@@ -237,7 +239,7 @@ def cli_put_object(context, path):
                 return
             if context.different and r_mtime is not None and \
                     l_mtime == r_mtime and r_size is not None and \
-                    os.path.getsize(context.input_) == r_size:
+                    l_size == r_size:
                 return
         put_headers['x-object-meta-mtime'] = '%f' % l_mtime
         size = os.path.getsize(context.input_)
