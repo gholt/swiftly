@@ -48,6 +48,11 @@ import uuid
 from swiftly.concurrency import Concurrency
 from swiftly.cli.command import CLICommand, ReturnCode
 
+try:
+    from eventlet import sleep
+except ImportError:
+    sleep = time.sleep
+
 
 def _cli_ping_status(context, heading, ident, status, reason, headers,
                      contents):
@@ -279,18 +284,26 @@ def cli_ping(context, prefix):
                 'ERROR delete objects did not complete successfully due to '
                 'previous error; but continuing\n')
             fp.flush()
-    with context.client_manager.with_client() as client:
-        try:
-            _cli_ping_status(
-                context, 'container delete', '-',
-                *client.delete_container(container))
-        except ReturnCode as err:
-            with context.io_manager.with_stderr() as fp:
-                fp.write(str(err))
-                fp.write(
-                    '\nERROR could not confirm deletion of container due to '
-                    'previous error; but continuing\n')
-                fp.flush()
+    for attempt in xrange(5):
+        if attempt:
+            sleep(2**attempt)
+        with context.client_manager.with_client() as client:
+            try:
+                _cli_ping_status(
+                    context, 'container delete', '-',
+                    *client.delete_container(container))
+                break
+            except ReturnCode as err:
+                with context.io_manager.with_stderr() as fp:
+                    fp.write(str(err))
+                    fp.write('\n')
+                    fp.flush()
+    else:
+        with context.io_manager.with_stderr() as fp:
+            fp.write(
+                'ERROR could not confirm deletion of container due to '
+                'previous error; but continuing\n')
+            fp.flush()
     end = time.time()
     with context.io_manager.with_stdout() as fp:
         if context.ping_verbose:
