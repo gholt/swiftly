@@ -117,7 +117,7 @@ def _cli_ping_object_put(context, results, container, obj):
         if context.object_ring:
             elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
-                    client.connection.get_account_hash(), container, obj)[1]:
+                    client.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
                     (elapsed, headers.get('x-trans-id') or obj))
 
@@ -138,7 +138,7 @@ def _cli_ping_object_get(context, results, container, obj):
         if context.object_ring:
             elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
-                    client.connection.get_account_hash(), container, obj)[1]:
+                    client.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
                     (elapsed, headers.get('x-trans-id') or obj))
 
@@ -159,7 +159,7 @@ def _cli_ping_object_delete(context, results, container, obj):
         if context.object_ring:
             elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
-                    client.connection.get_account_hash(), container, obj)[1]:
+                    client.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
                     (elapsed, headers.get('x-trans-id') or obj))
 
