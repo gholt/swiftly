@@ -116,7 +116,6 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
                     if x[0] > 2 and x[0] > threshold:
                         slows += 1
                 slow_percentage = 100.0 * slows / len(overall)
-                threshold = max(2, median)
                 deviants = [x[0] for x in overall if x[0] > threshold]
                 if len(deviants) > 1:
                     deviant = math.sqrt(
