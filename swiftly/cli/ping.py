@@ -41,7 +41,6 @@ limitations under the License.
 """
 import collections
 import StringIO
-import math
 import time
 import traceback
 import uuid
@@ -118,9 +117,9 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
                 slow_percentage = 100.0 * slows / len(overall)
                 deviants = [x[0] for x in overall if x[0] > threshold]
                 if len(deviants) > 1:
-                    deviant = math.sqrt(
+                    deviant = (
                         sum((x - threshold)**2 for x in deviants) /
-                        len(deviants))
+                        (len(deviants) - 1)**0.5)
                 else:
                     deviant = 0
                 fp.write(
