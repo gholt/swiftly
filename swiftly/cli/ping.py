@@ -103,24 +103,30 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
     if overall:
         overall = sorted(overall, key=lambda x: x[0])
         results['overall'] = overall
-        if context.ping_verbose:
+        if context.ping_verbose or context.graphite:
+            best = overall[0][0]
+            worst = overall[-1][0]
+            mean = overall[len(overall) / 2][0]
+            median = sum(x[0] for x in overall) / len(overall)
+            threshold = max(2, mean * 2)
+            slows = 0
+            for x in overall:
+                if x[0] > 2 and x[0] > threshold:
+                    slows += 1
+            slow_percentage = 100.0 * slows / len(overall)
             with context.io_manager.with_stdout() as fp:
-                best = overall[0][0]
-                worst = overall[-1][0]
-                mean = overall[len(overall) / 2][0]
-                median = sum(x[0] for x in overall) / len(overall)
-                threshold = max(2, mean * 2)
-                slows = 0
-                for x in overall:
-                    if x[0] > 2 and x[0] > threshold:
-                        slows += 1
-                slow_percentage = 100.0 * slows / len(overall)
-                fp.write(
-                    '        best %.02fs, worst %.02fs, mean %.02fs, median '
-                    '%.02fs\n        %d slower than 2s or twice the mean, '
-                    '%.02f%%\n' % (
-                        best, worst, mean, median, slows, slow_percentage))
-                fp.flush()
+                if context.ping_verbose:
+                    fp.write(
+                        '        best %.02fs, worst %.02fs, mean %.02fs, '
+                        'median %.02fs\n        %d slower than 2s or twice '
+                        'the mean, %.02f%%\n' % (
+                            best, worst, mean, median, slows, slow_percentage))
+                    fp.flush()
+                if context.graphite:
+                    fp.write(
+                        '%s.%s.slow_percentage %.02f %d\n' % (
+                            context.graphite, heading, slow_percentage,
+                            time.time()))
 
 
 def _cli_ping_object_put(context, results, container, obj):
@@ -334,9 +340,13 @@ def cli_ping(context, prefix):
             fp.flush()
     end = time.time()
     with context.io_manager.with_stdout() as fp:
+        if context.graphite:
+            fp.write(
+                '%s.ping_overall %.02f %d\n' % (
+                    context.graphite, end - context.ping_begin, time.time()))
         if context.ping_verbose:
             fp.write('% 6.02fs total\n' % (end - context.ping_begin))
-        else:
+        elif not context.graphite:
             fp.write('%.02fs\n' % (end - context.ping_begin))
         fp.flush()
     ping_ring_overall = collections.defaultdict(lambda: [])
@@ -389,6 +399,11 @@ swiftly-ping).""".strip())
             '-t', '--threshold', dest='threshold',
             help='Changes the threshold for the final (average * x) reports. '
                  'This will define the value of x, defaults to 2.')
+        self.option_parser.add_option(
+            '-g', '--graphite', dest='graphite', metavar='PREFIX',
+            help='Switches to "graphite" output. The output will be lines of '
+                 '"PREFIX.metric value timestamp" suitable for piping to '
+                 'graphite (through netcat or something similar).')
 
     def __call__(self, args):
         options, args, context = self.parse_args_and_create_context(args)
@@ -401,5 +416,6 @@ swiftly-ping).""".strip())
                 options.object_ring)
         context.limit = int(options.limit or 10)
         context.threshold = int(options.threshold or 2)
+        context.graphite = options.graphite
         prefix = args.pop(0) if args else 'swiftly-ping'
         return cli_ping(context, prefix)
