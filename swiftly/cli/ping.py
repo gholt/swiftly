@@ -111,12 +111,13 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
             threshold = mean * 2
             slows = 0
             for x in overall:
-                if x[0] > threshold:
+                if x[0] > 2 and x[0] > threshold:
                     slows += 1
             slow_percentage = 100.0 * slows / len(overall)
             fp.write(
                 '        best %.02fs, worst %.02fs, mean %.02fs, median '
-                '%.02fs\n        %d slower than twice the mean, %.02f%%\n' % (
+                '%.02fs\n        %d slower than 2s and twice the mean, '
+                '%.02f%%\n' % (
                     best, worst, mean, median, slows, slow_percentage))
             fp.flush()
 
