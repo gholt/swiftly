@@ -99,6 +99,26 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
         'object %s x%d at %d concurrency, %.02f/s' %
         (heading, len(objects), conc.concurrency, len(objects) / elapsed),
         None, None, None, None, None)
+    overall = results.get('overall')
+    if overall:
+        overall = sorted(overall, key=lambda x: x[0])
+        results['overall'] = overall
+        with context.io_manager.with_stdout() as fp:
+            best = overall[0][0]
+            worst = overall[-1][0]
+            mean = overall[len(overall) / 2][0]
+            median = sum(x[0] for x in overall) / len(overall)
+            threshold = mean * 2
+            slows = 0
+            for x in overall:
+                if x[0] > threshold:
+                    slows += 1
+            slow_percentage = 100.0 * slows / len(overall)
+            fp.write(
+                '        best %.02fs, worst %.02fs, mean %.02fs, median '
+                '%.02fs\n        %d slower than twice the mean, %.02f%%\n' % (
+                    best, worst, mean, median, slows, slow_percentage))
+            fp.flush()
 
 
 def _cli_ping_object_put(context, results, container, obj):
@@ -114,8 +134,9 @@ def _cli_ping_object_put(context, results, container, obj):
             raise ReturnCode(
                 'putting object %r: %s %s %s' %
                 (obj, status, reason, headers.get('x-trans-id') or '-'))
+        elapsed = time.time() - begin
+        results['overall'].append((elapsed, headers.get('x-trans-id') or obj))
         if context.object_ring:
-            elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
                     client.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
@@ -135,8 +156,9 @@ def _cli_ping_object_get(context, results, container, obj):
             raise ReturnCode(
                 'getting object %r: %s %s %s' %
                 (obj, status, reason, headers.get('x-trans-id') or '-'))
+        elapsed = time.time() - begin
+        results['overall'].append((elapsed, headers.get('x-trans-id') or obj))
         if context.object_ring:
-            elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
                     client.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
@@ -156,8 +178,9 @@ def _cli_ping_object_delete(context, results, container, obj):
             raise ReturnCode(
                 'deleting object %r: %s %s %s' %
                 (obj, status, reason, headers.get('x-trans-id') or '-'))
+        elapsed = time.time() - begin
+        results['overall'].append((elapsed, headers.get('x-trans-id') or obj))
         if context.object_ring:
-            elapsed = time.time() - begin
             for node in context.object_ring.get_nodes(
                     client.get_account_hash(), container, obj)[1]:
                 results[node['ip']].append(
@@ -165,6 +188,9 @@ def _cli_ping_object_delete(context, results, container, obj):
 
 
 def _cli_ping_ring_report(context, timings_dict, label):
+    timings_dict.pop('overall', None)  # Not currently used in this function
+    if not timings_dict:
+        return
     worsts = {}
     for ip, timings in timings_dict.iteritems():
         worst = [0, None]
@@ -312,20 +338,16 @@ def cli_ping(context, prefix):
             fp.write('%.02fs\n' % (end - context.ping_begin))
         fp.flush()
     ping_ring_overall = collections.defaultdict(lambda: [])
-    if ping_ring_object_puts:
-        _cli_ping_ring_report(context, ping_ring_object_puts, 'PUT')
-        for ip, timings in ping_ring_object_puts.iteritems():
-            ping_ring_overall[ip].extend(timings)
-    if ping_ring_object_gets:
-        _cli_ping_ring_report(context, ping_ring_object_gets, 'GET')
-        for ip, timings in ping_ring_object_gets.iteritems():
-            ping_ring_overall[ip].extend(timings)
-    if ping_ring_object_deletes:
-        _cli_ping_ring_report(context, ping_ring_object_deletes, 'DELETE')
-        for ip, timings in ping_ring_object_deletes.iteritems():
-            ping_ring_overall[ip].extend(timings)
-    if ping_ring_overall:
-        _cli_ping_ring_report(context, ping_ring_overall, 'overall')
+    _cli_ping_ring_report(context, ping_ring_object_puts, 'PUT')
+    for ip, timings in ping_ring_object_puts.iteritems():
+        ping_ring_overall[ip].extend(timings)
+    _cli_ping_ring_report(context, ping_ring_object_gets, 'GET')
+    for ip, timings in ping_ring_object_gets.iteritems():
+        ping_ring_overall[ip].extend(timings)
+    _cli_ping_ring_report(context, ping_ring_object_deletes, 'DELETE')
+    for ip, timings in ping_ring_object_deletes.iteritems():
+        ping_ring_overall[ip].extend(timings)
+    _cli_ping_ring_report(context, ping_ring_overall, 'overall')
 
 
 class CLIPing(CLICommand):
