@@ -103,23 +103,32 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
     if overall:
         overall = sorted(overall, key=lambda x: x[0])
         results['overall'] = overall
-        with context.io_manager.with_stdout() as fp:
-            best = overall[0][0]
-            worst = overall[-1][0]
-            mean = overall[len(overall) / 2][0]
-            median = sum(x[0] for x in overall) / len(overall)
-            threshold = max(2, mean * 2)
-            slows = 0
-            for x in overall:
-                if x[0] > 2 and x[0] > threshold:
-                    slows += 1
-            slow_percentage = 100.0 * slows / len(overall)
-            fp.write(
-                '        best %.02fs, worst %.02fs, mean %.02fs, median '
-                '%.02fs\n        %d slower than 2s or twice the mean, '
-                '%.02f%%\n' % (
-                    best, worst, mean, median, slows, slow_percentage))
-            fp.flush()
+        if context.ping_verbose:
+            with context.io_manager.with_stdout() as fp:
+                best = overall[0][0]
+                worst = overall[-1][0]
+                mean = overall[len(overall) / 2][0]
+                median = sum(x[0] for x in overall) / len(overall)
+                threshold = max(2, mean * 2)
+                slows = 0
+                for x in overall:
+                    if x[0] > 2 and x[0] > threshold:
+                        slows += 1
+                slow_percentage = 100.0 * slows / len(overall)
+                deviants = [x[0] for x in overall if x[0] > threshold]
+                if len(deviants) > 1:
+                    deviant = (
+                        sum((x - threshold)**2 for x in deviants) /
+                        (len(deviants) - 1)**0.5)
+                else:
+                    deviant = 0
+                fp.write(
+                    '        best %.02fs, worst %.02fs, mean %.02fs, median '
+                    '%.02fs, deviant %.02f\n        %d slower than 2s or '
+                    'twice the mean, %.02f%%\n' % (
+                        best, worst, mean, median, deviant, slows,
+                        slow_percentage))
+                fp.flush()
 
 
 def _cli_ping_object_put(context, results, container, obj):
