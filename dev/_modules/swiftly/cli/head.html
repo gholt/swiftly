@@ -128,7 +128,7 @@
             <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
                 <span class="s">&#39;heading object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">get_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
             <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">mute</span><span class="p">)</span>
 
 </div>

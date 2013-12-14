@@ -94,6 +94,8 @@
 <span class="sd">    :param command_parsers: A dict of (name, :py:class:`CLICommand`)</span>
 <span class="sd">        for specific command usage.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">command_name</span> <span class="o">==</span> <span class="s">&#39;for&#39;</span><span class="p">:</span>
+        <span class="n">command_name</span> <span class="o">=</span> <span class="s">&#39;fordo&#39;</span>
     <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">stdout</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">command_name</span><span class="p">:</span>
             <span class="n">general_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">(</span><span class="n">stdout</span><span class="p">)</span>

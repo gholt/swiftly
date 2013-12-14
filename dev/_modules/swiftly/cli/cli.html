@@ -88,6 +88,7 @@
     <span class="s">&#39;swiftly.cli.decrypt.CLIDecrypt&#39;</span><span class="p">,</span>
     <span class="s">&#39;swiftly.cli.delete.CLIDelete&#39;</span><span class="p">,</span>
     <span class="s">&#39;swiftly.cli.encrypt.CLIEncrypt&#39;</span><span class="p">,</span>
+    <span class="s">&#39;swiftly.cli.fordo.CLIForDo&#39;</span><span class="p">,</span>
     <span class="s">&#39;swiftly.cli.get.CLIGet&#39;</span><span class="p">,</span>
     <span class="s">&#39;swiftly.cli.head.CLIHead&#39;</span><span class="p">,</span>
     <span class="s">&#39;swiftly.cli.help.CLIHelp&#39;</span><span class="p">,</span>
@@ -366,13 +367,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">cdn</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">:</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">command</span> <span class="o">==</span> <span class="s">&#39;for&#39;</span><span class="p">:</span>
+            <span class="n">command</span> <span class="o">=</span> <span class="s">&#39;fordo&#39;</span>
+        <span class="k">if</span> <span class="n">command</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">:</span>
             <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
                 <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;ERROR unknown command </span><span class="si">%r</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
                 <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
             <span class="k">return</span> <span class="mi">1</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]](</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">commands</span><span class="p">[</span><span class="n">command</span><span class="p">](</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">err</span><span class="p">,</span> <span class="s">&#39;text&#39;</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">text</span><span class="p">:</span>

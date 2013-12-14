@@ -81,6 +81,14 @@ encrypt
     :undoc-members:
     :show-inheritance:
 
+fordo
+=====
+
+.. automodule:: swiftly.cli.fordo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 get
 ===
 

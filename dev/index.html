@@ -80,6 +80,7 @@ swiftly.</p>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.decrypt">decrypt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.delete">delete</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.encrypt">encrypt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.fordo">fordo</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.get">get</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.head">head</a></li>
 <li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.help">help</a></li>
@@ -182,11 +183,11 @@ Options:
                         server error. Default: 4. You can also set this with
                         the environment variable SWIFTLY_RETRIES.
   -C, --cache-auth      If set true, the storage URL and auth token are cached
-                        in /tmp/&lt;user&gt;.swiftly for reuse. If there are already
-                        cached values, they are used without authenticating
-                        first. You can also set this with the environment
-                        variable SWIFTLY_CACHE_AUTH (set to "true" or
-                        "false").
+                        in your OS temporary directory as &lt;user&gt;.swiftly for
+                        reuse. If there are already cached values, they are
+                        used without authenticating first. You can also set
+                        this with the environment variable SWIFTLY_CACHE_AUTH
+                        (set to "true" or "false").
   --cdn                 Directs requests to the CDN management interface.
   --concurrency=INTEGER
                         Sets the the number of actions that can be done
@@ -214,8 +215,19 @@ Options:
 Commands:
   auth                  Authenticates and then outputs the resulting
                         information.
+  decrypt [key]         Decrypts standard input using the given [key] and sends
+                        that to standard output. If the key is not provided on
+                        the command line or is a single dash "-", it must be
+                        provided via a SWIFTLY_CRYPT_KEY environment variable.
   delete [options] [path]
                         Issues a DELETE request of the [path] given.
+  encrypt [key]         Encrypts standard input using the given [key] and sends
+                        that to standard output. If the key is not provided on
+                        the command line or is a single dash "-", it must be
+                        provided via a SWIFTLY_CRYPT_KEY environment variable.
+  for [options] &lt;path&gt; do [command]
+                        This will issue the [command] for each item encountered
+                        performing a listing on &lt;path&gt;.
   get [options] [path]  Outputs the resulting contents from a GET request of
                         the [path] given. If no [path] is given, a GET request
                         on the account is performed.
@@ -368,6 +380,89 @@ the future.
 
 Options:
   -?, --help  Shows this help text.</pre>
+</div>
+</div>
+<div class="section" id="for">
+<h4>for<a class="headerlink" href="#for" title="Permalink to this headline">¶</a></h4>
+<p>Output from <cite>swiftly help for</cite>:</p>
+<div class="highlight-python"><pre>Usage: swiftly [main_options] for [options] &lt;path&gt; do [command]
+
+For help on [main_options] run swiftly with no args.
+
+This will issue the [command] for each item encountered performing a listing on
+&lt;path&gt;.
+
+If the &lt;path&gt; is an empty string "" then an account listing is performed and
+the [command] will be run for each container listed. Otherwise, the &lt;path&gt; must
+be a container and the [command] will be run for each object listed.
+
+You may include the options listed below before the "do" to change how the
+listing is performed (prefix queries, limits, etc.)
+
+The "do" keyword separates the [command] from the rest of the "for" expression.
+After the "do" comes the [command] which will have any instances of "&lt;item&gt;"
+replaced with each item in the resulting "for" listing.
+
+For example, to head every container for an account:
+
+    swiftly for "" do head "&lt;item&gt;"
+
+To post to every object in a container, forcing an auto-detected update to
+each's content-type:
+
+    swiftly for my_container do post -hx-detect-content-type:true "&lt;item&gt;"
+
+To head every object in a container, but only those with the name prefix of
+"under_here/":
+
+    swiftly for -p under_here/ my_container do head "&lt;item&gt;"
+
+Options:
+  -?, --help            Shows this help text.
+  -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
+                        Add a header to the request. This can be used multiple
+                        times for multiple headers. Examples: -hif-
+                        match:6f432df40167a4af05ca593acc6b3e4c -h "If-
+                        Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+  -q NAME[=VALUE], --query=NAME[=VALUE]
+                        Add a query parameter to the request. This can be used
+                        multiple times for multiple query parameters. Example:
+                        -qmultipart-manifest=get
+  -l LIMIT, --limit=LIMIT
+                        For account and container GETs, this limits the number
+                        of items returned. Without this option, all items are
+                        returned, even if it requires several backend requests
+                        to the gather the information.
+  -d DELIMITER, --delimiter=DELIMITER
+                        For account and container GETs, this sets the
+                        delimiter for the listing retrieved. For example, a
+                        container with the objects "abc/one", "abc/two", "xyz"
+                        and a delimiter of "/" would return "abc/" and "xyz".
+                        Using the same delimiter, but with a prefix of "abc/",
+                        would return "abc/one" and "abc/two".
+  -p PREFIX, --prefix=PREFIX
+                        For account and container GETs, this sets the prefix
+                        for the listing retrieved; the items returned will all
+                        match the PREFIX given.
+  -m MARKER, --marker=MARKER
+                        For account and container GETs, this sets the marker
+                        for the listing retrieved; the items returned will
+                        begin with the item just after the MARKER given (note:
+                        the marker does not have to actually exist).
+  -e MARKER, --end-marker=MARKER
+                        For account and container GETs, this sets the end-
+                        marker for the listing retrieved; the items returned
+                        will stop with the item just before the MARKER given
+                        (note: the marker does not have to actually exist).
+  --ignore-404          Ignores 404 Not Found responses. Nothing will be
+                        output, and the exit code will be 0 instead of 1.
+  --output-names        Outputs the name of each item just before calling
+                        [command] with it. To ensure easier parsing, the name
+                        will be url encoded and prefixed with "Item Name: ".
+                        For commands that have output of their own, this is
+                        usually only useful with single concurrency; otherwise
+                        the item names and the command output will get
+                        interspersed and impossible to associate.</pre>
 </div>
 </div>
 <div class="section" id="get">
@@ -707,6 +802,7 @@ Options:
 <li><a class="reference internal" href="#decrypt">decrypt</a></li>
 <li><a class="reference internal" href="#delete">delete</a></li>
 <li><a class="reference internal" href="#encrypt">encrypt</a></li>
+<li><a class="reference internal" href="#for">for</a></li>
 <li><a class="reference internal" href="#get">get</a></li>
 <li><a class="reference internal" href="#head">head</a></li>
 <li><a class="reference internal" href="#ping">ping</a></li>

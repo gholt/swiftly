@@ -86,6 +86,8 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c">#: The string to use for the User-Agent request header.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">user_agent</span> <span class="o">=</span> <span class="s">&#39;Swiftly v</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">VERSION</span>
+        <span class="c">#: These HTTP methods do not allow contents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_content_methods</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;COPY&#39;</span><span class="p">,</span> <span class="s">&#39;DELETE&#39;</span><span class="p">,</span> <span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;HEAD&#39;</span><span class="p">]</span>
 
 <div class="viewcode-block" id="Client.reset"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
