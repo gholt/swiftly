@@ -78,7 +78,7 @@ def cli_head(context, path=None):
             raise ReturnCode(
                 'heading object %r: %s %s' % (path, status, reason))
     else:
-        with context.io_manager.get_stdout() as fp:
+        with context.io_manager.with_stdout() as fp:
             context.write_headers(fp, headers, mute)
 
 
