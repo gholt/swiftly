@@ -44,6 +44,8 @@ def cli_help(context, command_name, general_parser, command_parsers):
     :param command_parsers: A dict of (name, :py:class:`CLICommand`)
         for specific command usage.
     """
+    if command_name == 'for':
+        command_name = 'fordo'
     with context.io_manager.with_stdout() as stdout:
         if not command_name:
             general_parser.print_help(stdout)

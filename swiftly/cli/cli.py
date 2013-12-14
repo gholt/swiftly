@@ -38,6 +38,7 @@ COMMANDS = [
     'swiftly.cli.decrypt.CLIDecrypt',
     'swiftly.cli.delete.CLIDelete',
     'swiftly.cli.encrypt.CLIEncrypt',
+    'swiftly.cli.fordo.CLIForDo',
     'swiftly.cli.get.CLIGet',
     'swiftly.cli.head.CLIHead',
     'swiftly.cli.help.CLIHelp',
@@ -316,13 +317,16 @@ class CLI(object):
         self.context.cdn = options.cdn
         self.context.concurrency = int(options.concurrency)
 
-        if args[0] not in self.commands:
+        command = args[0]
+        if command == 'for':
+            command = 'fordo'
+        if command not in self.commands:
             with self.context.io_manager.with_stderr() as fp:
                 fp.write('ERROR unknown command %r\n' % args[0])
                 fp.flush()
             return 1
         try:
-            self.commands[args[0]](args[1:])
+            self.commands[command](args[1:])
         except Exception as err:
             if hasattr(err, 'text'):
                 if err.text:
