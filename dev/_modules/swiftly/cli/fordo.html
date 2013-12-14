@@ -68,9 +68,11 @@
 <span class="sd">                         marker, and end_marker as they are common</span>
 <span class="sd">                         listing query parameters.</span>
 <span class="sd">remaining_args           The list of command line args to issue to</span>
-<span class="sd">                         the sub-CLI instance; an arg == &#39;&lt;item&gt;&#39;</span>
-<span class="sd">                         will be replaced with each item the for</span>
-<span class="sd">                         encounters.</span>
+<span class="sd">                         the sub-CLI instance; the first arg that</span>
+<span class="sd">                         equals &#39;&lt;item&gt;&#39; will be replaced with each</span>
+<span class="sd">                         item the for encounters. Any additional</span>
+<span class="sd">                         instances of &#39;&lt;item&gt;&#39; will be left alone, as</span>
+<span class="sd">                         you might be calling a nested &quot;for ... do&quot;.</span>
 <span class="sd">output_names             If True, outputs the name of each item just</span>
 <span class="sd">                         before calling [command] with it. To ensure</span>
 <span class="sd">                         easier parsing, the name will be url encoded</span>
@@ -160,8 +162,13 @@
         <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">:</span>
             <span class="n">name</span> <span class="o">=</span> <span class="p">(</span><span class="n">path</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="k">if</span> <span class="n">path</span> <span class="k">else</span> <span class="s">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
                 <span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;subdir&#39;</span><span class="p">))</span>
-            <span class="n">args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
-                <span class="p">(</span><span class="n">name</span> <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s">&#39;&lt;item&gt;&#39;</span> <span class="k">else</span> <span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">remaining_args</span><span class="p">)</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">remaining_args</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;&lt;item&gt;&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;No &quot;&lt;item&gt;&quot; designation found in the &quot;do&quot; clause.&#39;</span><span class="p">)</span>
+            <span class="n">args</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
             <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
                     <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
                 <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
@@ -205,12 +212,18 @@
 <span class="s">listing is performed (prefix queries, limits, etc.)</span>
 
 <span class="s">The &quot;do&quot; keyword separates the [command] from the rest of the &quot;for&quot; expression.</span>
-<span class="s">After the &quot;do&quot; comes the [command] which will have any instances of &quot;&lt;item&gt;&quot;</span>
-<span class="s">replaced with each item in the resulting &quot;for&quot; listing.</span>
+<span class="s">After the &quot;do&quot; comes the [command] which will have the first instance of</span>
+<span class="s">&quot;&lt;item&gt;&quot; replaced with each item in turn that is in the resulting &quot;for&quot;</span>
+<span class="s">listing. Any additional instances of &quot;&lt;item&gt;&quot; will be left alone, as you might</span>
+<span class="s">be calling a nested &quot;for ... do&quot;.</span>
 
 <span class="s">For example, to head every container for an account:</span>
 
 <span class="s">    %prog for &quot;&quot; do head &quot;&lt;item&gt;&quot;</span>
+
+<span class="s">To head every object in every container for an account:</span>
+
+<span class="s">    %prog for &quot;&quot; do for &quot;&lt;item&gt;&quot; do head &quot;&lt;item&gt;&quot;</span>
 
 <span class="s">To post to every object in a container, forcing an auto-detected update to</span>
 <span class="s">each&#39;s content-type:</span>

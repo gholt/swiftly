@@ -340,12 +340,18 @@ Output from `swiftly help for`::
     listing is performed (prefix queries, limits, etc.)
 
     The "do" keyword separates the [command] from the rest of the "for" expression.
-    After the "do" comes the [command] which will have any instances of "<item>"
-    replaced with each item in the resulting "for" listing.
+    After the "do" comes the [command] which will have the first instance of
+    "<item>" replaced with each item in turn that is in the resulting "for"
+    listing. Any additional instances of "<item>" will be left alone, as you might
+    be calling a nested "for ... do".
 
     For example, to head every container for an account:
 
         swiftly for "" do head "<item>"
+
+    To head every object in every container for an account:
+
+        swiftly for "" do for "<item>" do head "<item>"
 
     To post to every object in a container, forcing an auto-detected update to
     each's content-type:
