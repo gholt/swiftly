@@ -18,9 +18,11 @@ query                    A dict of query parameters to send. Of
                          marker, and end_marker as they are common
                          listing query parameters.
 remaining_args           The list of command line args to issue to
-                         the sub-CLI instance; an arg == '<item>'
-                         will be replaced with each item the for
-                         encounters.
+                         the sub-CLI instance; the first arg that
+                         equals '<item>' will be replaced with each
+                         item the for encounters. Any additional
+                         instances of '<item>' will be left alone, as
+                         you might be calling a nested "for ... do".
 output_names             If True, outputs the name of each item just
                          before calling [command] with it. To ensure
                          easier parsing, the name will be url encoded
@@ -110,8 +112,13 @@ def cli_fordo(context, path=None):
         for item in contents:
             name = (path + '/' if path else '') + item.get(
                 'name', item.get('subdir'))
-            args = list(
-                (name if a == '<item>' else a) for a in context.remaining_args)
+            args = list(context.remaining_args)
+            try:
+                index = args.index('<item>')
+            except ValueError:
+                raise ReturnCode(
+                    'No "<item>" designation found in the "do" clause.')
+            args[index] = name
             for (exc_type, exc_value, exc_tb, result) in \
                     conc.get_results().itervalues():
                 if exc_value:
@@ -155,12 +162,18 @@ You may include the options listed below before the "do" to change how the
 listing is performed (prefix queries, limits, etc.)
 
 The "do" keyword separates the [command] from the rest of the "for" expression.
-After the "do" comes the [command] which will have any instances of "<item>"
-replaced with each item in the resulting "for" listing.
+After the "do" comes the [command] which will have the first instance of
+"<item>" replaced with each item in turn that is in the resulting "for"
+listing. Any additional instances of "<item>" will be left alone, as you might
+be calling a nested "for ... do".
 
 For example, to head every container for an account:
 
     %prog for "" do head "<item>"
+
+To head every object in every container for an account:
+
+    %prog for "" do for "<item>" do head "<item>"
 
 To post to every object in a container, forcing an auto-detected update to
 each's content-type:
