@@ -310,6 +310,8 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span> <span class="ow">or</span> <span class="n">options</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
             <span class="k">return</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">original_main_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">original_args</span><span class="p">[</span>
+            <span class="p">:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">eventlet</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">eventlet</span><span class="p">:</span>

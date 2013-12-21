@@ -73,6 +73,7 @@
 <span class="sd">                         item the for encounters. Any additional</span>
 <span class="sd">                         instances of &#39;&lt;item&gt;&#39; will be left alone, as</span>
 <span class="sd">                         you might be calling a nested &quot;for ... do&quot;.</span>
+<span class="sd">original_main_args       Used when constructing sub-CLI instances.</span>
 <span class="sd">output_names             If True, outputs the name of each item just</span>
 <span class="sd">                         before calling [command] with it. To ensure</span>
 <span class="sd">                         easier parsing, the name will be url encoded</span>
@@ -113,7 +114,7 @@
             <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">urllib</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">)))</span>
             <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
             <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">CLI</span><span class="p">()(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">CLI</span><span class="p">()(</span><span class="n">context</span><span class="o">.</span><span class="n">original_main_args</span> <span class="o">+</span> <span class="n">args</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="cli_fordo"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.fordo.cli_fordo">[docs]</a><span class="k">def</span> <span class="nf">cli_fordo</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
