@@ -23,6 +23,7 @@ remaining_args           The list of command line args to issue to
                          item the for encounters. Any additional
                          instances of '<item>' will be left alone, as
                          you might be calling a nested "for ... do".
+original_main_args       Used when constructing sub-CLI instances.
 output_names             If True, outputs the name of each item just
                          before calling [command] with it. To ensure
                          easier parsing, the name will be url encoded
@@ -63,7 +64,7 @@ def _cli_call(context, name, args):
             fp.write(urllib.quote(name.encode('utf8')))
             fp.write('\n')
             fp.flush()
-    return CLI()(args)
+    return CLI()(context.original_main_args + args)
 
 
 def cli_fordo(context, path=None):

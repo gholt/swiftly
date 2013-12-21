@@ -260,6 +260,8 @@ class CLI(object):
         if not args or options.help:
             self.option_parser.print_help()
             return 1
+        self.context.original_main_args = self.context.original_args[
+            :-len(args)]
 
         self.context.eventlet = None
         if options.eventlet:
