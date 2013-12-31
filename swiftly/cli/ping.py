@@ -182,7 +182,7 @@ def _cli_ping_object_delete(context, results, container, obj):
         except Exception:
             raise ReturnCode(
                 'deleting object %r: %s' % (obj, traceback.format_exc()))
-        if status // 100 != 2:
+        if status // 100 != 2 and status != 404:
             raise ReturnCode(
                 'deleting object %r: %s %s %s' %
                 (obj, status, reason, headers.get('x-trans-id') or '-'))
