@@ -10,5 +10,4 @@ You can read the Sphinx-built documentation at
 
 **NOTE**: The master branch is current dev work. Depending on how adventurous
 you are, you might want to switch to the "stable" branch if you're running from
-a git clone. This is especially true right now since major refactor work is
-ongoing.
+a git clone.
