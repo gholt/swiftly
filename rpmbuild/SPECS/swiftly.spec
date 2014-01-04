@@ -4,7 +4,7 @@
 %endif
 
 Name:           swiftly
-Version:        1.12
+Version:        2.00
 Release:        1
 Summary:        Client for Swift
 
@@ -39,6 +39,8 @@ rm -rf %{buildroot}
 %{python_sitelib}/%{name}-%{version}-*.egg-info
 
 %changelog
+* Sat Jan  4 2014 Gregory Holt <greg@brim.net> - 2.00-1
+- Refactor; See http://gholt.github.io/swiftly/dev/changes_2_00.html
 * Thu Nov 21 2013 Gregory Holt <greg@brim.net> - 1.12-1
 - Bug fixes; updated ping; new trans command
 * Sat Oct 19 2013 Gregory Holt <greg@brim.net> - 1.10-1
