@@ -3,7 +3,9 @@ git pull
 Update swiftly/__init__.py VERSION string to an even-ending version
 git add swiftly/__init__.py
 git commit -m 'Releasing <version>'
-git tag <version>
+git checkout -b <version>
+git checkout stable
+git merge <version>
 
 rm -rf doc/build/*
 python setup.py build_sphinx
@@ -41,8 +43,17 @@ git commit -m 'Updated dev docs'
 
 git checkout master
 git push
-git push --tags
 
-Update PyPI; however you magically figure out how to do that. I think I edited
-the past version's information, changing the version number, and it created a
-new entry that I could then upload a source tar.gz to.
+To Update PyPI:
+git checkout <version>
+tar zcf ~/swiftly-<version>.tgz .
+Log into https://pypi.python.org/pypi
+Click on Your packages: swiftly
+Edit latest version
+Change version to <version>
+Click Add Information
+Click files
+Select swiftly-<version>.tgz created above
+Select File Type: source
+Select Python Version: Any
+Click Upload new File

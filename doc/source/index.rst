@@ -8,14 +8,27 @@ Swiftly
     internal administrator of a cluster with direct access to the rings and to
     all back end servers.
 
+    Can optionally make use of Eventlet (0.11.0 or later recommended)
+    <http://eventlet.net/> or PyCrypto (2.6.1 or later)
+    <https://www.dlitz.net/software/pycrypto/>.
+
     Source code available at <http://github.com/gholt/swiftly>
 
     Note: If you ``sudo easy_install swiftly`` on Mac OS X, you may need to run
     ``sudo chmod -R og+r /Library/Python/2.7/site-packages`` in order to run
     swiftly.
 
-Contents
---------
+CHANGES
+-------
+
+.. toctree::
+    :maxdepth: 1
+
+    changes_2_00
+
+
+API Reference
+-------------
 
 .. toctree::
     :maxdepth: 2
@@ -25,6 +38,8 @@ Contents
     swiftly_cli
     swiftly_client
     swiftly_concurrency
+    swiftly_dencrypt
+    swiftly_filelikeiter
 
 Overview
 --------
@@ -49,6 +64,9 @@ Example as a administrator direct user::
 
 Command Line Tool Usage
 .......................
+
+help
+^^^^
 
 Output from `swiftly`::
 
@@ -104,16 +122,25 @@ Output from `swiftly`::
                             server error. Default: 4. You can also set this with
                             the environment variable SWIFTLY_RETRIES.
       -C, --cache-auth      If set true, the storage URL and auth token are cached
-                            in /tmp/<user>.swiftly for reuse. If there are already
-                            cached values, they are used without authenticating
-                            first. You can also set this with the environment
-                            variable SWIFTLY_CACHE_AUTH (set to "true" or
-                            "false").
+                            in your OS temporary directory as <user>.swiftly for
+                            reuse. If there are already cached values, they are
+                            used without authenticating first. You can also set
+                            this with the environment variable SWIFTLY_CACHE_AUTH
+                            (set to "true" or "false").
       --cdn                 Directs requests to the CDN management interface.
       --concurrency=INTEGER
                             Sets the the number of actions that can be done
                             simultaneously when possible (currently requires using
-                            Eventlet too). Default: 1
+                            Eventlet too). Default: 1. You can also set this with
+                            the environment variable SWIFTLY_CONCURRENCY. Note
+                            that some nested actions may amplify the number of
+                            concurrent actions. For instance, a put of an entire
+                            directory will use up to this number of concurrent
+                            actions. A put of a segmented object will use up to
+                            this number of concurrent actions. But, if a directory
+                            structure put is uploading segmented objects, this
+                            nesting could cause up to INTEGER * INTEGER concurrent
+                            actions.
       --eventlet            Enables Eventlet, if installed. This is disabled by
                             default if Eventlet is not installed or is less than
                             version 0.11.0 (because older Swiftly+Eventlet tends
@@ -125,9 +152,21 @@ Output from `swiftly`::
                             VERBOSE and will also include the number of seconds
                             elapsed since Swiftly started.
     Commands:
-      auth                  Outputs auth information.
+      auth                  Authenticates and then outputs the resulting
+                            information.
+      decrypt [key]         Decrypts standard input using the given [key] and sends
+                            that to standard output. If the key is not provided on
+                            the command line or is a single dash "-", it must be
+                            provided via a SWIFTLY_CRYPT_KEY environment variable.
       delete [options] [path]
                             Issues a DELETE request of the [path] given.
+      encrypt [key]         Encrypts standard input using the given [key] and sends
+                            that to standard output. If the key is not provided on
+                            the command line or is a single dash "-", it must be
+                            provided via a SWIFTLY_CRYPT_KEY environment variable.
+      for [options] <path> do [command]
+                            This will issue the [command] for each item encountered
+                            performing a listing on <path>.
       get [options] [path]  Outputs the resulting contents from a GET request of
                             the [path] given. If no [path] is given, a GET request
                             on the account is performed.
@@ -153,17 +192,78 @@ Output from `swiftly`::
                             such as the embedded transaction time.
 
 
+auth
+^^^^
+
 Output from `swiftly help auth`::
 
     Usage: swiftly [main_options] auth
 
     For help on [main_options] run swiftly with no args.
 
-    Outputs auth information.
+    Authenticates and then outputs the resulting information.
+
+    Possible Output Values:
+
+        Auth Cache           The location where auth info may be cached.
+        Auth URL             The URL of the auth service if in use.
+        Auth User            The user to auth as if in use.
+        Auth Key             The key to auth with if in use.
+        Auth Tenant          The tenant to auth as if in use.
+        Auth Methods         The auth methods in use if any specified.
+        Direct Storage Path  The direct-mode path if in use.
+        Regions              The available regions as reported by the auth service.
+        Default Region       The default region as reported by the auth service.
+        Selected Region      The region selected for use by Swiftly.
+        SNet                 True if ServiceNet/InternalURL would be used.
+        Storage URL          The URL to use for storage as reported by the auth
+                             service.
+        CDN Management URL   The URL to use for CDN management as reported by the
+                             auth service.
+        Auth Token           The auth token to use as reported by the auth service.
+        Request Retries      The number retries to be done for any request.
+
+    Example Output:
+
+    Auth Cache:         /tmp/user.swiftly
+    Auth URL:           https://identity.api.rackspacecloud.com/v2.0
+    Auth User:          myusername
+    Auth Key:           mykey
+    Regions:            ORD DFW SYD IAD HKG
+    Default Region:     ORD
+    Selected Region:    IAD
+    SNet:               True
+    Storage URL:        https://snet-storage101.iad3.clouddrive.com/v1/account
+    CDN Management URL: https://cdn5.clouddrive.com/v1/account
+    Auth Token:         abcdef0123456789abcdef0123456789
+    Request Retries:    4
 
     Options:
       -?, --help  Shows this help text.
 
+
+decrypt
+^^^^^^^
+
+Output from `swiftly help decrypt`::
+
+    Usage: swiftly [main_options] decrypt [key]
+
+    For help on [main_options] run swiftly with no args.
+
+    Decrypts standard input using the given [key] and sends that to standard
+    output. If the key is not provided on the command line or is a single dash "-",
+    it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
+
+    This currently only supports AES 256 in CBC mode but other algorithms may be
+    offered in the future.
+
+    Options:
+      -?, --help  Shows this help text.
+
+
+delete
+^^^^^^
 
 Output from `swiftly help delete`::
 
@@ -175,7 +275,7 @@ Output from `swiftly help delete`::
 
     Options:
       -?, --help            Shows this help text.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hx-some-header
                             :some-value -h "X-Some-Other-Header: Some other value"
@@ -185,15 +285,8 @@ Output from `swiftly help delete`::
                             -qmultipart-manifest=get
       -i PATH, --input=PATH
                             Indicates where to read the DELETE request body from;
-                            default is standard input. This is not normally used
-                            with DELETE requests, so you must also specify -I if
-                            you want the body sent.
-      -I                    Since DELETEs do not normally take input, you must
-                            specify this option if you wish them to read from the
-                            input specified by -i (or the default standard input).
-                            This is useful with -qbulk-delete requests. For
-                            example: swiftly delete -qbulk-delete -Ii <my-bulk-
-                            deletes-file>
+                            use a dash (as in "-i -") to specify standard input
+                            since DELETEs do not normally take input.
       --recursive           Normally a delete for a non-empty container will error
                             with a 409 Conflict; --recursive will first delete all
                             objects in a container and then delete the container
@@ -216,6 +309,120 @@ Output from `swiftly help delete`::
                             0 instead of 1.
 
 
+encrypt
+^^^^^^^
+
+Output from `swiftly help encrypt`::
+
+    Usage: swiftly [main_options] encrypt [key]
+
+    For help on [main_options] run swiftly with no args.
+
+    Encrypts standard input using the given [key] and sends that to standard
+    output. If the key is not provided on the command line or is a single dash "-",
+    it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
+
+    This currently uses AES 256 in CBC mode but other algorithms may be offered in
+    the future.
+
+    Options:
+      -?, --help  Shows this help text.
+
+
+for
+^^^
+
+Output from `swiftly help for`::
+
+    Usage: swiftly [main_options] for [options] <path> do [command]
+
+    For help on [main_options] run swiftly with no args.
+
+    This will issue the [command] for each item encountered performing a listing on
+    <path>.
+
+    If the <path> is an empty string "" then an account listing is performed and
+    the [command] will be run for each container listed. Otherwise, the <path> must
+    be a container and the [command] will be run for each object listed.
+
+    You may include the options listed below before the "do" to change how the
+    listing is performed (prefix queries, limits, etc.)
+
+    The "do" keyword separates the [command] from the rest of the "for" expression.
+    After the "do" comes the [command] which will have the first instance of
+    "<item>" replaced with each item in turn that is in the resulting "for"
+    listing. Any additional instances of "<item>" will be left alone, as you might
+    be calling a nested "for ... do".
+
+    For example, to head every container for an account:
+
+        swiftly for "" do head "<item>"
+
+    To head every object in every container for an account:
+
+        swiftly for "" do for "<item>" do head "<item>"
+
+    To post to every object in a container, forcing an auto-detected update to
+    each's content-type:
+
+        swiftly for my_container do post -hx-detect-content-type:true "<item>"
+
+    To head every object in a container, but only those with the name prefix of
+    "under_here/":
+
+        swiftly for -p under_here/ my_container do head "<item>"
+
+    Options:
+      -?, --help            Shows this help text.
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
+                            Add a header to the request. This can be used multiple
+                            times for multiple headers. Examples: -hif-
+                            match:6f432df40167a4af05ca593acc6b3e4c -h "If-
+                            Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+      -q NAME[=VALUE], --query=NAME[=VALUE]
+                            Add a query parameter to the request. This can be used
+                            multiple times for multiple query parameters. Example:
+                            -qmultipart-manifest=get
+      -l LIMIT, --limit=LIMIT
+                            For account and container GETs, this limits the number
+                            of items returned. Without this option, all items are
+                            returned, even if it requires several backend requests
+                            to the gather the information.
+      -d DELIMITER, --delimiter=DELIMITER
+                            For account and container GETs, this sets the
+                            delimiter for the listing retrieved. For example, a
+                            container with the objects "abc/one", "abc/two", "xyz"
+                            and a delimiter of "/" would return "abc/" and "xyz".
+                            Using the same delimiter, but with a prefix of "abc/",
+                            would return "abc/one" and "abc/two".
+      -p PREFIX, --prefix=PREFIX
+                            For account and container GETs, this sets the prefix
+                            for the listing retrieved; the items returned will all
+                            match the PREFIX given.
+      -m MARKER, --marker=MARKER
+                            For account and container GETs, this sets the marker
+                            for the listing retrieved; the items returned will
+                            begin with the item just after the MARKER given (note:
+                            the marker does not have to actually exist).
+      -e MARKER, --end-marker=MARKER
+                            For account and container GETs, this sets the end-
+                            marker for the listing retrieved; the items returned
+                            will stop with the item just before the MARKER given
+                            (note: the marker does not have to actually exist).
+      --ignore-404          Ignores 404 Not Found responses. Nothing will be
+                            output, and the exit code will be 0 instead of 1.
+      --output-names        Outputs the name of each item just before calling
+                            [command] with it. To ensure easier parsing, the name
+                            will be url encoded and prefixed with "Item Name: ".
+                            For commands that have output of their own, this is
+                            usually only useful with single concurrency; otherwise
+                            the item names and the command output will get
+                            interspersed and impossible to associate.
+
+
+get
+^^^
+
 Output from `swiftly help get`::
 
     Usage: swiftly [main_options] get [options] [path]
@@ -228,7 +435,7 @@ Output from `swiftly help get`::
     Options:
       -?, --help            Shows this help text.
       --headers             Output headers as well as the contents.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hif-
                             match:6f432df40167a4af05ca593acc6b3e4c -h "If-
@@ -303,7 +510,19 @@ Output from `swiftly help get`::
                             storing matching lines locally (--sub-command "gunzip
                             | grep keyword" or --sub-command "zgrep keyword" if
                             your system has that).
+      --remove-empty-files  Removes files that result as empty. This can be useful
+                            in conjunction with --sub-command so you are left only
+                            with the files that generated output.
+      --decrypt=KEY         Will decrypt the downloaded object data with KEY. This
+                            currently only supports AES 256 in CBC mode but other
+                            algorithms may be offered in the future. You may
+                            specify a single dash "-" as the KEY and instead the
+                            KEY will be loaded from the SWIFTLY_CRYPT_KEY
+                            environment variable.
 
+
+head
+^^^^
 
 Output from `swiftly help head`::
 
@@ -316,7 +535,7 @@ Output from `swiftly help head`::
 
     Options:
       -?, --help            Shows this help text.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hif-
                             match:6f432df40167a4af05ca593acc6b3e4c -h "If-
@@ -328,6 +547,9 @@ Output from `swiftly help head`::
       --ignore-404          Ignores 404 Not Found responses. Nothing will be
                             output, but the exit code will be 0 instead of 1.
 
+
+ping
+^^^^
 
 Output from `swiftly help ping`::
 
@@ -358,6 +580,9 @@ Output from `swiftly help ping`::
                             2.
 
 
+post
+^^^^
+
 Output from `swiftly help post`::
 
     Usage: swiftly [main_options] post [options] [path]
@@ -369,7 +594,7 @@ Output from `swiftly help post`::
 
     Options:
       -?, --help            Shows this help text.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hx-object-meta-
                             color:blue -h "Content-Type: text/html"
@@ -379,14 +604,12 @@ Output from `swiftly help post`::
                             -qmultipart-manifest=get
       -i PATH, --input=PATH
                             Indicates where to read the POST request body from;
-                            default is standard input. This is not normally used
-                            with Swift POST requests, so you must also specify -I
-                            if you want the body sent.
-      -I                    Since Swift POSTs do not normally take input, you must
-                            specify this option if you wish them to read from the
-                            input specified by -i (or the default standard input).
-                            This is not known to be useful for anything yet.
+                            use a dash (as in "-i -") to specify standard input
+                            since POSTs to Swift do not normally take input.
 
+
+put
+^^^
 
 Output from `swiftly help put`::
 
@@ -428,7 +651,7 @@ Output from `swiftly help put`::
 
     Options:
       -?, --help            Shows this help text.
-      -h HEADER:VALUE, --header=HEADER:VALUE
+      -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                             Add a header to the request. This can be used multiple
                             times for multiple headers. Examples: -hx-object-meta-
                             color:blue -h "Content-Type: text/html"
@@ -441,14 +664,12 @@ Output from `swiftly help put`::
                             standard input. If the PATH is a directory, all files
                             in the directory will be uploaded as similarly named
                             objects and empty directories will create
-                            text/directory marker objects.
-      -I                    Since account and container PUTs do not normally take
-                            input, you must specify this option if you wish them
-                            to read from the input specified by -i (or the default
-                            standard input). This is useful with -qextract-
-                            archive=<format> bulk upload requests. For example:
-                            tar zc . | swiftly put -qextract-archive=tar.gz -I
-                            container
+                            text/directory marker objects. Use a dash (as in "-i
+                            -") to specify standard input for account and
+                            container PUTs, as those do not normally take input.
+                            This is useful with -qextract-archive=<format> bulk
+                            upload requests. For example: tar zc . | swiftly put
+                            -qextract-archive=tar.gz -i - container
       -n, --newer           For PUTs with an --input option, first performs a HEAD
                             on the object and compares the X-Object-Meta-Mtime
                             header with the modified time of the PATH obtained
@@ -477,7 +698,16 @@ Output from `swiftly help put`::
                             Indicates the maximum size of an object before
                             uploading it as a segmented object. See full help text
                             for more information.
+      --encrypt=KEY         Will encrypt the uploaded object data with KEY. This
+                            currently uses AES 256 in CBC mode but other
+                            algorithms may be offered in the future. You may
+                            specify a single dash "-" as the KEY and instead the
+                            KEY will be loaded from the SWIFTLY_CRYPT_KEY
+                            environment variable.
 
+
+tempurl
+^^^^^^^
 
 Output from `swiftly help tempurl`::
 
@@ -492,6 +722,9 @@ Output from `swiftly help tempurl`::
     Options:
       -?, --help  Shows this help text.
 
+
+trans
+^^^^^
 
 Output from `swiftly help trans`::
 
