@@ -19,4 +19,4 @@ limitations under the License.
 #: Version str for Swiftly: "major.minor".
 #: If the second number is even, it's an official release.
 #: If the second number is odd, it's a development release.
-VERSION = '2.00'
+VERSION = '2.01'
