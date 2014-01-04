@@ -1,3 +1,9 @@
+swiftly (2.00-1) lucid; urgency=low
+
+   * See http://gholt.github.io/swiftly/dev/changes_2_00.html
+
+ -- Greg Holt <greg@brim.net>  Sat, 04 Jan 2014 03:28:49 +0000
+
 swiftly (1.11-1) lucid; urgency=low
 
    * dac9620 Fixed #29 Fixed mtime checking to use floats
