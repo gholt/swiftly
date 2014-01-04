@@ -17,13 +17,13 @@ git add index.html
 git commit -m 'Generated <version> docs'
 
 git checkout debian
-git merge master
+git merge <version>
 Update debian/changelog
 git add debian/changelog
 git commit -m 'Releasing <version>'
 
 git checkout rpm
-git merge master
+git merge <version>
 Update rpmbuild/SPECS/swiftly.spec Version: line and %changelog area
 git add rpmbuild/SPECS/swiftly.spec
 git commit -m 'Releasing <version>'
@@ -43,6 +43,9 @@ git commit -m 'Updated dev docs'
 
 git checkout master
 git push
+
+git checkout <version>
+git push origin <version>
 
 To Update PyPI:
 git checkout <version>
