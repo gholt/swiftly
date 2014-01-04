@@ -1,0 +1,607 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.get &mdash; Swiftly 2.00 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.00',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 2.00 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 2.00 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.get</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains a CLICommand that can issue GET requests.</span>
+
+<span class="sd">Uses the following from :py:class:`swiftly.cli.context.CLIContext`:</span>
+
+<span class="sd">=======================  ============================================</span>
+<span class="sd">all_objects              True if instead of the listing itself you</span>
+<span class="sd">                         want all objects that the listing references</span>
+<span class="sd">                         to be output.</span>
+<span class="sd">cdn                      True if the CDN Management URL should be</span>
+<span class="sd">                         used instead of the Storage URL.</span>
+<span class="sd">client_manager           For connecting to Swift.</span>
+<span class="sd">concurrency              The number of concurrent actions that can be</span>
+<span class="sd">                         performed.</span>
+<span class="sd">full                     True if you want a full listing (additional</span>
+<span class="sd">                         information like object count, bytes used,</span>
+<span class="sd">                         and upload date) instead of just the item</span>
+<span class="sd">                         names.</span>
+<span class="sd">headers                  A dict of headers to send.</span>
+<span class="sd">ignore_404               True if 404s should be silently ignored.</span>
+<span class="sd">io_manager               For directing output.</span>
+<span class="sd">muted_account_headers    The headers to omit when outputting account</span>
+<span class="sd">                         response headers.</span>
+<span class="sd">muted_container_headers  The headers to omit when outputting</span>
+<span class="sd">                         container response headers.</span>
+<span class="sd">muted_object_headers     The headers to omit when outputting object</span>
+<span class="sd">                         response headers.</span>
+<span class="sd">output_headers           True if you want the headers from the</span>
+<span class="sd">                         response to also be output.</span>
+<span class="sd">query                    A dict of query parameters to send. Of</span>
+<span class="sd">                         important use are limit, delimiter, prefix,</span>
+<span class="sd">                         marker, and end_marker as they are common</span>
+<span class="sd">                         listing query parameters.</span>
+<span class="sd">raw                      Normally the result of the GET is translated</span>
+<span class="sd">                         as a listing and formatted output is</span>
+<span class="sd">                         generated. Setting this to True will skip</span>
+<span class="sd">                         any formatting a just output the raw</span>
+<span class="sd">                         contents from the response. Note that this</span>
+<span class="sd">                         will also just issue a single request and</span>
+<span class="sd">                         will not try additional follow-on marker</span>
+<span class="sd">                         requests.</span>
+<span class="sd">remove_empty_files       True if files created on disk should be</span>
+<span class="sd">                         removed if they result in an empty file.</span>
+<span class="sd">                         This can be useful with sub_commands that</span>
+<span class="sd">                         only output information for matches.</span>
+<span class="sd">suppress_container_name  True if files created on disk should have</span>
+<span class="sd">                         the container name stripped from the file</span>
+<span class="sd">                         name. When downloading a single container,</span>
+<span class="sd">                         this is usually desired.</span>
+<span class="sd">write_headers            A function used to output the response</span>
+<span class="sd">                         headers if output_headers is set True.</span>
+<span class="sd">=======================  ============================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">swiftly.cli.command</span> <span class="kn">import</span> <span class="n">CLICommand</span><span class="p">,</span> <span class="n">ReturnCode</span>
+<span class="kn">from</span> <span class="nn">swiftly.concurrency</span> <span class="kn">import</span> <span class="n">Concurrency</span>
+<span class="kn">from</span> <span class="nn">swiftly.dencrypt</span> <span class="kn">import</span> <span class="n">AES256CBC</span><span class="p">,</span> <span class="n">aes_decrypt</span>
+<span class="kn">from</span> <span class="nn">swiftly.filelikeiter</span> <span class="kn">import</span> <span class="n">FileLikeIter</span>
+
+
+<div class="viewcode-block" id="cli_get_account_listing"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.get.cli_get_account_listing">[docs]</a><span class="k">def</span> <span class="nf">cli_get_account_listing</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a GET on the account as a listing request.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.get` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIGet` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">limit</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;limit&#39;</span><span class="p">)</span>
+    <span class="n">delimiter</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;delimiter&#39;</span><span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;prefix&#39;</span><span class="p">)</span>
+    <span class="n">marker</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;marker&#39;</span><span class="p">)</span>
+    <span class="n">end_marker</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;end_marker&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">raw</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_account</span><span class="p">(</span>
+                <span class="n">decode_json</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+                <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="n">end_marker</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span>
+                <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                <span class="n">contents</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
+                    <span class="n">fp</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">muted_account_headers</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">return</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_account</span><span class="p">(</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span>
+            <span class="n">end_marker</span><span class="o">=</span><span class="n">end_marker</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">all_objects</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
+                <span class="n">fp</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">muted_account_headers</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">contents</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">all_objects</span><span class="p">:</span>
+            <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">new_context</span><span class="o">.</span><span class="n">query</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">remove</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s">&#39;limit&#39;</span><span class="p">,</span> <span class="s">&#39;delimiter&#39;</span><span class="p">,</span> <span class="s">&#39;prefix&#39;</span><span class="p">,</span> <span class="s">&#39;marker&#39;</span><span class="p">,</span> <span class="s">&#39;end_marker&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">remove</span> <span class="ow">in</span> <span class="n">new_context</span><span class="o">.</span><span class="n">query</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">new_context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="n">remove</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s">&#39;name&#39;</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+                    <span class="n">new_path</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">)</span>
+                    <span class="n">cli_get_container_listing</span><span class="p">(</span><span class="n">new_context</span><span class="p">,</span> <span class="n">new_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">full</span><span class="p">:</span>
+                        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%13s</span><span class="s"> </span><span class="si">%13s</span><span class="s"> &#39;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;bytes&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">),</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;count&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">)))</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;subdir&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">))</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">marker</span> <span class="o">=</span> <span class="n">contents</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="n">contents</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;subdir&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_account</span><span class="p">(</span>
+                <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="n">end_marker</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span>
+                <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
+                    <span class="k">return</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                    <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span><span class="s">&#39;listing account: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="cli_get_container_listing"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.get.cli_get_container_listing">[docs]</a><span class="k">def</span> <span class="nf">cli_get_container_listing</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a GET on the container as a listing request.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.get` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIGet` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">path</span> <span class="k">else</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="s">&#39;/&#39;</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;tried to get a container listing for non-container path </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span>
+            <span class="n">path</span><span class="p">)</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">suppress_container_name</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">limit</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;limit&#39;</span><span class="p">)</span>
+    <span class="n">delimiter</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;delimiter&#39;</span><span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;prefix&#39;</span><span class="p">)</span>
+    <span class="n">marker</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;marker&#39;</span><span class="p">)</span>
+    <span class="n">end_marker</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;end_marker&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">raw</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_container</span><span class="p">(</span>
+                <span class="n">path</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+                <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="n">end_marker</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span>
+                <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                <span class="n">contents</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;listing container </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
+                    <span class="n">fp</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">muted_container_headers</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">return</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_container</span><span class="p">(</span>
+            <span class="n">path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">,</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="n">end_marker</span><span class="p">,</span>
+            <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;listing container </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">all_objects</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
+                <span class="n">fp</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">muted_container_headers</span><span class="p">)</span>
+    <span class="n">conc</span> <span class="o">=</span> <span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
+    <span class="k">while</span> <span class="n">contents</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">all_objects</span><span class="p">:</span>
+            <span class="n">new_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">new_context</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">new_context</span><span class="o">.</span><span class="n">query</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">remove</span> <span class="ow">in</span> <span class="p">(</span>
+                    <span class="s">&#39;limit&#39;</span><span class="p">,</span> <span class="s">&#39;delimiter&#39;</span><span class="p">,</span> <span class="s">&#39;prefix&#39;</span><span class="p">,</span> <span class="s">&#39;marker&#39;</span><span class="p">,</span> <span class="s">&#39;end_marker&#39;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">remove</span> <span class="ow">in</span> <span class="n">new_context</span><span class="o">.</span><span class="n">query</span><span class="p">:</span>
+                    <span class="k">del</span> <span class="n">new_context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="n">remove</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s">&#39;name&#39;</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
+                            <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+                            <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+                            <span class="k">raise</span> <span class="n">exc_value</span>
+                    <span class="n">new_path</span> <span class="o">=</span> <span class="n">path</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">item</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">)</span>
+                    <span class="n">conc</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">new_path</span><span class="p">,</span> <span class="n">cli_get</span><span class="p">,</span> <span class="n">new_context</span><span class="p">,</span> <span class="n">new_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">full</span><span class="p">:</span>
+                        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%13s</span><span class="s"> </span><span class="si">%22s</span><span class="s"> </span><span class="si">%32s</span><span class="s"> </span><span class="si">%25s</span><span class="s"> &#39;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;bytes&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">),</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;last_modified&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">)[:</span><span class="mi">22</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                                <span class="s">&#39;T&#39;</span><span class="p">,</span> <span class="s">&#39; &#39;</span><span class="p">),</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;hash&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">),</span>
+                            <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content_type&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">)))</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;subdir&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&#39;utf8&#39;</span><span class="p">))</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">marker</span> <span class="o">=</span> <span class="n">contents</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="n">contents</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;subdir&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_container</span><span class="p">(</span>
+                <span class="n">path</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+                <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="n">end_marker</span><span class="p">,</span>
+                <span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
+                    <span class="k">return</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                    <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;listing container </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+    <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
+            <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">exc_value</span>
+
+</div>
+<div class="viewcode-block" id="cli_get"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.get.cli_get">[docs]</a><span class="k">def</span> <span class="nf">cli_get</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a GET on the item (account, container, or object).</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.get` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIGet` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">path</span> <span class="k">else</span> <span class="bp">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">cli_get_account_listing</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="s">&#39;/&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cli_get_container_listing</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="s">&#39;Unknown&#39;</span><span class="p">,</span> <span class="p">{},</span> <span class="s">&#39;&#39;</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span>
+            <span class="o">*</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">headers</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">,</span>
+            <span class="n">cdn</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">cdn</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="mi">404</span> <span class="ow">and</span> <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+                <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;getting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span><span class="p">:</span>
+            <span class="n">crypt_type</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">crypt_type</span> <span class="o">==</span> <span class="n">AES256CBC</span><span class="p">:</span>
+                <span class="n">contents</span> <span class="o">=</span> <span class="n">FileLikeIter</span><span class="p">(</span><span class="n">aes_decrypt</span><span class="p">(</span>
+                    <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span>
+                    <span class="n">chunk_size</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">65536</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;getting object </span><span class="si">%r</span><span class="s">: contents encrypted with unsupported &#39;</span>
+                    <span class="s">&#39;type </span><span class="si">%r</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">crypt_type</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">disk_closed_callback</span><span class="p">(</span><span class="n">disk_path</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">remove_empty_files</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">disk_path</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">disk_path</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">stdout_root</span><span class="p">:</span>
+                    <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">disk_path</span><span class="p">)</span>
+                    <span class="k">while</span> <span class="n">dirname</span> <span class="ow">and</span> <span class="n">dirname</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+                            <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">stdout_root</span><span class="p">):</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">os</span><span class="o">.</span><span class="n">rmdir</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+                        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                            <span class="k">pass</span>
+                        <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-type&#39;</span><span class="p">)</span> <span class="ow">in</span>
+                    <span class="p">[</span><span class="s">&#39;text/directory&#39;</span><span class="p">,</span> <span class="s">&#39;application/directory&#39;</span><span class="p">]</span> <span class="ow">and</span>
+                    <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;content-length&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&#39;0&#39;</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">disk_path</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">disk_path</span><span class="p">)</span>
+            <span class="n">mtime</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="s">&#39;x-object-meta-mtime&#39;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+                <span class="n">mtime</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">headers</span><span class="p">[</span><span class="s">&#39;x-object-meta-mtime&#39;</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="s">&#39;last-modified&#39;</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+                <span class="n">mtime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">mktime</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span>
+                    <span class="n">headers</span><span class="p">[</span><span class="s">&#39;last-modified&#39;</span><span class="p">],</span> <span class="s">&#39;%a, </span><span class="si">%d</span><span class="s"> %b %Y %H:%M:%S %Z&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">mtime</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">utime</span><span class="p">(</span><span class="n">disk_path</span><span class="p">,</span> <span class="p">(</span><span class="n">mtime</span><span class="p">,</span> <span class="n">mtime</span><span class="p">))</span>
+
+        <span class="n">out_path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">suppress_container_name</span><span class="p">:</span>
+            <span class="n">out_path</span> <span class="o">=</span> <span class="n">out_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">out_path</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">client_path_to_os_path</span><span class="p">(</span><span class="n">out_path</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">(</span>
+                <span class="n">out_path</span><span class="p">,</span> <span class="n">disk_closed_callback</span><span class="o">=</span><span class="n">disk_closed_callback</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">write_headers</span><span class="p">(</span>
+                    <span class="n">fp</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">muted_object_headers</span><span class="p">)</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">65536</span><span class="p">)</span>
+            <span class="k">while</span> <span class="n">chunk</span><span class="p">:</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="n">chunk</span> <span class="o">=</span> <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">65536</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+</div>
+<div class="viewcode-block" id="CLIGet"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.get.CLIGet">[docs]</a><span class="k">class</span> <span class="nc">CLIGet</span><span class="p">(</span><span class="n">CLICommand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A CLICommand that can issue GET requests.</span>
+
+<span class="sd">    See the output of ``swiftly help get`` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cli</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CLIGet</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
+            <span class="n">cli</span><span class="p">,</span> <span class="s">&#39;get&#39;</span><span class="p">,</span> <span class="n">max_args</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">Usage: %prog [main_options] get [options] [path]</span>
+
+<span class="s">For help on [main_options] run %prog with no args.</span>
+
+<span class="s">Outputs the resulting contents from a GET request of the [path] given. If no</span>
+<span class="s">[path] is given, a GET request on the account is performed.&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--headers&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;headers&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Output headers as well as the contents.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-h&#39;</span><span class="p">,</span> <span class="s">&#39;-H&#39;</span><span class="p">,</span> <span class="s">&#39;--header&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;header&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;HEADER:VALUE&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Add a header to the request. This can be used multiple &#39;</span>
+                 <span class="s">&#39;times for multiple headers. Examples: &#39;</span>
+                 <span class="s">&#39;-hif-match:6f432df40167a4af05ca593acc6b3e4c -h &#39;</span>
+                 <span class="s">&#39;&quot;If-Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT&quot;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-q&#39;</span><span class="p">,</span> <span class="s">&#39;--query&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;query&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;append&#39;</span><span class="p">,</span>
+            <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;NAME[=VALUE]&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Add a query parameter to the request. This can be used &#39;</span>
+                 <span class="s">&#39;multiple times for multiple query parameters. Example: &#39;</span>
+                 <span class="s">&#39;-qmultipart-manifest=get&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-l&#39;</span><span class="p">,</span> <span class="s">&#39;--limit&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;limit&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For account and container GETs, this limits the number of &#39;</span>
+                 <span class="s">&#39;items returned. Without this option, all items are &#39;</span>
+                 <span class="s">&#39;returned, even if it requires several backend requests to &#39;</span>
+                 <span class="s">&#39;the gather the information.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-d&#39;</span><span class="p">,</span> <span class="s">&#39;--delimiter&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;delimiter&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For account and container GETs, this sets the delimiter for &#39;</span>
+                 <span class="s">&#39;the listing retrieved. For example, a container with the &#39;</span>
+                 <span class="s">&#39;objects &quot;abc/one&quot;, &quot;abc/two&quot;, &quot;xyz&quot; and a delimiter of &quot;/&quot; &#39;</span>
+                 <span class="s">&#39;would return &quot;abc/&quot; and &quot;xyz&quot;. Using the same delimiter, &#39;</span>
+                 <span class="s">&#39;but with a prefix of &quot;abc/&quot;, would return &quot;abc/one&quot; and &#39;</span>
+                 <span class="s">&#39;&quot;abc/two&quot;.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-p&#39;</span><span class="p">,</span> <span class="s">&#39;--prefix&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;prefix&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For account and container GETs, this sets the prefix for &#39;</span>
+                 <span class="s">&#39;the listing retrieved; the items returned will all match &#39;</span>
+                 <span class="s">&#39;the PREFIX given.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-m&#39;</span><span class="p">,</span> <span class="s">&#39;--marker&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;marker&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For account and container GETs, this sets the marker for &#39;</span>
+                 <span class="s">&#39;the listing retrieved; the items returned will begin with &#39;</span>
+                 <span class="s">&#39;the item just after the MARKER given (note: the marker does &#39;</span>
+                 <span class="s">&#39;not have to actually exist).&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-e&#39;</span><span class="p">,</span> <span class="s">&#39;--end-marker&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;end_marker&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;MARKER&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For account and container GETs, this sets the end-marker &#39;</span>
+                 <span class="s">&#39;for the listing retrieved; the items returned will stop &#39;</span>
+                 <span class="s">&#39;with the item just before the MARKER given (note: the &#39;</span>
+                 <span class="s">&#39;marker does not have to actually exist).&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-f&#39;</span><span class="p">,</span> <span class="s">&#39;--full&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;full&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For account and container GETs, this will output additional &#39;</span>
+                 <span class="s">&#39;information about each item. For an account GET, the items &#39;</span>
+                 <span class="s">&#39;output will be bytes-used, object-count, and &#39;</span>
+                 <span class="s">&#39;container-name. For a container GET, the items output will &#39;</span>
+                 <span class="s">&#39;be bytes-used, last-modified-time, etag, content-type, and &#39;</span>
+                 <span class="s">&#39;object-name. Note that this is mostly useless for --cdn &#39;</span>
+                 <span class="s">&#39;queries; for those it is best to just use --raw and parse &#39;</span>
+                 <span class="s">&#39;the results yourself (perhaps through &quot;python -m &#39;</span>
+                 <span class="s">&#39;json.tool&quot;).&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-r&#39;</span><span class="p">,</span> <span class="s">&#39;--raw&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;raw&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For account and container GETs, this will return the raw &#39;</span>
+                 <span class="s">&#39;JSON from the request. This will only do one request, even &#39;</span>
+                 <span class="s">&#39;if subsequent requests would be needed to return all items. &#39;</span>
+                 <span class="s">&#39;Use a subsequent call with --marker set to the last item &#39;</span>
+                 <span class="s">&#39;name returned to get the next batch of items, if desired.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--all-objects&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;all_objects&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;For an account GET, performs a container GET --all-objects &#39;</span>
+                 <span class="s">&#39;for every container returned by the original account GET. &#39;</span>
+                 <span class="s">&#39;For a container GET, performs a GET for every object &#39;</span>
+                 <span class="s">&#39;returned by that original container GET. Any headers set &#39;</span>
+                 <span class="s">&#39;with --header options are sent for every GET. Any query &#39;</span>
+                 <span class="s">&#39;parameter set with --query is sent for every GET.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-o&#39;</span><span class="p">,</span> <span class="s">&#39;--output&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;output&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;PATH&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Indicates where to send the output; default is standard &#39;</span>
+                 <span class="s">&#39;output. If the PATH ends with a slash &quot;/&quot; and --all-objects &#39;</span>
+                 <span class="s">&#39;is used, each object will be placed in a similarly named &#39;</span>
+                 <span class="s">&#39;file inside the PATH given.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--ignore-404&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;ignore_404&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Ignores 404 Not Found responses. Nothing will be output, &#39;</span>
+                 <span class="s">&#39;but the exit code will be 0 instead of 1.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--sub-command&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;sub_command&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;COMMAND&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Sends the contents of each object downloaded as standard &#39;</span>
+                 <span class="s">&#39;input to the COMMAND given and outputs the command</span><span class="se">\&#39;</span><span class="s">s &#39;</span>
+                 <span class="s">&#39;standard output as if it were the object</span><span class="se">\&#39;</span><span class="s">s contents. This &#39;</span>
+                 <span class="s">&#39;can be useful in combination with --all-objects to filter &#39;</span>
+                 <span class="s">&#39;the objects before writing them to disk; for instance, &#39;</span>
+                 <span class="s">&#39;downloading logs, gunzipping them, grepping for a keyword, &#39;</span>
+                 <span class="s">&#39;and only storing matching lines locally (--sub-command &#39;</span>
+                 <span class="s">&#39;&quot;gunzip | grep keyword&quot; or --sub-command &quot;zgrep keyword&quot; if &#39;</span>
+                 <span class="s">&#39;your system has that).&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--remove-empty-files&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;remove_empty_files&#39;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Removes files that result as empty. This can be useful in &#39;</span>
+                 <span class="s">&#39;conjunction with --sub-command so you are left only with &#39;</span>
+                 <span class="s">&#39;the files that generated output.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;--decrypt&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;decrypt&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;KEY&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Will decrypt the downloaded object data with KEY. This &#39;</span>
+                 <span class="s">&#39;currently only supports AES 256 in CBC mode but other &#39;</span>
+                 <span class="s">&#39;algorithms may be offered in the future. You may specify a &#39;</span>
+                 <span class="s">&#39;single dash &quot;-&quot; as the KEY and instead the KEY will be &#39;</span>
+                 <span class="s">&#39;loaded from the SWIFTLY_CRYPT_KEY environment variable.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args_and_create_context</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">output</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">):</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">stdout_root</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">output</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">)</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">stdout_root</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="n">context</span><span class="o">.</span><span class="n">concurrency</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">stdout_sub_command</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">sub_command</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">output_headers</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">headers</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_list_to_lowered_dict</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_list_to_lowered_dict</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">query</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">raw</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">raw</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">ignore_404</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ignore_404</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">all_objects</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">all_objects</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">full</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">full</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">remove_empty_files</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">remove_empty_files</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="s">&#39;limit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">limit</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">delimiter</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="s">&#39;delimiter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">delimiter</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">marker</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="s">&#39;marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">marker</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">end_marker</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">query</span><span class="p">[</span><span class="s">&#39;end_marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">end_marker</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">decrypt</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span> <span class="o">==</span> <span class="s">&#39;-&#39;</span><span class="p">:</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;SWIFTLY_CRYPT_KEY&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">decrypt</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                    <span class="s">&#39;A single dash &quot;-&quot; was given as the decryption key, but &#39;</span>
+                    <span class="s">&#39;no key was found in the SWIFTLY_CRYPT_KEY environment &#39;</span>
+                    <span class="s">&#39;variable.&#39;</span><span class="p">)</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="n">cli_get</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 2.00 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

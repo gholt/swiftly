@@ -1,0 +1,515 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.ping &mdash; Swiftly 2.00 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.00',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 2.00 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 2.00 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.ping</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains a CLICommand that implements ping test functionality.</span>
+
+<span class="sd">Uses the following from :py:class:`swiftly.cli.context.CLIContext`:</span>
+
+<span class="sd">===============  ====================================================</span>
+<span class="sd">client_manager   For connecting to Swift.</span>
+<span class="sd">concurrency      The number of concurrent actions that can be</span>
+<span class="sd">                 performed.</span>
+<span class="sd">io_manager       For directing output.</span>
+<span class="sd">limit            The maximum number of Swift nodes to output</span>
+<span class="sd">                 information about.</span>
+<span class="sd">object_ring      An instance of swift.common.ring.ring.Ring if you</span>
+<span class="sd">                 want a report based on Swift nodes with implied</span>
+<span class="sd">                 usage during the ping test.</span>
+<span class="sd">ping_begin       The first time.time() when the entire ping test</span>
+<span class="sd">                 began.</span>
+<span class="sd">ping_begin_last  The time.time() the last ping task started.</span>
+<span class="sd">ping_count       The number of objects to use.</span>
+<span class="sd">ping_verbose     True if you want a full ping report rather than just</span>
+<span class="sd">                 the overall time.</span>
+<span class="sd">threshold        Defines the threshold for the threshold node report.</span>
+<span class="sd">                 This is the multiplier over the average request</span>
+<span class="sd">                 time.</span>
+<span class="sd">===============  ====================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">StringIO</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+
+<span class="kn">from</span> <span class="nn">swiftly.concurrency</span> <span class="kn">import</span> <span class="n">Concurrency</span>
+<span class="kn">from</span> <span class="nn">swiftly.cli.command</span> <span class="kn">import</span> <span class="n">CLICommand</span><span class="p">,</span> <span class="n">ReturnCode</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">eventlet</span> <span class="kn">import</span> <span class="n">sleep</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">sleep</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">sleep</span>
+
+
+<span class="k">def</span> <span class="nf">_cli_ping_status</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">ident</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span>
+                     <span class="n">contents</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">headers</span><span class="p">:</span>
+        <span class="n">ident</span> <span class="o">=</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ident</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="s">&#39;read&#39;</span><span class="p">):</span>
+        <span class="n">contents</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">status</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+            <span class="s">&#39;with </span><span class="si">%s</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">heading</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">ident</span><span class="p">))</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_verbose</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;</span><span class="si">% 6.02f</span><span class="s">s </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_begin_last</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">ident</span><span class="p">))</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">ping_begin_last</span> <span class="o">=</span> <span class="n">now</span>
+
+
+<span class="k">def</span> <span class="nf">_cli_ping_objects</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">conc</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">objects</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span>
+                      <span class="n">results</span><span class="p">):</span>
+    <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">objects</span><span class="p">:</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
+                <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">exc_value</span><span class="p">))</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="n">conc</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+    <span class="n">conc</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_value</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span> <span class="ow">in</span> \
+            <span class="n">conc</span><span class="o">.</span><span class="n">get_results</span><span class="p">()</span><span class="o">.</span><span class="n">itervalues</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">exc_value</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">exc_value</span><span class="p">))</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">begin</span>
+    <span class="n">_cli_ping_status</span><span class="p">(</span>
+        <span class="n">context</span><span class="p">,</span>
+        <span class="s">&#39;object </span><span class="si">%s</span><span class="s"> x</span><span class="si">%d</span><span class="s"> at </span><span class="si">%d</span><span class="s"> concurrency, </span><span class="si">%.02f</span><span class="s">/s&#39;</span> <span class="o">%</span>
+        <span class="p">(</span><span class="n">heading</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">objects</span><span class="p">),</span> <span class="n">conc</span><span class="o">.</span><span class="n">concurrency</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">objects</span><span class="p">)</span> <span class="o">/</span> <span class="n">elapsed</span><span class="p">),</span>
+        <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+    <span class="n">overall</span> <span class="o">=</span> <span class="n">results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;overall&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">overall</span><span class="p">:</span>
+        <span class="n">overall</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">overall</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">results</span><span class="p">[</span><span class="s">&#39;overall&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">overall</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_verbose</span> <span class="ow">or</span> <span class="n">context</span><span class="o">.</span><span class="n">graphite</span><span class="p">:</span>
+            <span class="n">best</span> <span class="o">=</span> <span class="n">overall</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">worst</span> <span class="o">=</span> <span class="n">overall</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">mean</span> <span class="o">=</span> <span class="n">overall</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">overall</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">median</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">overall</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">overall</span><span class="p">)</span>
+            <span class="n">threshold</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">mean</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">slows</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">overall</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
+                    <span class="n">slows</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">slow_percentage</span> <span class="o">=</span> <span class="mf">100.0</span> <span class="o">*</span> <span class="n">slows</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">overall</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_verbose</span><span class="p">:</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="s">&#39;        best </span><span class="si">%.02f</span><span class="s">s, worst </span><span class="si">%.02f</span><span class="s">s, mean </span><span class="si">%.02f</span><span class="s">s, &#39;</span>
+                        <span class="s">&#39;median </span><span class="si">%.02f</span><span class="s">s</span><span class="se">\n</span><span class="s">        </span><span class="si">%d</span><span class="s"> slower than 2s or twice &#39;</span>
+                        <span class="s">&#39;the mean, </span><span class="si">%.02f%%</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="n">best</span><span class="p">,</span> <span class="n">worst</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">median</span><span class="p">,</span> <span class="n">slows</span><span class="p">,</span> <span class="n">slow_percentage</span><span class="p">))</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">graphite</span><span class="p">:</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="s">&#39;</span><span class="si">%s</span><span class="s">.</span><span class="si">%s</span><span class="s">.slow_percentage </span><span class="si">%.02f</span><span class="s"> </span><span class="si">%d</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="n">context</span><span class="o">.</span><span class="n">graphite</span><span class="p">,</span> <span class="n">heading</span><span class="p">,</span> <span class="n">slow_percentage</span><span class="p">,</span>
+                            <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span>
+
+
+<span class="k">def</span> <span class="nf">_cli_ping_object_put</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">put_object</span><span class="p">(</span>
+                <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="s">&#39;swiftly-ping&#39;</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;putting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;putting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s">&#39;-&#39;</span><span class="p">))</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">begin</span>
+        <span class="n">results</span><span class="p">[</span><span class="s">&#39;overall&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">object_ring</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">object_ring</span><span class="o">.</span><span class="n">get_nodes</span><span class="p">(</span>
+                    <span class="n">client</span><span class="o">.</span><span class="n">get_account_hash</span><span class="p">(),</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">results</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s">&#39;ip&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_cli_ping_object_get</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span>
+                <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;getting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;getting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s">&#39;-&#39;</span><span class="p">))</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">begin</span>
+        <span class="n">results</span><span class="p">[</span><span class="s">&#39;overall&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">object_ring</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">object_ring</span><span class="o">.</span><span class="n">get_nodes</span><span class="p">(</span>
+                    <span class="n">client</span><span class="o">.</span><span class="n">get_account_hash</span><span class="p">(),</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">results</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s">&#39;ip&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_cli_ping_object_delete</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">results</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">begin</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">delete_object</span><span class="p">(</span>
+                <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;deleting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">status</span> <span class="o">//</span> <span class="mi">100</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">status</span> <span class="o">!=</span> <span class="mi">404</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">(</span>
+                <span class="s">&#39;deleting object </span><span class="si">%r</span><span class="s">: </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">reason</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="s">&#39;-&#39;</span><span class="p">))</span>
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">begin</span>
+        <span class="n">results</span><span class="p">[</span><span class="s">&#39;overall&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">object_ring</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">context</span><span class="o">.</span><span class="n">object_ring</span><span class="o">.</span><span class="n">get_nodes</span><span class="p">(</span>
+                    <span class="n">client</span><span class="o">.</span><span class="n">get_account_hash</span><span class="p">(),</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">results</span><span class="p">[</span><span class="n">node</span><span class="p">[</span><span class="s">&#39;ip&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;x-trans-id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">obj</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_cli_ping_ring_report</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">timings_dict</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+    <span class="n">timings_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s">&#39;overall&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>  <span class="c"># Not currently used in this function</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">timings_dict</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">worsts</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">timings</span> <span class="ow">in</span> <span class="n">timings_dict</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="n">worst</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="bp">None</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">timing</span> <span class="ow">in</span> <span class="n">timings</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">timing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">worst</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">worst</span> <span class="o">=</span> <span class="n">timing</span>
+        <span class="n">worsts</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span> <span class="o">=</span> <span class="n">worst</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s">&#39;Worst </span><span class="si">%s</span><span class="s"> times for up to </span><span class="si">%d</span><span class="s"> nodes with implied usage:</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
+            <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">limit</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="p">(</span><span class="n">elapsed</span><span class="p">,</span> <span class="n">xid</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="n">worsts</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)[:</span><span class="n">context</span><span class="o">.</span><span class="n">limit</span><span class="p">]:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;    </span><span class="si">%20s</span><span class="s"> </span><span class="si">% 6.02f</span><span class="s">s </span><span class="si">%s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="n">elapsed</span><span class="p">,</span> <span class="n">xid</span><span class="p">))</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="n">averages</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">timings</span> <span class="ow">in</span> <span class="n">timings_dict</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+            <span class="n">averages</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">timings</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">timings</span><span class="p">)</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s">&#39;Average </span><span class="si">%s</span><span class="s"> times for up to </span><span class="si">%d</span><span class="s"> nodes with implied usage:</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
+            <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">limit</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">elapsed</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="n">averages</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)[:</span><span class="n">context</span><span class="o">.</span><span class="n">limit</span><span class="p">]:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;    </span><span class="si">%20s</span><span class="s"> </span><span class="si">% 6.02f</span><span class="s">s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="n">elapsed</span><span class="p">))</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">timings</span> <span class="ow">in</span> <span class="n">timings_dict</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="n">total</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">timings</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">timings</span><span class="p">)</span>
+    <span class="n">threshold</span> <span class="o">=</span> <span class="n">total</span> <span class="o">/</span> <span class="n">count</span> <span class="o">*</span> <span class="n">context</span><span class="o">.</span><span class="n">threshold</span>
+    <span class="n">counts</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">timings</span> <span class="ow">in</span> <span class="n">timings_dict</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">timings</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">threshold</span><span class="p">:</span>
+                <span class="n">counts</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s">&#39;Count of </span><span class="si">%s</span><span class="s"> times past (average * </span><span class="si">%d</span><span class="s">) for up to </span><span class="si">%d</span><span class="s"> nodes with &#39;</span>
+            <span class="s">&#39;implied usage:</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">threshold</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">limit</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="n">counts</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)[:</span><span class="n">context</span><span class="o">.</span><span class="n">limit</span><span class="p">]:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;    </span><span class="si">%20s</span><span class="s"> </span><span class="si">% 6d</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="n">count</span><span class="p">))</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">percentages</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">counts</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="n">percentages</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="mf">100.0</span> <span class="o">*</span> <span class="n">count</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">timings_dict</span><span class="p">[</span><span class="n">ip</span><span class="p">]),</span>
+            <span class="n">count</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">timings_dict</span><span class="p">[</span><span class="n">ip</span><span class="p">]))</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+            <span class="s">&#39;Percentage of </span><span class="si">%s</span><span class="s"> times past (average * </span><span class="si">%d</span><span class="s">) for up to </span><span class="si">%d</span><span class="s"> nodes &#39;</span>
+            <span class="s">&#39;with implied usage:</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
+            <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">threshold</span><span class="p">,</span> <span class="n">context</span><span class="o">.</span><span class="n">limit</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">percentage</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="n">percentages</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">reverse</span><span class="o">=</span><span class="bp">True</span><span class="p">)[:</span><span class="n">context</span><span class="o">.</span><span class="n">limit</span><span class="p">]:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;    </span><span class="si">%20s</span><span class="s"> </span><span class="si">% 6.02f%%</span><span class="s">  </span><span class="si">%d</span><span class="s"> of </span><span class="si">%d</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="n">percentage</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">percentage</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">percentage</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="cli_ping"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.ping.cli_ping">[docs]</a><span class="k">def</span> <span class="nf">cli_ping</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Performs a ping test.</span>
+
+<span class="sd">    See :py:mod:`swiftly.cli.ping` for context usage information.</span>
+
+<span class="sd">    See :py:class:`CLIPing` for more information.</span>
+
+<span class="sd">    :param context: The :py:class:`swiftly.cli.context.CLIContext` to</span>
+<span class="sd">        use.</span>
+<span class="sd">    :param prefix: The container name prefix to use. Default:</span>
+<span class="sd">        swiftly-ping</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">prefix</span><span class="p">:</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="s">&#39;swiftly-ping&#39;</span>
+    <span class="n">ping_ring_object_puts</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+    <span class="n">ping_ring_object_gets</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+    <span class="n">ping_ring_object_deletes</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">ping_begin</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_begin_last</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="n">container</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&#39;-&#39;</span> <span class="o">+</span> <span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span>
+    <span class="n">objects</span> <span class="o">=</span> <span class="p">[</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">ping_count</span><span class="p">)]</span>
+    <span class="n">conc</span> <span class="o">=</span> <span class="n">Concurrency</span><span class="p">(</span><span class="n">context</span><span class="o">.</span><span class="n">concurrency</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+        <span class="n">client</span><span class="o">.</span><span class="n">auth</span><span class="p">()</span>
+        <span class="n">_cli_ping_status</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="s">&#39;auth&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+        <span class="n">_cli_ping_status</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="s">&#39;account head&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">client</span><span class="o">.</span><span class="n">head_account</span><span class="p">())</span>
+        <span class="n">_cli_ping_status</span><span class="p">(</span>
+            <span class="n">context</span><span class="p">,</span> <span class="s">&#39;container put&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">client</span><span class="o">.</span><span class="n">put_container</span><span class="p">(</span><span class="n">container</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">_cli_ping_objects</span><span class="p">(</span>
+            <span class="n">context</span><span class="p">,</span> <span class="s">&#39;put&#39;</span><span class="p">,</span> <span class="n">conc</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">objects</span><span class="p">,</span> <span class="n">_cli_ping_object_put</span><span class="p">,</span>
+            <span class="n">ping_ring_object_puts</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;ERROR put objects did not complete successfully due to &#39;</span>
+                <span class="s">&#39;previous error; but continuing</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">_cli_ping_objects</span><span class="p">(</span>
+            <span class="n">context</span><span class="p">,</span> <span class="s">&#39;get&#39;</span><span class="p">,</span> <span class="n">conc</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">objects</span><span class="p">,</span> <span class="n">_cli_ping_object_get</span><span class="p">,</span>
+            <span class="n">ping_ring_object_gets</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;ERROR get objects did not complete successfully due to &#39;</span>
+                <span class="s">&#39;previous error; but continuing</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">_cli_ping_objects</span><span class="p">(</span>
+            <span class="n">context</span><span class="p">,</span> <span class="s">&#39;delete&#39;</span><span class="p">,</span> <span class="n">conc</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">objects</span><span class="p">,</span>
+            <span class="n">_cli_ping_object_delete</span><span class="p">,</span> <span class="n">ping_ring_object_deletes</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;ERROR delete objects did not complete successfully due to &#39;</span>
+                <span class="s">&#39;previous error; but continuing</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">attempt</span><span class="p">:</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">attempt</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">client_manager</span><span class="o">.</span><span class="n">with_client</span><span class="p">()</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">_cli_ping_status</span><span class="p">(</span>
+                    <span class="n">context</span><span class="p">,</span> <span class="s">&#39;container delete&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">,</span>
+                    <span class="o">*</span><span class="n">client</span><span class="o">.</span><span class="n">delete_container</span><span class="p">(</span><span class="n">container</span><span class="p">))</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="n">ReturnCode</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+                    <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stderr</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;ERROR could not confirm deletion of container due to &#39;</span>
+                <span class="s">&#39;previous error; but continuing</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">io_manager</span><span class="o">.</span><span class="n">with_stdout</span><span class="p">()</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">graphite</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="s">&#39;</span><span class="si">%s</span><span class="s">.ping_overall </span><span class="si">%.02f</span><span class="s"> </span><span class="si">%d</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">context</span><span class="o">.</span><span class="n">graphite</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_begin</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_verbose</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">% 6.02f</span><span class="s">s total</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_begin</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">context</span><span class="o">.</span><span class="n">graphite</span><span class="p">:</span>
+            <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%.02f</span><span class="s">s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">end</span> <span class="o">-</span> <span class="n">context</span><span class="o">.</span><span class="n">ping_begin</span><span class="p">))</span>
+        <span class="n">fp</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">ping_ring_overall</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+    <span class="n">_cli_ping_ring_report</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">ping_ring_object_puts</span><span class="p">,</span> <span class="s">&#39;PUT&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">timings</span> <span class="ow">in</span> <span class="n">ping_ring_object_puts</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="n">ping_ring_overall</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">timings</span><span class="p">)</span>
+    <span class="n">_cli_ping_ring_report</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">ping_ring_object_gets</span><span class="p">,</span> <span class="s">&#39;GET&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">timings</span> <span class="ow">in</span> <span class="n">ping_ring_object_gets</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="n">ping_ring_overall</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">timings</span><span class="p">)</span>
+    <span class="n">_cli_ping_ring_report</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">ping_ring_object_deletes</span><span class="p">,</span> <span class="s">&#39;DELETE&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ip</span><span class="p">,</span> <span class="n">timings</span> <span class="ow">in</span> <span class="n">ping_ring_object_deletes</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="n">ping_ring_overall</span><span class="p">[</span><span class="n">ip</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">timings</span><span class="p">)</span>
+    <span class="n">_cli_ping_ring_report</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">ping_ring_overall</span><span class="p">,</span> <span class="s">&#39;overall&#39;</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="CLIPing"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.ping.CLIPing">[docs]</a><span class="k">class</span> <span class="nc">CLIPing</span><span class="p">(</span><span class="n">CLICommand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A CLICommand that implements ping test functionality.</span>
+
+<span class="sd">    See the output of ``swiftly help ping`` for more information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cli</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CLIPing</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span>
+            <span class="n">cli</span><span class="p">,</span> <span class="s">&#39;ping&#39;</span><span class="p">,</span> <span class="n">max_args</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">usage</span><span class="o">=</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">Usage: %prog [main_options] ping [options] [path]</span>
+
+<span class="s">For help on [main_options] run %prog with no args.</span>
+
+<span class="s">Runs a ping test against the account.</span>
+<span class="s">The [path] will be used as a prefix to the random container name used (default:</span>
+<span class="s">swiftly-ping).&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-v&#39;</span><span class="p">,</span> <span class="s">&#39;--verbose&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;ping_verbose&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&#39;store_true&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Outputs additional information as ping works.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-c&#39;</span><span class="p">,</span> <span class="s">&#39;--count&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;ping_count&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Count of objects to create; default 1.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-o&#39;</span><span class="p">,</span> <span class="s">&#39;--object-ring&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;object_ring&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;The current object ring of the cluster being pinged. This &#39;</span>
+                 <span class="s">&#39;will enable output of which nodes are involved in the &#39;</span>
+                 <span class="s">&#39;object requests and their implied behavior. Use of this &#39;</span>
+                 <span class="s">&#39;also requires the main Swift code is installed and &#39;</span>
+                 <span class="s">&#39;importable.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-l&#39;</span><span class="p">,</span> <span class="s">&#39;--limit&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;limit&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Limits the node output tables to LIMIT nodes.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-t&#39;</span><span class="p">,</span> <span class="s">&#39;--threshold&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;threshold&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Changes the threshold for the final (average * x) reports. &#39;</span>
+                 <span class="s">&#39;This will define the value of x, defaults to 2.&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span>
+            <span class="s">&#39;-g&#39;</span><span class="p">,</span> <span class="s">&#39;--graphite&#39;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&#39;graphite&#39;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&#39;PREFIX&#39;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s">&#39;Switches to &quot;graphite&quot; output. The output will be lines of &#39;</span>
+                 <span class="s">&#39;&quot;PREFIX.metric value timestamp&quot; suitable for piping to &#39;</span>
+                 <span class="s">&#39;graphite (through netcat or something similar).&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">options</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_args_and_create_context</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">ping_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">ping_count</span> <span class="ow">or</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">ping_verbose</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ping_verbose</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">object_ring</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">object_ring</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">swift.common.ring.ring</span>
+            <span class="n">context</span><span class="o">.</span><span class="n">object_ring</span> <span class="o">=</span> <span class="n">swift</span><span class="o">.</span><span class="n">common</span><span class="o">.</span><span class="n">ring</span><span class="o">.</span><span class="n">ring</span><span class="o">.</span><span class="n">Ring</span><span class="p">(</span>
+                <span class="n">options</span><span class="o">.</span><span class="n">object_ring</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">limit</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">limit</span> <span class="ow">or</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">threshold</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">threshold</span> <span class="ow">or</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">context</span><span class="o">.</span><span class="n">graphite</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">graphite</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span> <span class="k">else</span> <span class="s">&#39;swiftly-ping&#39;</span>
+        <span class="k">return</span> <span class="n">cli_ping</span><span class="p">(</span><span class="n">context</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 2.00 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

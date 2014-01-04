@@ -1,0 +1,1526 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli &mdash; Swiftly 2.00 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '2.00',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 2.00 documentation" href="index.html" />
+    <link rel="next" title="swiftly.client" href="swiftly_client.html" />
+    <link rel="prev" title="swiftly" href="swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="swiftly_client.html" title="swiftly.client"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="swiftly.html" title="swiftly"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Swiftly 2.00 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-swiftly.cli">
+<span id="swiftly-cli"></span><span id="swiftly-cli-module"></span><h1>swiftly.cli<a class="headerlink" href="#module-swiftly.cli" title="Permalink to this headline">¶</a></h1>
+<p>Contains <a class="reference internal" href="#swiftly.cli.cli.CLI" title="swiftly.cli.cli.CLI"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.cli.CLI</span></tt></a> that implements the
+<tt class="docutils literal"><span class="pre">swiftly</span></tt> command line interface and all the surrounding
+implementation modules.</p>
+<p>CLI is imported here for convenience.</p>
+<p>Copyright 2011-2013 Gregory Holt</p>
+<p>Licensed under the Apache License, Version 2.0 (the &#8220;License&#8221;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at</p>
+<blockquote>
+<div><a class="reference external" href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></div></blockquote>
+<p>Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &#8220;AS IS&#8221; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.</p>
+<div class="section" id="module-swiftly.cli.cli">
+<span id="cli"></span><h2>cli<a class="headerlink" href="#module-swiftly.cli.cli" title="Permalink to this headline">¶</a></h2>
+<p>Contains the CLI class that handles the original command line.</p>
+<dl class="class">
+<dt id="swiftly.cli.cli.CLI">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.cli.</tt><tt class="descname">CLI</tt><a class="reference internal" href="_modules/swiftly/cli/cli.html#CLI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.cli.CLI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Handles the original command line.</p>
+<p>An example script is <cite>swiftly</cite> itself:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c">#!/usr/bin/env python</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">swiftly.cli</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">swiftly</span><span class="o">.</span><span class="n">cli</span><span class="o">.</span><span class="n">CLI</span><span class="p">()())</span>
+</pre></div>
+</div>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span></tt> for more information.</p>
+<dl class="attribute">
+<dt id="swiftly.cli.cli.CLI.commands">
+<tt class="descname">commands</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.cli.CLI.commands" title="Permalink to this definition">¶</a></dt>
+<dd><p>A dictionary of the available commands and their CLICommand
+instances.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="swiftly.cli.cli.CLI.context">
+<tt class="descname">context</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.cli.CLI.context" title="Permalink to this definition">¶</a></dt>
+<dd><p>The overall CLIContext containing attributes generated by the
+initial main_options parsing.</p>
+<p>The available attributes are:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>cdn</td>
+<td>True if the CDN URL should be used instead of the
+default Storage URL.</td>
+</tr>
+<tr class="row-even"><td>client_manager</td>
+<td>The <a class="reference internal" href="swiftly_client.html#swiftly.client.manager.ClientManager" title="swiftly.client.manager.ClientManager"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.client.manager.ClientManager</span></tt></a>
+to use for obtaining clients.</td>
+</tr>
+<tr class="row-odd"><td>concurrency</td>
+<td>Number of concurrent actions to allow.</td>
+</tr>
+<tr class="row-even"><td>io_manager</td>
+<td>The <a class="reference internal" href="#swiftly.cli.iomanager.IOManager" title="swiftly.cli.iomanager.IOManager"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.iomanager.IOManager</span></tt></a> to
+use for input and output.</td>
+</tr>
+<tr class="row-odd"><td>eventlet</td>
+<td>True if Eventlet is in use.</td>
+</tr>
+<tr class="row-even"><td>original_args</td>
+<td>The original args used by the CLI.</td>
+</tr>
+<tr class="row-odd"><td>original_begin</td>
+<td>The original time.time() when the CLI was called.</td>
+</tr>
+<tr class="row-even"><td>verbose</td>
+<td>Function to call when you want to (optionally) emit
+verbose output. <tt class="docutils literal"><span class="pre">verbose(msg,</span> <span class="pre">*args)</span></tt> where the
+output will be constructed with <tt class="docutils literal"><span class="pre">msg</span> <span class="pre">%</span> <span class="pre">args</span></tt>.</td>
+</tr>
+<tr class="row-odd"><td>verbosity</td>
+<td>Level of verbosity. Just None or 1 right now.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="swiftly.cli.cli.CLI.option_parser">
+<tt class="descname">option_parser</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.cli.CLI.option_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>The main <tt class="xref py py-class docutils literal"><span class="pre">OptionParser</span></tt>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="data">
+<dt id="swiftly.cli.cli.COMMANDS">
+<tt class="descclassname">swiftly.cli.cli.</tt><tt class="descname">COMMANDS</tt><em class="property"> = ['swiftly.cli.auth.CLIAuth', 'swiftly.cli.decrypt.CLIDecrypt', 'swiftly.cli.delete.CLIDelete', 'swiftly.cli.encrypt.CLIEncrypt', 'swiftly.cli.fordo.CLIForDo', 'swiftly.cli.get.CLIGet', 'swiftly.cli.head.CLIHead', 'swiftly.cli.help.CLIHelp', 'swiftly.cli.ping.CLIPing', 'swiftly.cli.post.CLIPost', 'swiftly.cli.put.CLIPut', 'swiftly.cli.tempurl.CLITempURL', 'swiftly.cli.trans.CLITrans']</em><a class="headerlink" href="#swiftly.cli.cli.COMMANDS" title="Permalink to this definition">¶</a></dt>
+<dd><p>The list of CLICommand classes avaiable to CLI. You&#8217;ll want to add any new
+CLICommand you create to this list.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.context">
+<span id="context"></span><h2>context<a class="headerlink" href="#module-swiftly.cli.context" title="Permalink to this headline">¶</a></h2>
+<p>Contains the CLIContext class used to pass contextual information to
+CLI functions.</p>
+<dl class="class">
+<dt id="swiftly.cli.context.CLIContext">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.context.</tt><tt class="descname">CLIContext</tt><a class="reference internal" href="_modules/swiftly/cli/context.html#CLIContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.context.CLIContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Used to pass contextual information to CLI functions.</p>
+<p>An instance of this class will allow almost any attribute access,
+even if that attribute did not previously exist. It offers an
+easy way to set new attributes on the fly for different use cases
+without having to create a whole new subclasses.</p>
+<dl class="method">
+<dt id="swiftly.cli.context.CLIContext.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/swiftly/cli/context.html#CLIContext.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.context.CLIContext.copy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a new CLIContext instance that is a shallow copy of
+the original, much like dict&#8217;s copy method.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.context.CLIContext.write_headers">
+<tt class="descname">write_headers</tt><big>(</big><em>fp</em>, <em>headers</em>, <em>mute=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/context.html#CLIContext.write_headers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.context.CLIContext.write_headers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function to output headers in a formatted fashion
+to a file-like fp, optionally muting any headers in the mute
+list.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.command">
+<span id="command"></span><h2>command<a class="headerlink" href="#module-swiftly.cli.command" title="Permalink to this headline">¶</a></h2>
+<p>Contains the CLICommand class that can be subclassed to create new
+Swiftly commands.</p>
+<dl class="class">
+<dt id="swiftly.cli.command.CLICommand">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.command.</tt><tt class="descname">CLICommand</tt><big>(</big><em>cli</em>, <em>name</em>, <em>min_args=None</em>, <em>max_args=None</em>, <em>usage=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/command.html#CLICommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.command.CLICommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Subclass this to create new Swiftly commands.</p>
+<p>Don&#8217;t forget to add your new class to
+<a class="reference internal" href="#swiftly.cli.cli.COMMANDS" title="swiftly.cli.cli.COMMANDS"><tt class="xref py py-attr docutils literal"><span class="pre">swiftly.cli.cli.COMMANDS</span></tt></a>.</p>
+<p>Your subclass will be created by <a class="reference internal" href="#swiftly.cli.cli.CLI" title="swiftly.cli.cli.CLI"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.cli.CLI</span></tt></a>
+with the CLI instance as the only parameter. You should then call
+this superclass with that CLI instance, your command&#8217;s name, and
+any other options desired.</p>
+<p>See the implemention for other commands like
+<a class="reference internal" href="#swiftly.cli.auth.CLIAuth" title="swiftly.cli.auth.CLIAuth"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.auth.CLIAuth</span></tt></a> for good starting points.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>cli</strong> &#8211; The <a class="reference internal" href="#swiftly.cli.cli.CLI" title="swiftly.cli.cli.CLI"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.cli.CLI</span></tt></a> instance.</li>
+<li><strong>name</strong> &#8211; The name of the command.</li>
+<li><strong>min_args</strong> &#8211; The minimum number of arguments required.</li>
+<li><strong>max_args</strong> &#8211; The maximum number of arguments allowed.</li>
+<li><strong>usage</strong> &#8211; The usage string for
+<tt class="xref py py-class docutils literal"><span class="pre">OptionParser</span></tt>.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="swiftly.cli.command.CLICommand.options_list_to_lowered_dict">
+<tt class="descname">options_list_to_lowered_dict</tt><big>(</big><em>options_list</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/command.html#CLICommand.options_list_to_lowered_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.command.CLICommand.options_list_to_lowered_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function that will convert an options list into a dict
+of key/values.</p>
+<p>This is used for the quite common -hheader:value and
+-qparameter=value command line options, like this:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">context</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_list_to_lowered_dict</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">header</span><span class="p">)</span>
+<span class="n">context</span><span class="o">.</span><span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options_list_to_lowered_dict</span><span class="p">(</span><span class="n">options</span><span class="o">.</span><span class="n">query</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For a full example, see
+<tt class="xref py py-func docutils literal"><span class="pre">swiftly.cli.get.CLIGet.__call__()</span></tt>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.command.CLICommand.parse_args_and_create_context">
+<tt class="descname">parse_args_and_create_context</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/command.html#CLICommand.parse_args_and_create_context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.command.CLICommand.parse_args_and_create_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper method that will parse the args into options and
+remaining args as well as create an initial
+<a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>.</p>
+<p>The new context will be a copy of
+<a class="reference internal" href="#swiftly.cli.cli.CLI.context" title="swiftly.cli.cli.CLI.context"><tt class="xref py py-attr docutils literal"><span class="pre">swiftly.cli.cli.CLI.context</span></tt></a> with the following
+attributes added:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="40%" />
+<col width="60%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>muted_account_headers</td>
+<td>The headers to omit when outputting
+account headers.</td>
+</tr>
+<tr class="row-even"><td>muted_container_headers</td>
+<td>The headers to omit when outputting
+container headers.</td>
+</tr>
+<tr class="row-odd"><td>muted_object_headers</td>
+<td>The headers to omit when outputting
+object headers.</td>
+</tr>
+</tbody>
+</table>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">options, args, context</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="swiftly.cli.command.ReturnCode">
+<em class="property">exception </em><tt class="descclassname">swiftly.cli.command.</tt><tt class="descname">ReturnCode</tt><big>(</big><em>text=None</em>, <em>code=1</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/command.html#ReturnCode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.command.ReturnCode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+<p>Raise this to indicate the desire to exit.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>text</strong> &#8211; The text to report as the reason for exiting.
+Default: None</li>
+<li><strong>code</strong> &#8211; The return code to give back to the shell.
+Default: 1</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.optionparser">
+<span id="optionparser"></span><h2>optionparser<a class="headerlink" href="#module-swiftly.cli.optionparser" title="Permalink to this headline">¶</a></h2>
+<p>Contains an extended optparse.OptionParser that works better with
+command line applications that may call other command line
+applications or use multiple parsers.</p>
+<dl class="class">
+<dt id="swiftly.cli.optionparser.OptionParser">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.optionparser.</tt><tt class="descname">OptionParser</tt><big>(</big><em>usage=None</em>, <em>option_list=None</em>, <em>option_class=&lt;class optparse.Option at 0x23f93b0&gt;</em>, <em>version=None</em>, <em>conflict_handler='error'</em>, <em>description=None</em>, <em>formatter=None</em>, <em>add_help_option=True</em>, <em>prog=None</em>, <em>epilog=None</em>, <em>io_manager=None</em>, <em>raw_epilog=''</em>, <em>error_prefix=''</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">optparse.OptionParser</span></tt>, <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Extended optparse.OptionParser that supports an io_manager,
+raw_epilog output, and an error prefix. It also does not exit
+automatically on error and instead sets an instance bool of
+error_encountered.</p>
+<dl class="method">
+<dt id="swiftly.cli.optionparser.OptionParser.error">
+<tt class="descname">error</tt><big>(</big><em>msg</em>, <em>file=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser.error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.error" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs the error msg to the file if specified, or to the
+io_manager&#8217;s stderr if available, or to sys.stderr.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="swiftly.cli.optionparser.OptionParser.error_encountered">
+<tt class="descname">error_encountered</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.error_encountered" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if an error was encountered while parsing.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="swiftly.cli.optionparser.OptionParser.error_prefix">
+<tt class="descname">error_prefix</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.error_prefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output just before any error. This can be useful in identification
+when multiple parsers are in use.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.optionparser.OptionParser.exit">
+<tt class="descname">exit</tt><big>(</big><em>status=0</em>, <em>msg=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser.exit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.exit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Immediately exits Python with the given status (or 0) as the
+exit code and optionally outputs the msg using self.error.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.optionparser.OptionParser.print_help">
+<tt class="descname">print_help</tt><big>(</big><em>file=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser.print_help"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.print_help" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs help information to the file if specified, or to the
+io_manager&#8217;s stdout if available, or to sys.stdout.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.optionparser.OptionParser.print_usage">
+<tt class="descname">print_usage</tt><big>(</big><em>file=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser.print_usage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.print_usage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs usage information to the file if specified, or to the
+io_manager&#8217;s stdout if available, or to sys.stdout.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.optionparser.OptionParser.print_version">
+<tt class="descname">print_version</tt><big>(</big><em>file=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser.print_version"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.print_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs version information to the file if specified, or to
+the io_manager&#8217;s stdout if available, or to sys.stdout.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="swiftly.cli.optionparser.OptionParser.raw_epilog">
+<tt class="descname">raw_epilog</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser.raw_epilog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Output just after the standard print_help output, in it&#8217;s raw form.
+This is different than epilog in that epilog is reformatted.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.iomanager">
+<span id="iomanager"></span><h2>iomanager<a class="headerlink" href="#module-swiftly.cli.iomanager" title="Permalink to this headline">¶</a></h2>
+<p>Contains IOManager for managing access to input, output, error, and
+debug file-like objects.</p>
+<dl class="class">
+<dt id="swiftly.cli.iomanager.IOManager">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.iomanager.</tt><tt class="descname">IOManager</tt><big>(</big><em>stdin=None</em>, <em>stdout=None</em>, <em>stderr=None</em>, <em>debug=None</em>, <em>stdin_root=None</em>, <em>stdout_root=None</em>, <em>stderr_root=None</em>, <em>debug_root=None</em>, <em>stdin_sub_command=None</em>, <em>stdout_sub_command=None</em>, <em>stderr_sub_command=None</em>, <em>debug_sub_command=None</em>, <em>subprocess_module=None</em>, <em>verbose=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Manages access to IO in ways that are mostly specific to
+<a class="reference internal" href="#module-swiftly.cli" title="swiftly.cli"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli</span></tt></a> but might be generally useful.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>stdin</strong> &#8211; The file-like object to use for default stdin or
+sys.stdin if None.</li>
+<li><strong>stdout</strong> &#8211; The file-like object to use for default stdout or
+sys.stdout if None.</li>
+<li><strong>stderr</strong> &#8211; The file-like object to use for default stderr or
+sys.stderr if None.</li>
+<li><strong>debug</strong> &#8211; The file-like object to use for default debug
+output or sys.stderr if None.</li>
+<li><strong>stdin_root</strong> &#8211; The root path to use for requests for pathed
+stdin file-like objects.</li>
+<li><strong>stdout_root</strong> &#8211; The root path to use for requests for pathed
+stdout file-like objects.</li>
+<li><strong>stderr_root</strong> &#8211; The root path to use for requests for pathed
+stderr file-like objects.</li>
+<li><strong>debug_root</strong> &#8211; The root path to use for requests for pathed
+debug file-like objects.</li>
+<li><strong>stdin_sub_command</strong> &#8211; A shell line to pipe any stdin
+file-like objects through.</li>
+<li><strong>stdout_sub_command</strong> &#8211; A shell line to pipe any stdout
+file-like objects through.</li>
+<li><strong>stderr_sub_command</strong> &#8211; A shell line to pipe any stderr
+file-like objects through.</li>
+<li><strong>debug_sub_command</strong> &#8211; A shell line to pipe any debug
+file-like objects through.</li>
+<li><strong>subprocess_module</strong> &#8211; The subprocess module to use; for
+instance, you might use eventlet.green.subprocess instead of
+the standard subprocess module.</li>
+<li><strong>verbose</strong> &#8211; A function to call with <tt class="docutils literal"><span class="pre">(msg)</span></tt> when waiting
+for subcommands to complete and for logging the subcommands&#8217;
+return codes.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.client_path_to_os_path">
+<tt class="descname">client_path_to_os_path</tt><big>(</big><em>client_path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.client_path_to_os_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.client_path_to_os_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a client path into the operating system&#8217;s path by
+replacing instances of &#8216;/&#8217; with os.path.sep.</p>
+<p>Note: If the client path contains any instances of
+os.path.sep already, they will be replaced with &#8216;-&#8216;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.get_debug">
+<tt class="descname">get_debug</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.get_debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.get_debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a debug-output-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.get_stderr">
+<tt class="descname">get_stderr</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.get_stderr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.get_stderr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stderr-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.get_stdin">
+<tt class="descname">get_stdin</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.get_stdin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.get_stdin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stdin-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.get_stdout">
+<tt class="descname">get_stdout</tt><big>(</big><em>os_path=None</em>, <em>skip_sub_command=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.get_stdout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.get_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a stdout-suitable file-like object based on the
+optional os_path and optionally skipping any configured
+sub-command.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.os_path_to_client_path">
+<tt class="descname">os_path_to_client_path</tt><big>(</big><em>os_path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.os_path_to_client_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.os_path_to_client_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts an operating system path into a client path by
+replacing instances of os.path.sep with &#8216;/&#8217;.</p>
+<p>Note: If the client path contains any instances of &#8216;/&#8217;
+already, they will be replaced with &#8216;-&#8216;.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.with_debug">
+<tt class="descname">with_debug</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.with_debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.with_debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a debug-output-suitable file-like
+object based on the optional os_path and optionally skipping
+any configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.with_stderr">
+<tt class="descname">with_stderr</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.with_stderr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.with_stderr" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stderr-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.with_stdin">
+<tt class="descname">with_stdin</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.with_stdin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.with_stdin" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stdin-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="swiftly.cli.iomanager.IOManager.with_stdout">
+<tt class="descname">with_stdout</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/iomanager.html#IOManager.with_stdout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.iomanager.IOManager.with_stdout" title="Permalink to this definition">¶</a></dt>
+<dd><p>A context manager yielding a stdout-suitable file-like object
+based on the optional os_path and optionally skipping any
+configured sub-command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>os_path</strong> &#8211; Optional path to base the file-like object
+on.</li>
+<li><strong>skip_sub_command</strong> &#8211; Set True to skip any configured
+sub-command filter.</li>
+<li><strong>disk_closed_callback</strong> &#8211; If the backing of the file-like
+object is an actual file that will be closed,
+disk_closed_callback (if set) will be called with the
+on-disk path just after closing it.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.auth">
+<span id="auth"></span><h2>auth<a class="headerlink" href="#module-swiftly.cli.auth" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that authenticates and then outputs the
+resulting information.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="37%" />
+<col width="63%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+<tr class="row-even"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.auth.CLIAuth">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.auth.</tt><tt class="descname">CLIAuth</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/auth.html#CLIAuth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.auth.CLIAuth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that authenticates and then outputs the resulting
+information.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">auth</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.auth.cli_auth">
+<tt class="descclassname">swiftly.cli.auth.</tt><tt class="descname">cli_auth</tt><big>(</big><em>context</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/auth.html#cli_auth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.auth.cli_auth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Authenticates and then outputs the resulting information.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.auth" title="swiftly.cli.auth"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.auth</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.auth.CLIAuth" title="swiftly.cli.auth.CLIAuth"><tt class="xref py py-class docutils literal"><span class="pre">CLIAuth</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.decrypt">
+<span id="decrypt"></span><h2>decrypt<a class="headerlink" href="#module-swiftly.cli.decrypt" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand for decrypting stdin to stdout.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="68%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.decrypt.CLIDecrypt">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.decrypt.</tt><tt class="descname">CLIDecrypt</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/decrypt.html#CLIDecrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.decrypt.CLIDecrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand for decrypting stdin and sending that to stdout.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">decrypt</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.decrypt.cli_decrypt">
+<tt class="descclassname">swiftly.cli.decrypt.</tt><tt class="descname">cli_decrypt</tt><big>(</big><em>context</em>, <em>key</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/decrypt.html#cli_decrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.decrypt.cli_decrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decrypts context.io_manager&#8217;s stdin and sends that to
+context.io_manager&#8217;s stdout.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.decrypt" title="swiftly.cli.decrypt"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.decrypt</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.decrypt.CLIDecrypt" title="swiftly.cli.decrypt.CLIDecrypt"><tt class="xref py py-class docutils literal"><span class="pre">CLIDecrypt</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.delete">
+<span id="delete"></span><h2>delete<a class="headerlink" href="#module-swiftly.cli.delete" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that can issue DELETE requests.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>cdn</td>
+<td>True if the CDN Management URL should be used instead
+of the Storage URL.</td>
+</tr>
+<tr class="row-even"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+<tr class="row-odd"><td>concurrency</td>
+<td>The number of concurrent actions that can be
+performed.</td>
+</tr>
+<tr class="row-even"><td>headers</td>
+<td>A dict of headers to send.</td>
+</tr>
+<tr class="row-odd"><td>ignore_404</td>
+<td>True if 404s should be silently ignored.</td>
+</tr>
+<tr class="row-even"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+<tr class="row-odd"><td>query</td>
+<td>A dict of query parameters to send.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.delete.CLIDelete">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">CLIDelete</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#CLIDelete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.CLIDelete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that can issue DELETE requests.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">delete</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.delete.cli_delete">
+<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_delete</tt><big>(</big><em>context</em>, <em>path</em>, <em>body=None</em>, <em>recursive=False</em>, <em>yes_empty_account=False</em>, <em>yes_delete_account=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes the item (account, container, or object) at the path.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.delete" title="swiftly.cli.delete"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.delete</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.delete.CLIDelete" title="swiftly.cli.delete.CLIDelete"><tt class="xref py py-class docutils literal"><span class="pre">CLIDelete</span></tt></a> for more information.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> &#8211; The <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a> to
+use.</li>
+<li><strong>path</strong> &#8211; The path of the item (acount, container, or object)
+to delete.</li>
+<li><strong>body</strong> &#8211; The body to send with the DELETE request. Bodies are
+not normally sent with DELETE requests, but this can be
+useful with bulk deletes for instance.</li>
+<li><strong>recursive</strong> &#8211; If True and the item is an account or
+container, deletes will be issued for any containing items as
+well.</li>
+<li><strong>yes_empty_account</strong> &#8211; This must be set to True for
+verification when the item is an account and recursive is
+True.</li>
+<li><strong>yes_delete_account</strong> &#8211; This must be set to True for
+verification when the item is an account and you really wish
+a delete to be issued for the account itself.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.delete.cli_empty_account">
+<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_empty_account</tt><big>(</big><em>context</em>, <em>yes_empty_account=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_empty_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_empty_account" title="Permalink to this definition">¶</a></dt>
+<dd><p>Empties the account of all objects and containers; you must set
+yes_empty_account to True to verify you really want to do this.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.delete" title="swiftly.cli.delete"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.delete</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.delete.CLIDelete" title="swiftly.cli.delete.CLIDelete"><tt class="xref py py-class docutils literal"><span class="pre">CLIDelete</span></tt></a> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.delete.cli_empty_container">
+<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_empty_container</tt><big>(</big><em>context</em>, <em>path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_empty_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_empty_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Empties the container at the path of all objects.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.delete" title="swiftly.cli.delete"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.delete</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.delete.CLIDelete" title="swiftly.cli.delete.CLIDelete"><tt class="xref py py-class docutils literal"><span class="pre">CLIDelete</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.encrypt">
+<span id="encrypt"></span><h2>encrypt<a class="headerlink" href="#module-swiftly.cli.encrypt" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand for encrypting stdin to stdout.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="68%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.encrypt.CLIEncrypt">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.encrypt.</tt><tt class="descname">CLIEncrypt</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/encrypt.html#CLIEncrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.encrypt.CLIEncrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand for encrypting stdin and sending that to stdout.</p>
+<p>This can be useful to encrypt to disk before attempting to
+upload, allowing uploads retries and segmented encrypted objects.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">encrypt</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.encrypt.cli_encrypt">
+<tt class="descclassname">swiftly.cli.encrypt.</tt><tt class="descname">cli_encrypt</tt><big>(</big><em>context</em>, <em>key</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/encrypt.html#cli_encrypt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.encrypt.cli_encrypt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encrypts context.io_manager&#8217;s stdin and sends that to
+context.io_manager&#8217;s stdout.</p>
+<p>This can be useful to encrypt to disk before attempting to
+upload, allowing uploads retries and segmented encrypted objects.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.encrypt" title="swiftly.cli.encrypt"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.encrypt</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.encrypt.CLIEncrypt" title="swiftly.cli.encrypt.CLIEncrypt"><tt class="xref py py-class docutils literal"><span class="pre">CLIEncrypt</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.fordo">
+<span id="fordo"></span><h2>fordo<a class="headerlink" href="#module-swiftly.cli.fordo" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that can issue other commands for each item in
+an account or container listing.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>cdn</td>
+<td>True if the CDN Management URL should be
+used instead of the Storage URL.</td>
+</tr>
+<tr class="row-even"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+<tr class="row-odd"><td>concurrency</td>
+<td>The number of concurrent actions that can be
+performed.</td>
+</tr>
+<tr class="row-even"><td>headers</td>
+<td>A dict of headers to send.</td>
+</tr>
+<tr class="row-odd"><td>ignore_404</td>
+<td>True if 404s should be silently ignored.</td>
+</tr>
+<tr class="row-even"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+<tr class="row-odd"><td>query</td>
+<td>A dict of query parameters to send. Of
+important use are limit, delimiter, prefix,
+marker, and end_marker as they are common
+listing query parameters.</td>
+</tr>
+<tr class="row-even"><td>remaining_args</td>
+<td>The list of command line args to issue to
+the sub-CLI instance; the first arg that
+equals &#8216;&lt;item&gt;&#8217; will be replaced with each
+item the for encounters. Any additional
+instances of &#8216;&lt;item&gt;&#8217; will be left alone, as
+you might be calling a nested &#8220;for ... do&#8221;.</td>
+</tr>
+<tr class="row-odd"><td>original_main_args</td>
+<td>Used when constructing sub-CLI instances.</td>
+</tr>
+<tr class="row-even"><td>output_names</td>
+<td>If True, outputs the name of each item just
+before calling [command] with it. To ensure
+easier parsing, the name will be url encoded
+and prefixed with &#8220;Item Name: &#8221;. For
+commands that have output of their own, this
+is usually only useful with single
+concurrency; otherwise the item names and
+the command output will get interspersed and
+impossible to associate.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.fordo.CLIForDo">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.fordo.</tt><tt class="descname">CLIForDo</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/fordo.html#CLIForDo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.fordo.CLIForDo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that can issue other commands for each item in an
+account or container listing.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">for</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.fordo.cli_fordo">
+<tt class="descclassname">swiftly.cli.fordo.</tt><tt class="descname">cli_fordo</tt><big>(</big><em>context</em>, <em>path=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/fordo.html#cli_fordo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.fordo.cli_fordo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Issues commands for each item in an account or container listing.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.fordo" title="swiftly.cli.fordo"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.fordo</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.fordo.CLIForDo" title="swiftly.cli.fordo.CLIForDo"><tt class="xref py py-class docutils literal"><span class="pre">CLIForDo</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.get">
+<span id="get"></span><h2>get<a class="headerlink" href="#module-swiftly.cli.get" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that can issue GET requests.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>all_objects</td>
+<td>True if instead of the listing itself you
+want all objects that the listing references
+to be output.</td>
+</tr>
+<tr class="row-even"><td>cdn</td>
+<td>True if the CDN Management URL should be
+used instead of the Storage URL.</td>
+</tr>
+<tr class="row-odd"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+<tr class="row-even"><td>concurrency</td>
+<td>The number of concurrent actions that can be
+performed.</td>
+</tr>
+<tr class="row-odd"><td>full</td>
+<td>True if you want a full listing (additional
+information like object count, bytes used,
+and upload date) instead of just the item
+names.</td>
+</tr>
+<tr class="row-even"><td>headers</td>
+<td>A dict of headers to send.</td>
+</tr>
+<tr class="row-odd"><td>ignore_404</td>
+<td>True if 404s should be silently ignored.</td>
+</tr>
+<tr class="row-even"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+<tr class="row-odd"><td>muted_account_headers</td>
+<td>The headers to omit when outputting account
+response headers.</td>
+</tr>
+<tr class="row-even"><td>muted_container_headers</td>
+<td>The headers to omit when outputting
+container response headers.</td>
+</tr>
+<tr class="row-odd"><td>muted_object_headers</td>
+<td>The headers to omit when outputting object
+response headers.</td>
+</tr>
+<tr class="row-even"><td>output_headers</td>
+<td>True if you want the headers from the
+response to also be output.</td>
+</tr>
+<tr class="row-odd"><td>query</td>
+<td>A dict of query parameters to send. Of
+important use are limit, delimiter, prefix,
+marker, and end_marker as they are common
+listing query parameters.</td>
+</tr>
+<tr class="row-even"><td>raw</td>
+<td>Normally the result of the GET is translated
+as a listing and formatted output is
+generated. Setting this to True will skip
+any formatting a just output the raw
+contents from the response. Note that this
+will also just issue a single request and
+will not try additional follow-on marker
+requests.</td>
+</tr>
+<tr class="row-odd"><td>remove_empty_files</td>
+<td>True if files created on disk should be
+removed if they result in an empty file.
+This can be useful with sub_commands that
+only output information for matches.</td>
+</tr>
+<tr class="row-even"><td>suppress_container_name</td>
+<td>True if files created on disk should have
+the container name stripped from the file
+name. When downloading a single container,
+this is usually desired.</td>
+</tr>
+<tr class="row-odd"><td>write_headers</td>
+<td>A function used to output the response
+headers if output_headers is set True.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.get.CLIGet">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.get.</tt><tt class="descname">CLIGet</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/get.html#CLIGet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.get.CLIGet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that can issue GET requests.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">get</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.get.cli_get">
+<tt class="descclassname">swiftly.cli.get.</tt><tt class="descname">cli_get</tt><big>(</big><em>context</em>, <em>path=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/get.html#cli_get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.get.cli_get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a GET on the item (account, container, or object).</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.get" title="swiftly.cli.get"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.get</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.get.CLIGet" title="swiftly.cli.get.CLIGet"><tt class="xref py py-class docutils literal"><span class="pre">CLIGet</span></tt></a> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.get.cli_get_account_listing">
+<tt class="descclassname">swiftly.cli.get.</tt><tt class="descname">cli_get_account_listing</tt><big>(</big><em>context</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/get.html#cli_get_account_listing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.get.cli_get_account_listing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a GET on the account as a listing request.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.get" title="swiftly.cli.get"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.get</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.get.CLIGet" title="swiftly.cli.get.CLIGet"><tt class="xref py py-class docutils literal"><span class="pre">CLIGet</span></tt></a> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.get.cli_get_container_listing">
+<tt class="descclassname">swiftly.cli.get.</tt><tt class="descname">cli_get_container_listing</tt><big>(</big><em>context</em>, <em>path=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/get.html#cli_get_container_listing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.get.cli_get_container_listing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a GET on the container as a listing request.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.get" title="swiftly.cli.get"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.get</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.get.CLIGet" title="swiftly.cli.get.CLIGet"><tt class="xref py py-class docutils literal"><span class="pre">CLIGet</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.head">
+<span id="head"></span><h2>head<a class="headerlink" href="#module-swiftly.cli.head" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that can issue HEAD requests.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>cdn</td>
+<td>True if the CDN Management URL should be
+used instead of the Storage URL.</td>
+</tr>
+<tr class="row-even"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+<tr class="row-odd"><td>headers</td>
+<td>A dict of headers to send.</td>
+</tr>
+<tr class="row-even"><td>ignore_404</td>
+<td>True if 404s should be silently ignored.</td>
+</tr>
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+<tr class="row-even"><td>muted_account_headers</td>
+<td>The headers to omit when outputting account
+response headers.</td>
+</tr>
+<tr class="row-odd"><td>muted_container_headers</td>
+<td>The headers to omit when outputting
+container response headers.</td>
+</tr>
+<tr class="row-even"><td>muted_object_headers</td>
+<td>The headers to omit when outputting object
+response headers.</td>
+</tr>
+<tr class="row-odd"><td>query</td>
+<td>A dict of query parameters to send.</td>
+</tr>
+<tr class="row-even"><td>write_headers</td>
+<td>A function used to output the response
+headers.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.head.CLIHead">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.head.</tt><tt class="descname">CLIHead</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/head.html#CLIHead"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.head.CLIHead" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that can issue HEAD requests.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">head</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.head.cli_head">
+<tt class="descclassname">swiftly.cli.head.</tt><tt class="descname">cli_head</tt><big>(</big><em>context</em>, <em>path=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/head.html#cli_head"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.head.cli_head" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a HEAD on the item (account, container, or object).</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.head" title="swiftly.cli.head"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.head</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.head.CLIHead" title="swiftly.cli.head.CLIHead"><tt class="xref py py-class docutils literal"><span class="pre">CLIHead</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.help">
+<span id="help"></span><h2>help<a class="headerlink" href="#module-swiftly.cli.help" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that outputs help information.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="34%" />
+<col width="66%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.help.CLIHelp">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.help.</tt><tt class="descname">CLIHelp</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/help.html#CLIHelp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.help.CLIHelp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that outputs help information.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">help</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.help.cli_help">
+<tt class="descclassname">swiftly.cli.help.</tt><tt class="descname">cli_help</tt><big>(</big><em>context</em>, <em>command_name</em>, <em>general_parser</em>, <em>command_parsers</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/help.html#cli_help"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.help.cli_help" title="Permalink to this definition">¶</a></dt>
+<dd><p>Outputs help information.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.help" title="swiftly.cli.help"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.help</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.help.CLIHelp" title="swiftly.cli.help.CLIHelp"><tt class="xref py py-class docutils literal"><span class="pre">CLIHelp</span></tt></a> for more information.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> &#8211; The <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a> to
+use.</li>
+<li><strong>command_name</strong> &#8211; The command_name to output help information
+for, or set to None or an empty string to output the general
+help information.</li>
+<li><strong>general_parser</strong> &#8211; The
+<a class="reference internal" href="#swiftly.cli.optionparser.OptionParser" title="swiftly.cli.optionparser.OptionParser"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.optionparser.OptionParser</span></tt></a> for general
+usage.</li>
+<li><strong>command_parsers</strong> &#8211; A dict of (name, <tt class="xref py py-class docutils literal"><span class="pre">CLICommand</span></tt>)
+for specific command usage.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.ping">
+<span id="ping"></span><h2>ping<a class="headerlink" href="#module-swiftly.cli.ping" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that implements ping test functionality.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="22%" />
+<col width="78%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+<tr class="row-even"><td>concurrency</td>
+<td>The number of concurrent actions that can be
+performed.</td>
+</tr>
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+<tr class="row-even"><td>limit</td>
+<td>The maximum number of Swift nodes to output
+information about.</td>
+</tr>
+<tr class="row-odd"><td>object_ring</td>
+<td>An instance of swift.common.ring.ring.Ring if you
+want a report based on Swift nodes with implied
+usage during the ping test.</td>
+</tr>
+<tr class="row-even"><td>ping_begin</td>
+<td>The first time.time() when the entire ping test
+began.</td>
+</tr>
+<tr class="row-odd"><td>ping_begin_last</td>
+<td>The time.time() the last ping task started.</td>
+</tr>
+<tr class="row-even"><td>ping_count</td>
+<td>The number of objects to use.</td>
+</tr>
+<tr class="row-odd"><td>ping_verbose</td>
+<td>True if you want a full ping report rather than just
+the overall time.</td>
+</tr>
+<tr class="row-even"><td>threshold</td>
+<td>Defines the threshold for the threshold node report.
+This is the multiplier over the average request
+time.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.ping.CLIPing">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.ping.</tt><tt class="descname">CLIPing</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/ping.html#CLIPing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.ping.CLIPing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that implements ping test functionality.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">ping</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.ping.cli_ping">
+<tt class="descclassname">swiftly.cli.ping.</tt><tt class="descname">cli_ping</tt><big>(</big><em>context</em>, <em>prefix</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/ping.html#cli_ping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.ping.cli_ping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a ping test.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.ping" title="swiftly.cli.ping"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.ping</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.ping.CLIPing" title="swiftly.cli.ping.CLIPing"><tt class="xref py py-class docutils literal"><span class="pre">CLIPing</span></tt></a> for more information.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> &#8211; The <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a> to
+use.</li>
+<li><strong>prefix</strong> &#8211; The container name prefix to use. Default:
+swiftly-ping</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.post">
+<span id="post"></span><h2>post<a class="headerlink" href="#module-swiftly.cli.post" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that can issue POST requests.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="79%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>cdn</td>
+<td>True if the CDN Management URL should be used instead
+of the Storage URL.</td>
+</tr>
+<tr class="row-even"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+<tr class="row-odd"><td>headers</td>
+<td>A dict of headers to send.</td>
+</tr>
+<tr class="row-even"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+<tr class="row-odd"><td>query</td>
+<td>A dict of query parameters to send.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.post.CLIPost">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.post.</tt><tt class="descname">CLIPost</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/post.html#CLIPost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.post.CLIPost" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that can issue POST requests.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">post</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.post.cli_post">
+<tt class="descclassname">swiftly.cli.post.</tt><tt class="descname">cli_post</tt><big>(</big><em>context</em>, <em>path</em>, <em>body=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/post.html#cli_post"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.post.cli_post" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a POST on the item (account, container, or object).</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.post" title="swiftly.cli.post"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.post</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.post.CLIPost" title="swiftly.cli.post.CLIPost"><tt class="xref py py-class docutils literal"><span class="pre">CLIPost</span></tt></a> for more information.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> &#8211; The <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a> to
+use.</li>
+<li><strong>path</strong> &#8211; The path to the item to issue a POST for.</li>
+<li><strong>body</strong> &#8211; The body send along with the POST.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.put">
+<span id="put"></span><h2>put<a class="headerlink" href="#module-swiftly.cli.put" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand that can issue PUT requests.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="22%" />
+<col width="78%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>cdn</td>
+<td>True if the CDN Management URL should be used
+instead of the Storage URL.</td>
+</tr>
+<tr class="row-even"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+<tr class="row-odd"><td>concurrency</td>
+<td>The number of concurrent actions that can be
+performed.</td>
+</tr>
+<tr class="row-even"><td>different</td>
+<td>Set to True to check if the local file is different
+than an existing object before uploading.</td>
+</tr>
+<tr class="row-odd"><td>empty</td>
+<td>Set to True if you wish to send an empty body with
+the PUT rather than reading from the io_manager&#8217;s
+stdin.</td>
+</tr>
+<tr class="row-even"><td>headers</td>
+<td>A dict of headers to send.</td>
+</tr>
+<tr class="row-odd"><td>input_</td>
+<td>A string representing where input should be obtained
+from. If None, the io_manager&#8217;s stdin will be used.
+If a directory path is specified, a set of PUTs will
+be generated for each item in the directory
+structure. If a file path is specified, that single
+file will be used as input.</td>
+</tr>
+<tr class="row-even"><td>io_manager</td>
+<td>For directing output and obtaining input if needed.</td>
+</tr>
+<tr class="row-odd"><td>newer</td>
+<td>Set to True to check if the local file is newer than
+an existing object before uploading.</td>
+</tr>
+<tr class="row-even"><td>query</td>
+<td>A dict of query parameters to send.</td>
+</tr>
+<tr class="row-odd"><td>seek</td>
+<td>Where to seek to in the input_ before uploading;
+usually just used by recursive calls with segmented
+objects.</td>
+</tr>
+<tr class="row-even"><td>segment_size</td>
+<td>The max size of a file before switching to a
+segmented object and the max size of each object
+segment.</td>
+</tr>
+<tr class="row-odd"><td>static_segments</td>
+<td>Set to True to use static large object support
+instead of dynamic large object support.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.put.CLIPut">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.put.</tt><tt class="descname">CLIPut</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/put.html#CLIPut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.put.CLIPut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand that can issue PUT requests.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">put</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.put.cli_put">
+<tt class="descclassname">swiftly.cli.put.</tt><tt class="descname">cli_put</tt><big>(</big><em>context</em>, <em>path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/put.html#cli_put"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.put.cli_put" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a PUT on the item (account, container, or object).</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.put" title="swiftly.cli.put"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.put</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.put.CLIPut" title="swiftly.cli.put.CLIPut"><tt class="xref py py-class docutils literal"><span class="pre">CLIPut</span></tt></a> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.put.cli_put_account">
+<tt class="descclassname">swiftly.cli.put.</tt><tt class="descname">cli_put_account</tt><big>(</big><em>context</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/put.html#cli_put_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.put.cli_put_account" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a PUT on the account.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.put" title="swiftly.cli.put"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.put</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.put.CLIPut" title="swiftly.cli.put.CLIPut"><tt class="xref py py-class docutils literal"><span class="pre">CLIPut</span></tt></a> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.put.cli_put_container">
+<tt class="descclassname">swiftly.cli.put.</tt><tt class="descname">cli_put_container</tt><big>(</big><em>context</em>, <em>path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/put.html#cli_put_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.put.cli_put_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a PUT on the container.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.put" title="swiftly.cli.put"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.put</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.put.CLIPut" title="swiftly.cli.put.CLIPut"><tt class="xref py py-class docutils literal"><span class="pre">CLIPut</span></tt></a> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.put.cli_put_directory_structure">
+<tt class="descclassname">swiftly.cli.put.</tt><tt class="descname">cli_put_directory_structure</tt><big>(</big><em>context</em>, <em>path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/put.html#cli_put_directory_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.put.cli_put_directory_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs PUTs rooted at the path using a directory structure
+pointed to by context.input_.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.put" title="swiftly.cli.put"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.put</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.put.CLIPut" title="swiftly.cli.put.CLIPut"><tt class="xref py py-class docutils literal"><span class="pre">CLIPut</span></tt></a> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.put.cli_put_object">
+<tt class="descclassname">swiftly.cli.put.</tt><tt class="descname">cli_put_object</tt><big>(</big><em>context</em>, <em>path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/put.html#cli_put_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.put.cli_put_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a PUT on the object.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.put" title="swiftly.cli.put"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.put</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.put.CLIPut" title="swiftly.cli.put.CLIPut"><tt class="xref py py-class docutils literal"><span class="pre">CLIPut</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.tempurl">
+<span id="tempurl"></span><h2>tempurl<a class="headerlink" href="#module-swiftly.cli.tempurl" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand for generating TempURLs.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="37%" />
+<col width="63%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+<tr class="row-even"><td>client_manager</td>
+<td>For connecting to Swift.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.tempurl.CLITempURL">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.tempurl.</tt><tt class="descname">CLITempURL</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/tempurl.html#CLITempURL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.tempurl.CLITempURL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand for generating TempURLs.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">tempurl</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.tempurl.cli_tempurl">
+<tt class="descclassname">swiftly.cli.tempurl.</tt><tt class="descname">cli_tempurl</tt><big>(</big><em>context</em>, <em>method</em>, <em>path</em>, <em>seconds=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/tempurl.html#cli_tempurl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.tempurl.cli_tempurl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a TempURL and sends that to the context.io_manager&#8217;s
+stdout.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.tempurl" title="swiftly.cli.tempurl"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.tempurl</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.tempurl.CLITempURL" title="swiftly.cli.tempurl.CLITempURL"><tt class="xref py py-class docutils literal"><span class="pre">CLITempURL</span></tt></a> for more information.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> &#8211; The <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a> to
+use.</li>
+<li><strong>method</strong> &#8211; The method for the TempURL (GET, PUT, etc.)</li>
+<li><strong>path</strong> &#8211; The path the TempURL should direct to.</li>
+<li><strong>seconds</strong> &#8211; The number of seconds the TempURL should be good
+for. Default: 3600</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-swiftly.cli.trans">
+<span id="trans"></span><h2>trans<a class="headerlink" href="#module-swiftly.cli.trans" title="Permalink to this headline">¶</a></h2>
+<p>Contains a CLICommand for translating transaction identifiers.</p>
+<p>Uses the following from <a class="reference internal" href="#swiftly.cli.context.CLIContext" title="swiftly.cli.context.CLIContext"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.context.CLIContext</span></tt></a>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="32%" />
+<col width="68%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td>io_manager</td>
+<td>For directing output.</td>
+</tr>
+</tbody>
+</table>
+<dl class="class">
+<dt id="swiftly.cli.trans.CLITrans">
+<em class="property">class </em><tt class="descclassname">swiftly.cli.trans.</tt><tt class="descname">CLITrans</tt><big>(</big><em>cli</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/trans.html#CLITrans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.trans.CLITrans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#swiftly.cli.command.CLICommand" title="swiftly.cli.command.CLICommand"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.cli.command.CLICommand</span></tt></a></p>
+<p>A CLICommand for translating transaction identifiers.</p>
+<p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">trans</span></tt> for more information.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="swiftly.cli.trans.cli_trans">
+<tt class="descclassname">swiftly.cli.trans.</tt><tt class="descname">cli_trans</tt><big>(</big><em>context</em>, <em>x_trans_id</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/trans.html#cli_trans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.trans.cli_trans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translates any information that can be determined from the
+x_trans_id and sends that to the context.io_manager&#8217;s stdout.</p>
+<p>See <a class="reference internal" href="#module-swiftly.cli.trans" title="swiftly.cli.trans"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.trans</span></tt></a> for context usage information.</p>
+<p>See <a class="reference internal" href="#swiftly.cli.trans.CLITrans" title="swiftly.cli.trans.CLITrans"><tt class="xref py py-class docutils literal"><span class="pre">CLITrans</span></tt></a> for more information.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">swiftly.cli</a><ul>
+<li><a class="reference internal" href="#module-swiftly.cli.cli">cli</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.context">context</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.command">command</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.optionparser">optionparser</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.iomanager">iomanager</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.auth">auth</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.decrypt">decrypt</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.delete">delete</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.encrypt">encrypt</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.fordo">fordo</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.get">get</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.head">head</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.help">help</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.ping">ping</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.post">post</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.put">put</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.tempurl">tempurl</a></li>
+<li><a class="reference internal" href="#module-swiftly.cli.trans">trans</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="swiftly.html"
+                        title="previous chapter">swiftly</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="swiftly_client.html"
+                        title="next chapter">swiftly.client</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/swiftly_cli.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="swiftly_client.html" title="swiftly.client"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="swiftly.html" title="swiftly"
+             >previous</a> |</li>
+        <li><a href="index.html">Swiftly 2.00 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

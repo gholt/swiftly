@@ -1,0 +1,444 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.cli.iomanager &mdash; Swiftly 2.00 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.00',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 2.00 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 2.00 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.cli.iomanager</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains IOManager for managing access to input, output, error, and</span>
+<span class="sd">debug file-like objects.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">errno</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+
+<div class="viewcode-block" id="IOManager"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager">[docs]</a><span class="k">class</span> <span class="nc">IOManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manages access to IO in ways that are mostly specific to</span>
+<span class="sd">    :py:mod:`swiftly.cli` but might be generally useful.</span>
+
+<span class="sd">    :param stdin: The file-like object to use for default stdin or</span>
+<span class="sd">        sys.stdin if None.</span>
+<span class="sd">    :param stdout: The file-like object to use for default stdout or</span>
+<span class="sd">        sys.stdout if None.</span>
+<span class="sd">    :param stderr: The file-like object to use for default stderr or</span>
+<span class="sd">        sys.stderr if None.</span>
+<span class="sd">    :param debug: The file-like object to use for default debug</span>
+<span class="sd">        output or sys.stderr if None.</span>
+<span class="sd">    :param stdin_root: The root path to use for requests for pathed</span>
+<span class="sd">        stdin file-like objects.</span>
+<span class="sd">    :param stdout_root: The root path to use for requests for pathed</span>
+<span class="sd">        stdout file-like objects.</span>
+<span class="sd">    :param stderr_root: The root path to use for requests for pathed</span>
+<span class="sd">        stderr file-like objects.</span>
+<span class="sd">    :param debug_root: The root path to use for requests for pathed</span>
+<span class="sd">        debug file-like objects.</span>
+<span class="sd">    :param stdin_sub_command: A shell line to pipe any stdin</span>
+<span class="sd">        file-like objects through.</span>
+<span class="sd">    :param stdout_sub_command: A shell line to pipe any stdout</span>
+<span class="sd">        file-like objects through.</span>
+<span class="sd">    :param stderr_sub_command: A shell line to pipe any stderr</span>
+<span class="sd">        file-like objects through.</span>
+<span class="sd">    :param debug_sub_command: A shell line to pipe any debug</span>
+<span class="sd">        file-like objects through.</span>
+<span class="sd">    :param subprocess_module: The subprocess module to use; for</span>
+<span class="sd">        instance, you might use eventlet.green.subprocess instead of</span>
+<span class="sd">        the standard subprocess module.</span>
+<span class="sd">    :param verbose: A function to call with ``(msg)`` when waiting</span>
+<span class="sd">        for subcommands to complete and for logging the subcommands&#39;</span>
+<span class="sd">        return codes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stderr</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">stdin_root</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stdout_root</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stderr_root</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">debug_root</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stdin_sub_command</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">stdout_sub_command</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stderr_sub_command</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">debug_sub_command</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">subprocess_module</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span> <span class="o">=</span> <span class="n">stdin</span> <span class="ow">or</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span> <span class="o">=</span> <span class="n">stdout</span> <span class="ow">or</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="n">stderr</span> <span class="ow">or</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span> <span class="ow">or</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdin_root</span> <span class="o">=</span> <span class="n">stdin_root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdout_root</span> <span class="o">=</span> <span class="n">stdout_root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stderr_root</span> <span class="o">=</span> <span class="n">stderr_root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug_root</span> <span class="o">=</span> <span class="n">debug_root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdin_sub_command</span> <span class="o">=</span> <span class="n">stdin_sub_command</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdout_sub_command</span> <span class="o">=</span> <span class="n">stdout_sub_command</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stderr_sub_command</span> <span class="o">=</span> <span class="n">stderr_sub_command</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug_sub_command</span> <span class="o">=</span> <span class="n">debug_sub_command</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">subprocess_module</span> <span class="o">=</span> <span class="n">subprocess_module</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocess_module</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">subprocess</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">subprocess_module</span> <span class="o">=</span> <span class="n">subprocess</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
+
+<div class="viewcode-block" id="IOManager.client_path_to_os_path"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.client_path_to_os_path">[docs]</a>    <span class="k">def</span> <span class="nf">client_path_to_os_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts a client path into the operating system&#39;s path by</span>
+<span class="sd">        replacing instances of &#39;/&#39; with os.path.sep.</span>
+
+<span class="sd">        Note: If the client path contains any instances of</span>
+<span class="sd">        os.path.sep already, they will be replaced with &#39;-&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span> <span class="o">==</span> <span class="s">&#39;/&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">client_path</span>
+        <span class="k">return</span> <span class="n">client_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="IOManager.os_path_to_client_path"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.os_path_to_client_path">[docs]</a>    <span class="k">def</span> <span class="nf">os_path_to_client_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts an operating system path into a client path by</span>
+<span class="sd">        replacing instances of os.path.sep with &#39;/&#39;.</span>
+
+<span class="sd">        Note: If the client path contains any instances of &#39;/&#39;</span>
+<span class="sd">        already, they will be replaced with &#39;-&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span> <span class="o">==</span> <span class="s">&#39;/&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">os_path</span>
+        <span class="k">return</span> <span class="n">os_path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">,</span> <span class="s">&#39;/&#39;</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_get_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">os_path</span><span class="p">):</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="n">root</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">root</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">sep</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">os_path</span><span class="p">:</span>
+                    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">root</span>
+        <span class="k">return</span> <span class="n">path</span>
+
+    <span class="k">def</span> <span class="nf">_get_in_and_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">):</span>
+        <span class="n">inn</span> <span class="o">=</span> <span class="n">default</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_path</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+            <span class="n">inn</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&#39;rb&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sub_command</span><span class="p">:</span>
+            <span class="n">inn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocess_module</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+                <span class="n">sub_command</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="n">inn</span><span class="p">,</span>
+                <span class="n">stdout</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subprocess_module</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">inn</span><span class="p">,</span> <span class="n">path</span>
+
+    <span class="k">def</span> <span class="nf">_get_out_and_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">default</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_path</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+            <span class="n">dirname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dirname</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">dirname</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">EEXIST</span><span class="p">:</span>
+                        <span class="k">raise</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&#39;wb&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sub_command</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subprocess_module</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>
+                <span class="n">sub_command</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stdin</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subprocess_module</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                <span class="n">stdout</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">path</span>
+
+<div class="viewcode-block" id="IOManager.get_stdin"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.get_stdin">[docs]</a>    <span class="k">def</span> <span class="nf">get_stdin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a stdin-suitable file-like object based on the</span>
+<span class="sd">        optional os_path and optionally skipping any configured</span>
+<span class="sd">        sub-command.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">skip_sub_command</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin_sub_command</span>
+        <span class="n">inn</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_in_and_path</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin_root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">inn</span><span class="p">,</span> <span class="s">&#39;stdout&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">inn</span><span class="o">.</span><span class="n">stdout</span>
+        <span class="k">return</span> <span class="n">inn</span>
+</div>
+<div class="viewcode-block" id="IOManager.get_stdout"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.get_stdout">[docs]</a>    <span class="k">def</span> <span class="nf">get_stdout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a stdout-suitable file-like object based on the</span>
+<span class="sd">        optional os_path and optionally skipping any configured</span>
+<span class="sd">        sub-command.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">skip_sub_command</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_sub_command</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_out_and_path</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">stdin</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="IOManager.get_stderr"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.get_stderr">[docs]</a>    <span class="k">def</span> <span class="nf">get_stderr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a stderr-suitable file-like object based on the</span>
+<span class="sd">        optional os_path and optionally skipping any configured</span>
+<span class="sd">        sub-command.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">skip_sub_command</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_sub_command</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_out_and_path</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">stdin</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="IOManager.get_debug"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.get_debug">[docs]</a>    <span class="k">def</span> <span class="nf">get_debug</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a debug-output-suitable file-like object based on the</span>
+<span class="sd">        optional os_path and optionally skipping any configured</span>
+<span class="sd">        sub-command.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">skip_sub_command</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_sub_command</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_out_and_path</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">stdin</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+    <span class="k">def</span> <span class="nf">_wait</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s">&#39;wait&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s">&#39;Waiting on sub-command&#39;</span>
+                <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">+=</span> <span class="s">&#39; to close </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="n">exit_code</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="s">&#39;Sub-command exited with </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">exit_code</span>
+                <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">+=</span> <span class="s">&#39; and closed </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">path</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">item</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stdin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="s">&#39;close&#39;</span><span class="p">):</span>
+                <span class="n">item</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="nd">@contextlib.contextmanager</span>
+<div class="viewcode-block" id="IOManager.with_stdin"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.with_stdin">[docs]</a>    <span class="k">def</span> <span class="nf">with_stdin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                   <span class="n">disk_closed_callback</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A context manager yielding a stdin-suitable file-like object</span>
+<span class="sd">        based on the optional os_path and optionally skipping any</span>
+<span class="sd">        configured sub-command.</span>
+
+<span class="sd">        :param os_path: Optional path to base the file-like object</span>
+<span class="sd">            on.</span>
+<span class="sd">        :param skip_sub_command: Set True to skip any configured</span>
+<span class="sd">            sub-command filter.</span>
+<span class="sd">        :param disk_closed_callback: If the backing of the file-like</span>
+<span class="sd">            object is an actual file that will be closed,</span>
+<span class="sd">            disk_closed_callback (if set) will be called with the</span>
+<span class="sd">            on-disk path just after closing it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">skip_sub_command</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin_sub_command</span>
+        <span class="n">inn</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_in_and_path</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stdin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdin_root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">inn</span><span class="p">,</span> <span class="s">&#39;stdout&#39;</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">inn</span><span class="o">.</span><span class="n">stdout</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">inn</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">inn</span><span class="p">,</span> <span class="s">&#39;stdout&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">inn</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">(</span><span class="n">inn</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">inn</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">disk_closed_callback</span> <span class="ow">and</span> <span class="n">path</span><span class="p">:</span>
+                <span class="n">disk_closed_callback</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</div>
+    <span class="nd">@contextlib.contextmanager</span>
+<div class="viewcode-block" id="IOManager.with_stdout"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.with_stdout">[docs]</a>    <span class="k">def</span> <span class="nf">with_stdout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                    <span class="n">disk_closed_callback</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A context manager yielding a stdout-suitable file-like object</span>
+<span class="sd">        based on the optional os_path and optionally skipping any</span>
+<span class="sd">        configured sub-command.</span>
+
+<span class="sd">        :param os_path: Optional path to base the file-like object</span>
+<span class="sd">            on.</span>
+<span class="sd">        :param skip_sub_command: Set True to skip any configured</span>
+<span class="sd">            sub-command filter.</span>
+<span class="sd">        :param disk_closed_callback: If the backing of the file-like</span>
+<span class="sd">            object is an actual file that will be closed,</span>
+<span class="sd">            disk_closed_callback (if set) will be called with the</span>
+<span class="sd">            on-disk path just after closing it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">skip_sub_command</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_sub_command</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_out_and_path</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stdout</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stdout_root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">out</span><span class="o">.</span><span class="n">stdin</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">out</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">stdin</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">disk_closed_callback</span> <span class="ow">and</span> <span class="n">path</span><span class="p">:</span>
+                <span class="n">disk_closed_callback</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</div>
+    <span class="nd">@contextlib.contextmanager</span>
+<div class="viewcode-block" id="IOManager.with_stderr"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.with_stderr">[docs]</a>    <span class="k">def</span> <span class="nf">with_stderr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                    <span class="n">disk_closed_callback</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A context manager yielding a stderr-suitable file-like object</span>
+<span class="sd">        based on the optional os_path and optionally skipping any</span>
+<span class="sd">        configured sub-command.</span>
+
+<span class="sd">        :param os_path: Optional path to base the file-like object</span>
+<span class="sd">            on.</span>
+<span class="sd">        :param skip_sub_command: Set True to skip any configured</span>
+<span class="sd">            sub-command filter.</span>
+<span class="sd">        :param disk_closed_callback: If the backing of the file-like</span>
+<span class="sd">            object is an actual file that will be closed,</span>
+<span class="sd">            disk_closed_callback (if set) will be called with the</span>
+<span class="sd">            on-disk path just after closing it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">skip_sub_command</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_sub_command</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_out_and_path</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stderr_root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">out</span><span class="o">.</span><span class="n">stdin</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">out</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">stdin</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">disk_closed_callback</span> <span class="ow">and</span> <span class="n">path</span><span class="p">:</span>
+                <span class="n">disk_closed_callback</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</div>
+    <span class="nd">@contextlib.contextmanager</span>
+<div class="viewcode-block" id="IOManager.with_debug"><a class="viewcode-back" href="../../../swiftly_cli.html#swiftly.cli.iomanager.IOManager.with_debug">[docs]</a>    <span class="k">def</span> <span class="nf">with_debug</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">os_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">skip_sub_command</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                   <span class="n">disk_closed_callback</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A context manager yielding a debug-output-suitable file-like</span>
+<span class="sd">        object based on the optional os_path and optionally skipping</span>
+<span class="sd">        any configured sub-command.</span>
+
+<span class="sd">        :param os_path: Optional path to base the file-like object</span>
+<span class="sd">            on.</span>
+<span class="sd">        :param skip_sub_command: Set True to skip any configured</span>
+<span class="sd">            sub-command filter.</span>
+<span class="sd">        :param disk_closed_callback: If the backing of the file-like</span>
+<span class="sd">            object is an actual file that will be closed,</span>
+<span class="sd">            disk_closed_callback (if set) will be called with the</span>
+<span class="sd">            on-disk path just after closing it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sub_command</span> <span class="o">=</span> <span class="bp">None</span> <span class="k">if</span> <span class="n">skip_sub_command</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_sub_command</span>
+        <span class="n">out</span><span class="p">,</span> <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_out_and_path</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_root</span><span class="p">,</span> <span class="n">sub_command</span><span class="p">,</span> <span class="n">os_path</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">out</span><span class="o">.</span><span class="n">stdin</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">yield</span> <span class="n">out</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="s">&#39;stdin&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">out</span><span class="o">.</span><span class="n">stdin</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wait</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_close</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">disk_closed_callback</span> <span class="ow">and</span> <span class="n">path</span><span class="p">:</span>
+                <span class="n">disk_closed_callback</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 2.00 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

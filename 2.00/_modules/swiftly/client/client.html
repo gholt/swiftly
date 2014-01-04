@@ -1,0 +1,795 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>swiftly.client.client &mdash; Swiftly 2.00 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.00',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 2.00 documentation" href="../../../index.html" />
+    <link rel="up" title="swiftly" href="../../swiftly.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 2.00 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" accesskey="U">swiftly</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for swiftly.client.client</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Contains the base Client class for accessing Swift services.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+
+<span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="sd">you may not use this file except in compliance with the License.</span>
+<span class="sd">You may obtain a copy of the License at</span>
+
+<span class="sd">    http://www.apache.org/licenses/LICENSE-2.0</span>
+
+<span class="sd">Unless required by applicable law or agreed to in writing, software</span>
+<span class="sd">distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="sd">WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="sd">See the License for the specific language governing permissions and</span>
+<span class="sd">limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">swiftly</span> <span class="kn">import</span> <span class="n">VERSION</span>
+<span class="kn">from</span> <span class="nn">swiftly.client.utils</span> <span class="kn">import</span> <span class="n">quote</span>
+
+
+<div class="viewcode-block" id="Client"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client">[docs]</a><span class="k">class</span> <span class="nc">Client</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    The base class for accessing Swift services.</span>
+
+<span class="sd">    For concrete examples, see</span>
+<span class="sd">    :py:class:`swiftly.client.standardclient.StandardClient` and</span>
+<span class="sd">    :py:class:`swiftly.client.directclient.DirectClient`.</span>
+
+<span class="sd">    To form a new concrete subclass, you would need to implement</span>
+<span class="sd">    :py:func:`request` and :py:func:`get_account_hash` minimally and</span>
+<span class="sd">    optionally :py:func:`reset` and :py:func:`auth`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c">#: The string to use for the User-Agent request header.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user_agent</span> <span class="o">=</span> <span class="s">&#39;Swiftly v</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">VERSION</span>
+        <span class="c">#: These HTTP methods do not allow contents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_content_methods</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;COPY&#39;</span><span class="p">,</span> <span class="s">&#39;DELETE&#39;</span><span class="p">,</span> <span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;HEAD&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Client.reset"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the client, closing any connections and discarding any</span>
+<span class="sd">        state. This can be useful if some exceptional condition</span>
+<span class="sd">        occurred and the request/response state can no longer be</span>
+<span class="sd">        certain.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="Client.auth"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.auth">[docs]</a>    <span class="k">def</span> <span class="nf">auth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Just performs any authentication steps without making an</span>
+<span class="sd">        actual request to the Swift system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="Client.request"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                <span class="n">stream</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs a direct HTTP request to the Swift service.</span>
+
+<span class="sd">        :param method: The request method (&#39;GET&#39;, &#39;HEAD&#39;, etc.)</span>
+<span class="sd">        :param path: The request path.</span>
+<span class="sd">        :param contents: The body of the request. May be a string or</span>
+<span class="sd">            a file-like object.</span>
+<span class="sd">        :param headers: A dict of request headers and values.</span>
+<span class="sd">        :param decode_json: If set True, the response body will be</span>
+<span class="sd">            treated as JSON and decoded result returned instead of</span>
+<span class="sd">            the raw contents.</span>
+<span class="sd">        :param stream: If set True, the response body will return as</span>
+<span class="sd">            a file-like object; otherwise, the response body will be</span>
+<span class="sd">            read in its entirety and returned as a string. Overrides</span>
+<span class="sd">            decode_json.</span>
+<span class="sd">        :param query: A dict of query parameters and values to append</span>
+<span class="sd">            to the path.</span>
+<span class="sd">        :param cdn: If set True, the request will be sent to the CDN</span>
+<span class="sd">            management endpoint instead of the default storage</span>
+<span class="sd">            endpoint.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: An int for the HTTP status code.</span>
+<span class="sd">            :reason: The str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: A dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be</span>
+<span class="sd">                a list.</span>
+<span class="sd">            :contents: Depending on the decode_json and stream</span>
+<span class="sd">                settings, this will either be the raw response</span>
+<span class="sd">                string, the JSON decoded object, or a file-like</span>
+<span class="sd">                object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;request method not implemented&#39;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.get_account_hash"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.get_account_hash">[docs]</a>    <span class="k">def</span> <span class="nf">get_account_hash</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the account identifier for the Swift account being</span>
+<span class="sd">        accessed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&#39;get_account_hash method not implemented&#39;</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">_container_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">):</span>
+        <span class="n">container</span> <span class="o">=</span> <span class="n">container</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">container</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&#39;/&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">quote</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">quote</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_object_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">):</span>
+        <span class="n">container</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="c"># Leading/trailing slashes are allowed in object names, so don&#39;t strip</span>
+        <span class="c"># them.</span>
+        <span class="k">return</span> <span class="n">container</span> <span class="o">+</span> <span class="s">&#39;/&#39;</span> <span class="o">+</span> <span class="n">quote</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Client.head_account"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.head_account">[docs]</a>    <span class="k">def</span> <span class="nf">head_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        HEADs the account and returns the results. Useful headers</span>
+<span class="sd">        returned are:</span>
+
+<span class="sd">        =========================== =================================</span>
+<span class="sd">        x-account-bytes-used        Object storage used for the</span>
+<span class="sd">                                    account, in bytes.</span>
+<span class="sd">        x-account-container-count   The number of containers in the</span>
+<span class="sd">                                    account.</span>
+<span class="sd">        x-account-object-count      The number of objects in the</span>
+<span class="sd">                                    account.</span>
+<span class="sd">        =========================== =================================</span>
+
+<span class="sd">        Also, any user headers beginning with x-account-meta- are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        These values can be delayed depending the Swift cluster.</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.get_account"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.get_account">[docs]</a>    <span class="k">def</span> <span class="nf">get_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                    <span class="n">marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                    <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        GETs the account and returns the results. This is done to list</span>
+<span class="sd">        the containers for the account. Some useful headers are also</span>
+<span class="sd">        returned:</span>
+
+<span class="sd">        =========================== =================================</span>
+<span class="sd">        x-account-bytes-used        Object storage used for the</span>
+<span class="sd">                                    account, in bytes.</span>
+<span class="sd">        x-account-container-count   The number of containers in the</span>
+<span class="sd">                                    account.</span>
+<span class="sd">        x-account-object-count      The number of objects in the</span>
+<span class="sd">                                    account.</span>
+<span class="sd">        =========================== =================================</span>
+
+<span class="sd">        Also, any user headers beginning with x-account-meta- are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        These values can be delayed depending the Swift cluster.</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param prefix: The prefix container names must match to be</span>
+<span class="sd">            listed.</span>
+<span class="sd">        :param delimiter: The delimiter for the listing. Delimiters</span>
+<span class="sd">            indicate how far to progress through container names</span>
+<span class="sd">            before &quot;rolling them up&quot;. For instance, a delimiter=&#39;.&#39;</span>
+<span class="sd">            query on an account with the containers::</span>
+
+<span class="sd">                one.one</span>
+<span class="sd">                one.two</span>
+<span class="sd">                two</span>
+<span class="sd">                three.one</span>
+
+<span class="sd">            would return the JSON value of::</span>
+
+<span class="sd">                [{&#39;subdir&#39;: &#39;one.&#39;},</span>
+<span class="sd">                 {&#39;count&#39;: 0, &#39;bytes&#39;: 0, &#39;name&#39;: &#39;two&#39;},</span>
+<span class="sd">                 {&#39;subdir&#39;: &#39;three.&#39;}]</span>
+
+<span class="sd">            Using this with prefix can allow you to traverse a psuedo</span>
+<span class="sd">            hierarchy.</span>
+<span class="sd">        :param marker: Only container names after this marker will be</span>
+<span class="sd">            returned. Swift returns a limited number of containers</span>
+<span class="sd">            per request (often 10,000). To get the next batch of</span>
+<span class="sd">            names, you issue another query with the marker set to the</span>
+<span class="sd">            last name you received. You can continue to issue</span>
+<span class="sd">            requests until you receive no more names.</span>
+<span class="sd">        :param end_marker: Only container names before this marker will be</span>
+<span class="sd">            returned.</span>
+<span class="sd">        :param limit: Limits the size of the list returned per</span>
+<span class="sd">            request. The default and maximum depends on the Swift</span>
+<span class="sd">            cluster (usually 10,000).</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param decode_json: If set False, the usual decoding of the</span>
+<span class="sd">            JSON response will be skipped and the raw contents will</span>
+<span class="sd">            be returned instead.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the decoded JSON response or the raw str</span>
+<span class="sd">                for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">query</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="n">query</span><span class="p">[</span><span class="s">&#39;format&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span>
+        <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">delimiter</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;delimiter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delimiter</span>
+        <span class="k">if</span> <span class="n">marker</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">marker</span>
+        <span class="k">if</span> <span class="n">end_marker</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;end_marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_marker</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;limit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">limit</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="n">decode_json</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+            <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.put_account"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.put_account">[docs]</a>    <span class="k">def</span> <span class="nf">put_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        PUTs the account and returns the results. This is usually</span>
+<span class="sd">        done with the extract-archive bulk upload request and has no</span>
+<span class="sd">        other use I know of (but the call is left open in case there</span>
+<span class="sd">        ever is).</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param body: Some account PUT requests, like the</span>
+<span class="sd">            extract-archive bulk upload request, take a body.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">body</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.post_account"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.post_account">[docs]</a>    <span class="k">def</span> <span class="nf">post_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        POSTs the account and returns the results. This is usually</span>
+<span class="sd">        done to set X-Account-Meta-xxx headers. Note that any existing</span>
+<span class="sd">        X-Account-Meta-xxx headers will remain untouched. To remove an</span>
+<span class="sd">        X-Account-Meta-xxx header, send the header with an empty</span>
+<span class="sd">        string as its value.</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param body: No known Swift POSTs take a body; but the option</span>
+<span class="sd">            is there for the future.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">body</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.delete_account"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.delete_account">[docs]</a>    <span class="k">def</span> <span class="nf">delete_account</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                       <span class="n">yes_i_mean_delete_the_account</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                       <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends a DELETE request to the account and returns the results.</span>
+
+<span class="sd">        With ``query[&#39;bulk-delete&#39;] = &#39;&#39;`` this might mean a bulk</span>
+<span class="sd">        delete request where the body of the request is new-line</span>
+<span class="sd">        separated, url-encoded list of names to delete. Be careful</span>
+<span class="sd">        with this! One wrong move and you might mark your account for</span>
+<span class="sd">        deletion of you have the access to do so!</span>
+
+<span class="sd">        For a plain DELETE to the account, on clusters that support</span>
+<span class="sd">        it and, assuming you have permissions to do so, the account</span>
+<span class="sd">        will be marked as deleted and immediately begin removing the</span>
+<span class="sd">        objects from the cluster in the backgound.</span>
+
+<span class="sd">        THERE IS NO GOING BACK!</span>
+
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param yes_i_mean_delete_the_account: Set to True to verify</span>
+<span class="sd">            you really mean to delete the entire account. This is</span>
+<span class="sd">            required unless ``body and &#39;bulk-delete&#39; in query``.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param body: Some account DELETE requests, like the bulk</span>
+<span class="sd">            delete request, take a body.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be</span>
+<span class="sd">                a list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">yes_i_mean_delete_the_account</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">body</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">query</span> <span class="ow">or</span> <span class="s">&#39;bulk-delete&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">query</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s">&#39;yes_i_mean_delete_the_account was not set to True&#39;</span><span class="p">,</span> <span class="p">{},</span>
+                    <span class="s">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;DELETE&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">body</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.head_container"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.head_container">[docs]</a>    <span class="k">def</span> <span class="nf">head_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        HEADs the container and returns the results. Useful headers</span>
+<span class="sd">        returned are:</span>
+
+<span class="sd">        =========================== =================================</span>
+<span class="sd">        x-container-bytes-used      Object storage used for the</span>
+<span class="sd">                                    container, in bytes.</span>
+<span class="sd">        x-container-object-count    The number of objects in the</span>
+<span class="sd">                                    container.</span>
+<span class="sd">        =========================== =================================</span>
+
+<span class="sd">        Also, any user headers beginning with x-container-meta- are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        These values can be delayed depending the Swift cluster.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.get_container"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.get_container">[docs]</a>    <span class="k">def</span> <span class="nf">get_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">prefix</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                      <span class="n">delimiter</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">end_marker</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                      <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">decode_json</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        GETs the container and returns the results. This is done to</span>
+<span class="sd">        list the objects for the container. Some useful headers are</span>
+<span class="sd">        also returned:</span>
+
+<span class="sd">        =========================== =================================</span>
+<span class="sd">        x-container-bytes-used      Object storage used for the</span>
+<span class="sd">                                    container, in bytes.</span>
+<span class="sd">        x-container-object-count    The number of objects in the</span>
+<span class="sd">                                    container.</span>
+<span class="sd">        =========================== =================================</span>
+
+<span class="sd">        Also, any user headers beginning with x-container-meta- are</span>
+<span class="sd">        returned.</span>
+
+<span class="sd">        These values can be delayed depending the Swift cluster.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param prefix: The prefix object names must match to be</span>
+<span class="sd">            listed.</span>
+<span class="sd">        :param delimiter: The delimiter for the listing. Delimiters</span>
+<span class="sd">            indicate how far to progress through object names before</span>
+<span class="sd">            &quot;rolling them up&quot;. For instance, a delimiter=&#39;/&#39; query on</span>
+<span class="sd">            an container with the objects::</span>
+
+<span class="sd">                one/one</span>
+<span class="sd">                one/two</span>
+<span class="sd">                two</span>
+<span class="sd">                three/one</span>
+
+<span class="sd">            would return the JSON value of::</span>
+
+<span class="sd">                [{&#39;subdir&#39;: &#39;one/&#39;},</span>
+<span class="sd">                 {&#39;count&#39;: 0, &#39;bytes&#39;: 0, &#39;name&#39;: &#39;two&#39;},</span>
+<span class="sd">                 {&#39;subdir&#39;: &#39;three/&#39;}]</span>
+
+<span class="sd">            Using this with prefix can allow you to traverse a psuedo</span>
+<span class="sd">            hierarchy.</span>
+<span class="sd">        :param marker: Only object names after this marker will be</span>
+<span class="sd">            returned. Swift returns a limited number of objects per</span>
+<span class="sd">            request (often 10,000). To get the next batch of names,</span>
+<span class="sd">            you issue another query with the marker set to the last</span>
+<span class="sd">            name you received. You can continue to issue requests</span>
+<span class="sd">            until you receive no more names.</span>
+<span class="sd">        :param end_marker: Only object names before this marker will be</span>
+<span class="sd">            returned.</span>
+<span class="sd">        :param limit: Limits the size of the list returned per</span>
+<span class="sd">            request. The default and maximum depends on the Swift</span>
+<span class="sd">            cluster (usually 10,000).</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param decode_json: If set False, the usual decoding of the</span>
+<span class="sd">            JSON response will be skipped and the raw contents will</span>
+<span class="sd">            be returned instead.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the decoded JSON response or the raw str</span>
+<span class="sd">                for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">query</span> <span class="ow">or</span> <span class="p">{})</span>
+        <span class="n">query</span><span class="p">[</span><span class="s">&#39;format&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;json&#39;</span>
+        <span class="k">if</span> <span class="n">prefix</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;prefix&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="k">if</span> <span class="n">delimiter</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;delimiter&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delimiter</span>
+        <span class="k">if</span> <span class="n">marker</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">marker</span>
+        <span class="k">if</span> <span class="n">end_marker</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;end_marker&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">end_marker</span>
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">query</span><span class="p">[</span><span class="s">&#39;limit&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">limit</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">),</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span>
+            <span class="n">decode_json</span><span class="o">=</span><span class="n">decode_json</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.put_container"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.put_container">[docs]</a>    <span class="k">def</span> <span class="nf">put_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                      <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        PUTs the container and returns the results. This is usually</span>
+<span class="sd">        done to create new containers and can also be used to set</span>
+<span class="sd">        X-Container-Meta-xxx headers. Note that if the container</span>
+<span class="sd">        already exists, any existing X-Container-Meta-xxx headers will</span>
+<span class="sd">        remain untouched. To remove an X-Container-Meta-xxx header,</span>
+<span class="sd">        send the header with an empty string as its value.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param body: Some container PUT requests, like the</span>
+<span class="sd">            extract-archive bulk upload request, take a body.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">body</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.post_container"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.post_container">[docs]</a>    <span class="k">def</span> <span class="nf">post_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                       <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        POSTs the container and returns the results. This is usually</span>
+<span class="sd">        done to set X-Container-Meta-xxx headers. Note that any</span>
+<span class="sd">        existing X-Container-Meta-xxx headers will remain untouched.</span>
+<span class="sd">        To remove an X-Container-Meta-xxx header, send the header with</span>
+<span class="sd">        an empty string as its value.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param body: No known Swift POSTs take a body; but the option</span>
+<span class="sd">            is there for the future.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">body</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.delete_container"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.delete_container">[docs]</a>    <span class="k">def</span> <span class="nf">delete_container</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                         <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DELETEs the container and returns the results.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param body: Some container DELETE requests might take a body</span>
+<span class="sd">            in the future.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_container_path</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;DELETE&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">body</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.head_object"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.head_object">[docs]</a>    <span class="k">def</span> <span class="nf">head_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        HEADs the object and returns the results.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;HEAD&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.get_object"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.get_object">[docs]</a>    <span class="k">def</span> <span class="nf">get_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                   <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        GETs the object and returns the results.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param stream: Indicates whether to stream the contents or</span>
+<span class="sd">            preread them fully and return them as a str. Default:</span>
+<span class="sd">            True to stream the contents. When streaming, contents</span>
+<span class="sd">            will have the standard file-like-object read function,</span>
+<span class="sd">            which accepts an optional size parameter to limit how</span>
+<span class="sd">            much data is read per call. When streaming is on, be</span>
+<span class="sd">            certain to fully read the contents before issuing another</span>
+<span class="sd">            request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: if *stream* was True, *contents* is a</span>
+<span class="sd">                file-like-object of the contents of the HTTP body. If</span>
+<span class="sd">                *stream* was False, *contents* is just a simple str of</span>
+<span class="sd">                the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;GET&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">stream</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.put_object"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.put_object">[docs]</a>    <span class="k">def</span> <span class="nf">put_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                   <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        PUTs the object and returns the results. This is used to</span>
+<span class="sd">        create or overwrite objects. X-Object-Meta-xxx can optionally</span>
+<span class="sd">        be sent to be stored with the object. Content-Type,</span>
+<span class="sd">        Content-Encoding and other standard HTTP headers can often</span>
+<span class="sd">        also be set, depending on the Swift cluster.</span>
+
+<span class="sd">        Note that you can set the ETag header to the MD5 sum of the</span>
+<span class="sd">        contents for extra verification the object was stored</span>
+<span class="sd">        correctly.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param contents: The contents of the object to store. This can</span>
+<span class="sd">            be a simple str, or a file-like-object with at least a</span>
+<span class="sd">            read function. If the file-like-object also has tell and</span>
+<span class="sd">            seek functions, the PUT can be reattempted on any server</span>
+<span class="sd">            error.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;PUT&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">contents</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.post_object"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.post_object">[docs]</a>    <span class="k">def</span> <span class="nf">post_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                    <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        POSTs the object and returns the results. This is used to</span>
+<span class="sd">        update the object&#39;s header values. Note that all headers must</span>
+<span class="sd">        be sent with the POST, unlike the account and container POSTs.</span>
+<span class="sd">        With account and container POSTs, existing headers are</span>
+<span class="sd">        untouched. But with object POSTs, any existing headers are</span>
+<span class="sd">        removed. The full list of supported headers depends on the</span>
+<span class="sd">        Swift cluster, but usually include Content-Type,</span>
+<span class="sd">        Content-Encoding, and any X-Object-Meta-xxx headers.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param body: No known Swift POSTs take a body; but the option</span>
+<span class="sd">            is there for the future.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;POST&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">body</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Client.delete_object"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.client.Client.delete_object">[docs]</a>    <span class="k">def</span> <span class="nf">delete_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                      <span class="n">cdn</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        DELETEs the object and returns the results.</span>
+
+<span class="sd">        :param container: The name of the container.</span>
+<span class="sd">        :param obj: The name of the object.</span>
+<span class="sd">        :param headers: Additional headers to send with the request.</span>
+<span class="sd">        :param query: Set to a dict of query values to send on the</span>
+<span class="sd">            query string of the request.</span>
+<span class="sd">        :param cdn: If set True, the CDN management interface will be</span>
+<span class="sd">            used.</span>
+<span class="sd">        :param body: Some object DELETE requests might take a body in</span>
+<span class="sd">            the future.</span>
+<span class="sd">        :returns: A tuple of (status, reason, headers, contents).</span>
+
+<span class="sd">            :status: is an int for the HTTP status code.</span>
+<span class="sd">            :reason: is the str for the HTTP status (ex: &quot;Ok&quot;).</span>
+<span class="sd">            :headers: is a dict with all lowercase keys of the HTTP</span>
+<span class="sd">                headers; if a header has multiple values, it will be a</span>
+<span class="sd">                list.</span>
+<span class="sd">            :contents: is the str for the HTTP body.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_object_path</span><span class="p">(</span><span class="n">container</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span>
+            <span class="s">&#39;DELETE&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">body</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span><span class="p">,</span> <span class="n">headers</span><span class="p">,</span> <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span> <span class="n">cdn</span><span class="o">=</span><span class="n">cdn</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Swiftly 2.00 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li><a href="../../swiftly.html" >swiftly</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>
