@@ -18,6 +18,15 @@ Swiftly
     ``sudo chmod -R og+r /Library/Python/2.7/site-packages`` in order to run
     swiftly.
 
+CHANGES
+-------
+
+.. toctree::
+    :maxdepth: 1
+
+    changes_2_00
+
+
 API Reference
 -------------
 

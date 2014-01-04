@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Changes in Swiftly 2.00 &mdash; Swiftly 1.99 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.99',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 1.99 documentation" href="index.html" />
+    <link rel="next" title="LICENSE" href="license.html" />
+    <link rel="prev" title="Swiftly" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="license.html" title="LICENSE"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Swiftly"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Swiftly 1.99 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="changes-in-swiftly-2-00">
+<h1>Changes in Swiftly 2.00<a class="headerlink" href="#changes-in-swiftly-2-00" title="Permalink to this headline">¶</a></h1>
+<p>This release was a major refactor with the internals of the library. The command line tool itself remained essentially backward compatible, with the exception of the -I option going away for delete, post, and put. See below for full details of what changed and what got added.</p>
+<div class="section" id="bin-swiftly">
+<h2>bin/swiftly<a class="headerlink" href="#bin-swiftly" title="Permalink to this headline">¶</a></h2>
+<p>The command line tool itself, swiftly, really hasn&#8217;t changed much in its usage. There is the exception that -I has gone away for deletes, posts, and puts. Instead, -i now supports a single dash as representing stdin and representing you want a body even when one is not normally used. So what was <tt class="docutils literal"><span class="pre">somecommand</span> <span class="pre">|</span> <span class="pre">swiftly</span> <span class="pre">delete</span> <span class="pre">-I</span></tt> is now <tt class="docutils literal"><span class="pre">somecommand</span> <span class="pre">|</span> <span class="pre">swiftly</span> <span class="pre">delete</span> <span class="pre">-i</span> <span class="pre">-</span></tt> and what was <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">delete</span> <span class="pre">-Ii</span> <span class="pre">somefile</span></tt> is now <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">delete</span> <span class="pre">-i</span> <span class="pre">somefile</span></tt>.</p>
+<p>There&#8217;s a new environment variable option, SWIFTLY_CONCURRENCY, so you don&#8217;t have to specify &#8211;concurrency all the time.</p>
+<p>The auth command got a bit more information.</p>
+<p>The get command got a new &#8211;remove-empty-files option that is pretty useful in conjunction with &#8211;sub-command. It just removes any files it stores on disk that end up empty (presumably after having gone through a sub-command filter).</p>
+<p>The put command now supports &#8211;encrypt=KEY and the get command now supports &#8211;decrypt=KEY to use AES 256 in CBC mode via PyCrypt <a class="reference external" href="https://www.dlitz.net/software/pycrypto/">https://www.dlitz.net/software/pycrypto/</a> (perhaps more options later). You can also specify the key with the SWIFTLY_CRYPT_KEY environment variable.</p>
+<p>Made -H a synonym for -h and made -h with no header information get treated as a request for help since those are common usage patterns.</p>
+<p>Overall improvements to the ping command.</p>
+<p>New &#8216;for ... do ...&#8217; command. This will issue the command after the &#8216;do&#8217; for each item encountered from the &#8216;for&#8217;. For example: <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">for</span> <span class="pre">my_container</span> <span class="pre">do</span> <span class="pre">post</span> <span class="pre">-hx-detect-content-type:true</span> <span class="pre">&quot;&lt;item&gt;&quot;</span></tt> will send a POST for every object in &#8216;my_container&#8217; with that header, resetting their content types. See <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span> <span class="pre">for</span></tt> for more information.</p>
+</div>
+<div class="section" id="swiftly-client">
+<h2>swiftly.client<a class="headerlink" href="#swiftly-client" title="Permalink to this headline">¶</a></h2>
+<p>What was a single file is now multiple files under the swiftly.client package. This should make it much easier to maintain but does mean outside code that uses swiftly.client will have to be updated. This usually just means an update to how the Client instance is created (now use StandardClient or DirectClient with the appropriate options for each instead of just Client which was getting messy).</p>
+<blockquote>
+<div><ul class="simple">
+<li>swiftly.client.client - Base class Client; to form a new concrete subclass, you would need to implement &#8216;request&#8217; and &#8216;get_account_hash&#8217; minimally and optionally &#8216;reset&#8217; and &#8216;auth&#8217;.</li>
+<li>swiftly.client.directclient - The direct-cluster-access implementation of the client.</li>
+<li>swiftly.client.localmemcache - Same as before, just moved out into its own file.</li>
+<li>swiftly.client.manager - A useful class for managing a set of client connections.</li>
+<li>swiftly.client.nulllogger - Same as before, just moved out into its own file.</li>
+<li>swiftly.client.standardclient - The standard-cluster-access implementation of the client.</li>
+<li>swiftly.client.utils - General utility code useful when working with Swift and Swiftly, such as &#8216;generate_temp_url&#8217; and &#8216;get_trans_id_time&#8217;.</li>
+</ul>
+</div></blockquote>
+<p>More features were added too:</p>
+<blockquote>
+<div><ul class="simple">
+<li>The swiftly.client.manager for one, mentioned above.</li>
+<li>New decode_json option for account and container listings, allowing you to have access to the raw JSON output instead of having it decoded for you.</li>
+</ul>
+</div></blockquote>
+<p>There were some bugs fixed along the way as well:</p>
+<blockquote>
+<div><ul class="simple">
+<li>The auth caching now uses a more secure method and should no longer be prone to race conditions.</li>
+<li>More Exceptions are now caught; courtesy of IAD closing my connections mid-stream so often.</li>
+<li>Fixed bug with case-mismatched output headers; previously it could send out User-Agent and user-agent for example.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="swiftly-cli">
+<h2>swiftly.cli<a class="headerlink" href="#swiftly-cli" title="Permalink to this headline">¶</a></h2>
+<p>Again, what was a single file is now multiple files under the swiftly.cli package. This should make it much easier to maintain and add new commands.</p>
+<blockquote>
+<div><ul class="simple">
+<li>swiftly.cli.cli - Contains the main entry point for the command line tool.</li>
+<li>swiftly.cli.command - Base class for each command the swiftly command line tool supports.</li>
+<li>swiftly.cli.context - Contextual information (command line options, client/input/output managers, etc.) passed around as needed.</li>
+<li>swiftly.cli.iomanager - Manages file-like objects for input and output for the command line tool, to include calling out to sub-command shells.</li>
+<li>swiftly.cli.optionparser - Extended optparse.OptionParser for use with the swiftly command line tool.</li>
+<li>Each of the various commands for the swiftly command line tool each have their own file now. This includes auth, decrypt, delete, encrypt, fordo, get, head, help, ping, post, put, tempurl, and trans.</li>
+</ul>
+</div></blockquote>
+<p>More features were added, as hinted at above:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Verbose output got a bit more verbose by including the headers sent.</li>
+<li>New decrypt and encrypt commands.</li>
+</ul>
+</div></blockquote>
+<p>There were some bugs fixed as well:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Raw output of listings is now really the raw output instead of decoded and then re-encoded JSON.</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="swiftly-concurrency">
+<h2>swiftly.concurrency<a class="headerlink" href="#swiftly-concurrency" title="Permalink to this headline">¶</a></h2>
+<p>This has always been a bit of work-in-progress. It has changed to capture any Exceptions and Timeouts and return that information as well as actual results. Anybody using this (which is probably nobody but Swiftly itself) will have to update accordingly.</p>
+</div>
+<div class="section" id="swiftly-dencrypt">
+<h2>swiftly.dencrypt<a class="headerlink" href="#swiftly-dencrypt" title="Permalink to this headline">¶</a></h2>
+<p>General code for the new decrypt and encrypt AES options.</p>
+</div>
+<div class="section" id="swiftly-filelikeiter">
+<h2>swiftly.filelikeiter<a class="headerlink" href="#swiftly-filelikeiter" title="Permalink to this headline">¶</a></h2>
+<p>Wraps an iterable to behave as a file-like object. Based on some code I had done for Swift itself and needed for the new decrypt and encrypt options.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Changes in Swiftly 2.00</a><ul>
+<li><a class="reference internal" href="#bin-swiftly">bin/swiftly</a></li>
+<li><a class="reference internal" href="#swiftly-client">swiftly.client</a></li>
+<li><a class="reference internal" href="#swiftly-cli">swiftly.cli</a></li>
+<li><a class="reference internal" href="#swiftly-concurrency">swiftly.concurrency</a></li>
+<li><a class="reference internal" href="#swiftly-dencrypt">swiftly.dencrypt</a></li>
+<li><a class="reference internal" href="#swiftly-filelikeiter">swiftly.filelikeiter</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Swiftly</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="license.html"
+                        title="next chapter">LICENSE</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/changes_2_00.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="license.html" title="LICENSE"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Swiftly"
+             >previous</a> |</li>
+        <li><a href="index.html">Swiftly 1.99 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2013, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>
