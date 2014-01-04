@@ -123,10 +123,16 @@ def cli_get_account_listing(context):
                 fp, headers, context.muted_account_headers)
     while contents:
         if context.all_objects:
+            new_context = context.copy()
+            new_context.query = dict(new_context.query)
+            for remove in (
+                    'limit', 'delimiter', 'prefix', 'marker', 'end_marker'):
+                if remove in new_context.query:
+                    del new_context.query[remove]
             for item in contents:
                 if 'name' in item:
                     new_path = item['name'].encode('utf8')
-                    cli_get_container_listing(context, new_path)
+                    cli_get_container_listing(new_context, new_path)
         else:
             with context.io_manager.with_stdout() as fp:
                 for item in contents:
@@ -212,6 +218,12 @@ def cli_get_container_listing(context, path=None):
     conc = Concurrency(context.concurrency)
     while contents:
         if context.all_objects:
+            new_context = context.copy()
+            new_context.query = dict(new_context.query)
+            for remove in (
+                    'limit', 'delimiter', 'prefix', 'marker', 'end_marker'):
+                if remove in new_context.query:
+                    del new_context.query[remove]
             for item in contents:
                 if 'name' in item:
                     for (exc_type, exc_value, exc_tb, result) in \
@@ -220,7 +232,7 @@ def cli_get_container_listing(context, path=None):
                             conc.join()
                             raise exc_value
                     new_path = path + '/' + item['name'].encode('utf8')
-                    conc.spawn(new_path, cli_get, context, new_path)
+                    conc.spawn(new_path, cli_get, new_context, new_path)
         else:
             with context.io_manager.with_stdout() as fp:
                 for item in contents:
