@@ -349,7 +349,8 @@ class StandardClient(Client):
                 self.default_region = \
                     body['access']['user'].get('RAX-AUTH:defaultRegion')
                 region = self.region or self.default_region or ''
-                storage_match1 = storage_match2 = storage_match3 = None
+                storage_match1 = storage_match2 = storage_match3 = \
+                    storage_match4 = None
                 cdn_match1 = cdn_match2 = cdn_match3 = None
                 for service in body['access']['serviceCatalog']:
                     if service['type'] == 'object-store':
@@ -363,6 +364,10 @@ class StandardClient(Client):
                                 elif endpoint['region'].lower() == \
                                         region.lower():
                                     storage_match2 = endpoint.get(
+                                        'internalURL'
+                                        if self.snet else 'publicURL')
+                                elif not region:
+                                    storage_match4 = endpoint.get(
                                         'internalURL'
                                         if self.snet else 'publicURL')
                             elif not storage_match3:
@@ -380,7 +385,8 @@ class StandardClient(Client):
                             elif not cdn_match3:
                                 cdn_match3 = endpoint.get('publicURL')
                 self.storage_url = \
-                    storage_match1 or storage_match2 or storage_match3
+                    storage_match1 or storage_match2 or storage_match3 \
+                    or storage_match4
                 self.cdn_url = cdn_match1 or cdn_match2 or cdn_match3
                 self.auth_token = body['access']['token']['id']
                 if not self.storage_url:
