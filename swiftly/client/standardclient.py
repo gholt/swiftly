@@ -366,7 +366,7 @@ class StandardClient(Client):
                                     storage_match2 = endpoint.get(
                                         'internalURL'
                                         if self.snet else 'publicURL')
-                                elif not region:
+                                elif not (region or storage_match4):
                                     storage_match4 = endpoint.get(
                                         'internalURL'
                                         if self.snet else 'publicURL')
