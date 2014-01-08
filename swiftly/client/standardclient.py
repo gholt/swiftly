@@ -349,7 +349,7 @@ class StandardClient(Client):
                 self.default_region = \
                     body['access']['user'].get('RAX-AUTH:defaultRegion')
                 region = self.region or self.default_region or ''
-                storage_match1 = storage_match2 = storage_match3 \
+                storage_match1 = storage_match2 = storage_match3 = \
                     storage_match4 = None
                 cdn_match1 = cdn_match2 = cdn_match3 = None
                 for service in body['access']['serviceCatalog']:
