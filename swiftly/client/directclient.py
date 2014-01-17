@@ -184,7 +184,7 @@ class DirectClient(Client):
             reason = resp.status.split(' ', 1)[1]
             hdrs = headers_to_dict(resp.headers.items())
             if stream:
-                def iter_reader(self, size=-1):
+                def iter_reader(size=-1):
                     if size == -1:
                         return ''.join(resp.app_iter)
                     else:
