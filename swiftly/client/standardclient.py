@@ -208,7 +208,7 @@ class StandardClient(Client):
         """
         self.reset()
         if not self.auth_url:
-            return
+            raise ValueError('No Auth URL has been provided.')
         funcs = []
         if self.auth_methods:
             for method in self.auth_methods.split(','):

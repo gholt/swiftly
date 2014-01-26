@@ -72,6 +72,10 @@ def cli_auth(context):
             info.append(('CDN URL', client.cdn_url))
         if getattr(client, 'auth_token', None):
             info.append(('Auth Token', client.auth_token))
+        if not info:
+            info.append((
+                'No auth information available',
+                'Maybe no credentials were provided?'))
         fmt = '%%-%ds %%s\n' % (max(len(t) for t, v in info) + 1)
         for t, v in info:
             fp.write(fmt % (t + ':', v))
