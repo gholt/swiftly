@@ -29,7 +29,8 @@ from swiftly import VERSION
 from swiftly.cli.context import CLIContext
 from swiftly.cli.iomanager import IOManager
 from swiftly.cli.optionparser import OptionParser
-from swiftly.client import ClientManager, DirectClient, StandardClient
+from swiftly.client import ClientManager, DirectClient, LocalClient, \
+    StandardClient
 
 
 #: The list of CLICommand classes avaiable to CLI. You'll want to add any new
@@ -167,6 +168,11 @@ configuration file variables.
                  'to rings and backend servers. The PATH is the account '
                  'path, example: /v1/AUTH_test')
         self.option_parser.add_option(
+            '-L', '--local', dest='local', metavar='PATH',
+            help='Uses the local file system method to access a fake Swift. '
+                 'The PATH is the path on the local file system where the '
+                 'fake Swift stores its data.')
+        self.option_parser.add_option(
             '-P', '--proxy', dest='proxy', metavar='URL',
             help='Uses the given HTTP proxy URL.')
         self.option_parser.add_option(
@@ -293,9 +299,9 @@ configuration file variables.
 
         for option_name in (
                 'auth_url', 'auth_user', 'auth_key', 'auth_tenant',
-                'auth_methods', 'region', 'direct', 'proxy', 'snet', 'no_snet',
-                'retries', 'cache_auth', 'no_cache_auth', 'cdn', 'no_cdn',
-                'concurrency', 'eventlet', 'no_eventlet', 'verbose',
+                'auth_methods', 'region', 'direct', 'local', 'proxy', 'snet',
+                'no_snet', 'retries', 'cache_auth', 'no_cache_auth', 'cdn',
+                'no_cdn', 'concurrency', 'eventlet', 'no_eventlet', 'verbose',
                 'no_verbose'):
             self._resolve_option(options, option_name, 'swiftly')
         for option_name in (
@@ -368,7 +374,10 @@ configuration file variables.
                 self._verbose, skip_sub_command=True)
 
         options.retries = int(options.retries)
-        if options.direct:
+        if options.local:
+            self.context.client_manager = ClientManager(
+                LocalClient, local_path=options.local, verbose=self._verbose)
+        elif options.direct:
             self.context.client_manager = ClientManager(
                 DirectClient, swift_proxy_storage_path=options.direct,
                 attempts=options.retries + 1, eventlet=self.context.eventlet,

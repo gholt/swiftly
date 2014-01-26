@@ -58,6 +58,8 @@ def cli_auth(context):
             info.append(('Direct Storage Path', client.storage_path))
         if getattr(client, 'cdn_path', None):
             info.append(('Direct CDN Path', client.cdn_path))
+        if getattr(client, 'local_path', None):
+            info.append(('Local Path', client.local_path))
         if getattr(client, 'regions', None):
             info.append(('Regions', ' '.join(client.regions)))
         if getattr(client, 'default_region', None):
