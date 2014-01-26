@@ -1,0 +1,54 @@
+[swiftly]
+# auth-url = <url>
+#   The URL to the auth system, example:
+#   https://identity.api.rackspacecloud.com/v2.0
+# auth-user = <user>
+#   The user name for the auth system, example: test:tester
+# auth-key = <key>
+#   The key for the auth system, example: testing
+# auth-tenant = <tenant>
+#   The tenant name for the auth system, example: test
+#   If not specified and needed, the auth user will be used.
+# auth-methods = <name>[,<name>[...]]
+#   Auth methods to use with the auth system, example:
+#   auth2key,auth2password,auth2password_force_tenant,auth1
+#   The best order will try to be determined for you; but if you notice it
+#   keeps making useless auth attempts and that drives you crazy, you can
+#   override that here. All the available auth methods are listed in the
+#   example.
+# region = <value>
+#   Region to use, if supported by auth, example: DFW
+#   Default: default region specified by the auth response.
+# direct = <path>
+#   Uses direct connect method to access Swift. Requires access to rings and
+#   backend servers. The PATH is the account path, example: /v1/AUTH_test
+# proxy = <url>
+#   Uses the given HTTP proxy URL.
+# snet = <boolean>
+#   If set true, prepends the storage URL host name with "snet-". Mostly only
+#   useful with Rackspace Cloud Files and Rackspace ServiceNet.
+# retries = <integer>
+#   Indicates how many times to retry the request on a server error. Default: 4
+# cache-auth = <boolean>
+#   If set true, the storage URL and auth token are cached in your OS temporary
+#   directory as <user>.swiftly for reuse. If there are already cached values,
+#   they are used without authenticating first.
+# cdn = <boolean>
+#   If set true, directs requests to the CDN management interface.
+# concurrency = <integer>
+#   Sets the the number of actions that can be done simultaneously when
+#   possible (currently requires using Eventlet too). Default: 1
+#   Note that some nested actions may amplify the number of concurrent actions.
+#   For instance, a put of an entire directory will use up to this number of
+#   concurrent actions. A put of a segmented object will use up to this number
+#   of concurrent actions. But, if a directory structure put is uploading
+#   segmented objects, this nesting could cause up to <integer> * <integer>
+#   concurrent actions.
+# eventlet = <boolean>
+#   If set true, enables Eventlet, if installed. This is disabled by default if
+#   Eventlet is not installed or is less than version 0.11.0 (because older
+#   Swiftly+Eventlet tends to use excessive CPU.
+# verbose = <boolean>
+#   Causes output to standard error indicating actions being taken. These
+#   output lines will be prefixed with VERBOSE and will also include the number
+#   of seconds elapsed since the command started.

@@ -553,7 +553,7 @@ class StandardClient(Client):
                     resp.close()
             except Exception as err:
                 status = 0
-                reason = str(err)
+                reason = '%s %s' % (type(err), str(err))
                 hdrs = {}
                 value = None
             self.verbose('< %s %s', status or '-', reason)
