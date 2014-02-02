@@ -571,7 +571,7 @@ class StandardClient(Client):
                         value = None
                 return (status, reason, hdrs, value)
             else:
-                if stream:
+                if stream and value:
                     value.close()
                 conn.close()
             if reset_func:
