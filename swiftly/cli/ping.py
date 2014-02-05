@@ -118,7 +118,7 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
                 if context.ping_verbose:
                     fp.write(
                         '        best %.02fs, worst %.02fs, mean %.02fs, '
-                        'median %.02fs\n        %d slower than 2s or twice '
+                        'median %.02fs\n        %d slower than 2s and twice '
                         'the mean, %.02f%%\n' % (
                             best, worst, mean, median, slows, slow_percentage))
                     fp.flush()
