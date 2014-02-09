@@ -22,6 +22,7 @@ import os
 import StringIO
 import tempfile
 import urlparse
+from time import time
 
 from swiftly.client.client import Client
 from swiftly.client.utils import quote, headers_to_dict
@@ -103,6 +104,7 @@ class StandardClient(Client):
         self.default_region = None
         self.storage_url = None
         self.cdn_url = None
+        self.conn_discard = None
         self.storage_conn = None
         self.storage_path = None
         self.cdn_conn = None
@@ -136,15 +138,15 @@ class StandardClient(Client):
                 import eventlet
                 self.sleep = eventlet.sleep
             except ImportError:
-                import time
-                self.sleep = time.sleep
+                from time import sleep
+                self.sleep = sleep
         else:
             import httplib
             self.HTTPConnection = httplib.HTTPConnection
             self.HTTPSConnection = httplib.HTTPSConnection
             self.HTTPException = httplib.HTTPException
-            import time
-            self.sleep = time.sleep
+            from time import sleep
+            self.sleep = sleep
         self._auth_load_cache()
 
     def _auth_save_cache(self):
@@ -467,6 +469,9 @@ class StandardClient(Client):
         attempt = 0
         while attempt < self.attempts:
             attempt += 1
+            if time() >= self.conn_discard:
+                self.storage_conn = None
+                self.cdn_conn = None
             if cdn:
                 conn = self.cdn_conn
                 conn_path = self.cdn_path
@@ -485,6 +490,7 @@ class StandardClient(Client):
                 else:
                     raise self.HTTPException(
                         '%s %s failed: No connection' % (method, path))
+            self.conn_discard = time() + 4
             titled_headers = dict((k.title(), v) for k, v in {
                 'User-Agent': self.user_agent,
                 'X-Auth-Token': self.auth_token}.iteritems())
@@ -569,6 +575,7 @@ class StandardClient(Client):
                         value = json.loads(value)
                     else:
                         value = None
+                self.conn_discard = time() + 4
                 return (status, reason, hdrs, value)
             else:
                 if stream and value:
