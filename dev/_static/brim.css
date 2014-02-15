@@ -1,0 +1,131 @@
+@import url("default.css");
+body {
+    background: #ccc;
+    color: #000;
+    font-family: Geneva, Verdana, sans-serif;
+}
+div.document {
+    width: 30ex;
+}
+div.bodywrapper {
+    border: 1px solid #666;
+    background: #fff;
+    width: 99ex;
+    margin-left: 30ex;
+    margin-right: 0;
+}
+a {
+    color: #22d;
+}
+a:visited {
+    color: #22d;
+}
+a:hover {
+    color: #c70;
+    text-decoration: none;
+}
+pre {
+    background: #fff;
+    color: #000;
+    border-top: 1px dashed #aaa;
+    border-left: 1px solid #aaa;
+    border-bottom: 1px dashed #aaa;
+    padding-top: 1ex;
+    padding-left: 2ex;
+    padding-bottom: 1ex;
+    padding-right: 2ex;
+    font-family: Monaco, Consolas, monospace;
+    line-height: 100%;
+    text-align: left;
+}
+th {
+    background-color: #eee;
+}
+div.related {
+    background: #ccc;
+    color: #000;
+}
+div.related a {
+    color: #22d;
+}
+div.related a:hover {
+    color: #c70;
+}
+div.sphinxsidebar {
+    font-size: 80%;
+    width: 35ex;
+    background: #ccc;
+    color: #000;
+}
+div.sphinxsidebar ul ul,
+div.sphinxsidebar ul.want-points {
+    list-style: disc outside;
+    margin-left: 3ex;
+}
+div.sphinxsidebar h3 {
+    font-family: Geneva, Verdana, sans-serif;
+    color: #000;
+}
+div.sphinxsidebar h3 a {
+    color: #22d;
+}
+div.sphinxsidebar h3 a:hover {
+    color: #c70;
+}
+div.sphinxsidebar h4 {
+    font-family: Geneva, Verdana, sans-serif;
+    color: #000;
+}
+div.sphinxsidebar h4 a {
+    color: #22d;
+}
+div.sphinxsidebar h4 a:hover {
+    color: #c70;
+}
+div.sphinxsidebar p {
+    color: #000;
+}
+div.sphinxsidebar ul {
+    color: #000;
+}
+div.sphinxsidebar a {
+    color: #22d;
+}
+div.sphinxsidebar a:hover {
+    color: #c70;
+}
+div.sphinxsidebar input {
+    border: 1px solid #000;
+}
+div.document {
+    background-color: #ccc;
+}
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6 {
+    font-family: Geneva, Verdana, sans-serif;
+    font-weight: bold;
+    background: #fff;
+    color: #000;
+}
+tt.literal {
+    background-color: #fff;
+    font-size: 100%;
+    border: 1px solid #ccc;
+    padding-left: 1ex;
+    padding-right: 1ex;
+    white-space: nowrap;
+}
+tt.xref {
+    border: none;
+    padding: 0;
+}
+table.docutils {
+    border: 1px solid #ccc;
+}
+table.docutils td {
+    border: 1px solid #ccc;
+}

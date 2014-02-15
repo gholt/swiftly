@@ -8,7 +8,7 @@
     
     <title>Swiftly &mdash; Swiftly 2.01 documentation</title>
     
-    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/brim.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
@@ -24,7 +24,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Swiftly 2.01 documentation" href="#" />
-    <link rel="next" title="Changes in Swiftly 2.00" href="changes_2_00.html" /> 
+    <link rel="next" title="README" href="readme.html" /> 
   </head>
   <body>
     <div class="related">
@@ -37,7 +37,7 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="changes_2_00.html" title="Changes in Swiftly 2.00"
+          <a href="readme.html" title="README"
              accesskey="N">next</a> |</li>
         <li><a href="#">Swiftly 2.01 documentation</a> &raquo;</li> 
       </ul>
@@ -50,166 +50,197 @@
             
   <div class="section" id="swiftly">
 <h1>Swiftly<a class="headerlink" href="#swiftly" title="Permalink to this headline">¶</a></h1>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Version 2.01 is considered a development version.</p>
+</div>
+<p>Latest documentation is always available at <a class="reference external" href="http://gholt.github.io/swiftly/">http://gholt.github.io/swiftly/</a></p>
+<p>Source code available at <a class="reference external" href="http://github.com/gholt/swiftly/">http://github.com/gholt/swiftly/</a></p>
 <blockquote>
-<div><p>Copyright 2011-2013 Gregory Holt</p>
-<p>Currently provides a Client class and a command line tool for common Swift
-functions. Works both with access as a standard external user and as an
-internal administrator of a cluster with direct access to the rings and to
-all back end servers.</p>
-<p>Can optionally make use of Eventlet (0.11.0 or later recommended)
-&lt;<a class="reference external" href="http://eventlet.net/">http://eventlet.net/</a>&gt; or PyCrypto (2.6.1 or later)
-&lt;<a class="reference external" href="https://www.dlitz.net/software/pycrypto/">https://www.dlitz.net/software/pycrypto/</a>&gt;.</p>
-<p>Source code available at &lt;<a class="reference external" href="http://github.com/gholt/swiftly">http://github.com/gholt/swiftly</a>&gt;</p>
-<p>Note: If you <tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">easy_install</span> <span class="pre">swiftly</span></tt> on Mac OS X, you may need to run
-<tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">chmod</span> <span class="pre">-R</span> <span class="pre">og+r</span> <span class="pre">/Library/Python/2.7/site-packages</span></tt> in order to run
-swiftly.</p>
+<div><p>Copyright 2011-2014 Gregory Holt</p>
+<p>Licensed under the Apache License, Version 2.0 (the &quot;License&quot;); you may not use this file except in compliance with the License. You may obtain a copy of the License at</p>
+<blockquote>
+<div><a class="reference external" href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></div></blockquote>
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</p>
 </div></blockquote>
-<div class="section" id="changes">
-<h2>CHANGES<a class="headerlink" href="#changes" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="changes_2_00.html">Changes in Swiftly 2.00</a></li>
-</ul>
-</div>
-</div>
-<div class="section" id="api-reference">
-<h2>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this headline">¶</a></h2>
-<div class="toctree-wrapper compound">
-<ul>
+<li class="toctree-l1"><a class="reference internal" href="readme.html">README</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">LICENSE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="swiftly.html">swiftly</a></li>
-<li class="toctree-l1"><a class="reference internal" href="swiftly_cli.html">swiftly.cli</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.cli">cli</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.context">context</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.command">command</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.optionparser">optionparser</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.iomanager">iomanager</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.auth">auth</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.decrypt">decrypt</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.delete">delete</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.encrypt">encrypt</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.fordo">fordo</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.get">get</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.head">head</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.help">help</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.ping">ping</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.post">post</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.put">put</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.tempurl">tempurl</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_cli.html#module-swiftly.cli.trans">trans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">AUTHORS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">CHANGELOG</a></li>
+<li class="toctree-l1"><a class="reference internal" href="swiftlyconfsample.html">Sample swiftly.conf</a></li>
+</ul>
+</div>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api.html">swiftly</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-swiftly.cli">swiftly.cli</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.auth">swiftly.cli.auth</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.cli">swiftly.cli.cli</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.command">swiftly.cli.command</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.context">swiftly.cli.context</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.decrypt">swiftly.cli.decrypt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.delete">swiftly.cli.delete</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.encrypt">swiftly.cli.encrypt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.fordo">swiftly.cli.fordo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.get">swiftly.cli.get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.head">swiftly.cli.head</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.help">swiftly.cli.help</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.iomanager">swiftly.cli.iomanager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.optionparser">swiftly.cli.optionparser</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.ping">swiftly.cli.ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.post">swiftly.cli.post</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.put">swiftly.cli.put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.tempurl">swiftly.cli.tempurl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.cli.trans">swiftly.cli.trans</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="swiftly_client.html">swiftly.client</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_client.html#module-swiftly.client.client">client</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_client.html#module-swiftly.client.manager">manager</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_client.html#module-swiftly.client.utils">utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_client.html#module-swiftly.client.standardclient">standardclient</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_client.html#module-swiftly.client.directclient">directclient</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_client.html#module-swiftly.client.localmemcache">localmemcache</a></li>
-<li class="toctree-l2"><a class="reference internal" href="swiftly_client.html#module-swiftly.client.nulllogger">nulllogger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-swiftly.client">swiftly.client</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.client.client">swiftly.client.client</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.client.directclient">swiftly.client.directclient</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.client.localclient">swiftly.client.localclient</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.client.localmemcache">swiftly.client.localmemcache</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.client.manager">swiftly.client.manager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.client.nulllogger">swiftly.client.nulllogger</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.client.standardclient">swiftly.client.standardclient</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api.html#module-swiftly.client.utils">swiftly.client.utils</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="swiftly_concurrency.html">swiftly.concurrency</a></li>
-<li class="toctree-l1"><a class="reference internal" href="swiftly_dencrypt.html">swiftly.dencrypt</a></li>
-<li class="toctree-l1"><a class="reference internal" href="swiftly_filelikeiter.html">swiftly.filelikeiter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-swiftly.concurrency">swiftly.concurrency</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-swiftly.dencrypt">swiftly.dencrypt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#module-swiftly.filelikeiter">swiftly.filelikeiter</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
 <div class="section" id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<span id="id1"></span><h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Provides a command line tool as well as Client and other classes for common
+Swift functions. Works both with access as a standard external user and as an
+internal administrator of a cluster with direct access to the rings and to all
+back end servers.</p>
+</div>
+<div class="section" id="dependencies">
+<h2>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
+<p>Can optionally make use of Eventlet (0.11.0 or later recommended)
+<a class="reference external" href="http://eventlet.net/">http://eventlet.net/</a></p>
+<p>Can optionally make use of PyCrypto (2.6.1 or later)
+<a class="reference external" href="https://www.dlitz.net/software/pycrypto/">https://www.dlitz.net/software/pycrypto/</a></p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you <tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">easy_install</span> <span class="pre">swiftly</span></tt> on Mac OS X, you may need to run <tt class="docutils literal"><span class="pre">sudo</span> <span class="pre">chmod</span> <span class="pre">-R</span> <span class="pre">og+r</span> <span class="pre">/Library/Python/2.7/site-packages</span></tt> in order to run swiftly.</p>
+</div>
+</div>
 <div class="section" id="client-class-usage">
-<h3>Client Class Usage<a class="headerlink" href="#client-class-usage" title="Permalink to this headline">¶</a></h3>
+<h2>Client Class Usage<a class="headerlink" href="#client-class-usage" title="Permalink to this headline">¶</a></h2>
 <p>Example as a standard end user:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">swiftly.client</span> <span class="kn">import</span> <span class="n">Client</span>
-<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="s">&#39;http://127.0.0.1:8080/auth/v1.0&#39;</span><span class="p">,</span>
-                <span class="s">&#39;test:tester&#39;</span><span class="p">,</span> <span class="s">&#39;testing&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">swiftly.client</span> <span class="kn">import</span> <span class="n">StandardClient</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">StandardClient</span><span class="p">(</span>
+    <span class="n">auth_url</span><span class="o">=</span><span class="s">&#39;http://127.0.0.1:8080/auth/v1.0&#39;</span><span class="p">,</span>
+    <span class="n">auth_user</span><span class="o">=</span><span class="s">&#39;test:tester&#39;</span><span class="p">,</span> <span class="n">auth_key</span><span class="o">=</span><span class="s">&#39;testing&#39;</span><span class="p">)</span>
 <span class="k">print</span> <span class="n">client</span><span class="o">.</span><span class="n">head_account</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>Example as a administrator direct user:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">swiftly.client</span> <span class="kn">import</span> <span class="n">Client</span>
-<span class="n">client</span> <span class="o">=</span> <span class="n">Client</span><span class="p">(</span><span class="n">swift_proxy</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                <span class="n">swift_proxy_storage_path</span><span class="o">=</span><span class="s">&#39;/v1/AUTH_test&#39;</span><span class="p">)</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">swiftly.client</span> <span class="kn">import</span> <span class="n">DirectClient</span>
+<span class="n">client</span> <span class="o">=</span> <span class="n">DirectClient</span><span class="p">(</span><span class="n">swift_proxy_storage_path</span><span class="o">=</span><span class="s">&#39;/v1/AUTH_test&#39;</span><span class="p">)</span>
 <span class="k">print</span> <span class="n">client</span><span class="o">.</span><span class="n">head_account</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
-<div class="section" id="command-line-tool-usage">
-<h3>Command Line Tool Usage<a class="headerlink" href="#command-line-tool-usage" title="Permalink to this headline">¶</a></h3>
-<div class="section" id="help">
-<h4>help<a class="headerlink" href="#help" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly</cite>:</p>
+<div class="section" id="command-line-help">
+<h2>Command Line Help<a class="headerlink" href="#command-line-help" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="swiftly-help">
+<h3>swiftly help<a class="headerlink" href="#swiftly-help" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [options] &lt;command&gt; [command_options] [args]
+
+With all these main Swiftly options, you can also specify them in a
+configuration file or in an environment variable.
+
+The configuration file option name is the long name of the command line option
+with any dashes replaced with underscores, for example:
+--auth-url becomes auth_url
+
+The environment variable name is the long name of the command line option in
+uppercase prefixed with SWIFTLY_, for example:
+--auth-url becomes SWIFTLY_AUTH_URL
+
+Command line options override environment variables which override
+configuration file variables.
 
 Options:
   -?, --help            Shows this help text.
-  --version             Shows the version of Swiftly.
+  --version             Shows the version of this tool.
   -h                    Shows this help text.
+  --conf=PATH           Path to the configuration file to use. Default:
+                        ~/.swiftly.conf
   -A URL, --auth-url=URL
                         URL to auth system, example:
-                        http://127.0.0.1:8080/auth/v1.0 You can also set this
-                        with the environment variable SWIFTLY_AUTH_URL.
+                        https://identity.api.rackspacecloud.com/v2.0
   -U USER, --auth-user=USER
-                        User name for auth system, example: test:tester You
-                        can also set this with the environment variable
-                        SWIFTLY_AUTH_USER.
+                        User name for auth system, example: test:tester
   -K KEY, --auth-key=KEY
-                        Key for auth system, example: testing You can also set
-                        this with the environment variable SWIFTLY_AUTH_KEY.
+                        Key for auth system, example: testing
   -T TENANT, --auth-tenant=TENANT
-                        Tenant name for auth system, example: test You can
-                        also set this with the environment variable
-                        SWIFTLY_AUTH_TENANT. If not specified and needed, the
-                        auth user will be used.
+                        Tenant name for auth system, example: test If not
+                        specified and needed, the auth user will be used.
   --auth-methods=name[,name[...]]
                         Auth methods to use with the auth system, example: aut
                         h2key,auth2password,auth2password_force_tenant,auth1
-                        You can also set this with the environment variable
-                        SWIFTLY_AUTH_METHODS. Swiftly will try to determine
-                        the best order for you; but if you notice it keeps
-                        making useless auth attempts and that drives you
-                        crazy, you can override that here. All the available
-                        auth methods are listed in the example.
-  --region=VALUE        Region to use, if supported by auth, example: DFW You
-                        can also set this with the environment variable
-                        SWIFTLY_REGION. Default: default region specified by
-                        the auth response.
+                        The best order will try to be determined for you; but
+                        if you notice it keeps making useless auth attempts
+                        and that drives you crazy, you can override that here.
+                        All the available auth methods are listed in the
+                        example.
+  --region=VALUE        Region to use, if supported by auth, example: DFW
+                        Default: default region specified by the auth
+                        response.
   -D PATH, --direct=PATH
                         Uses direct connect method to access Swift. Requires
                         access to rings and backend servers. The PATH is the
-                        account path, example: /v1/AUTH_test You can also set
-                        this with the environment variable SWIFTLY_DIRECT.
-  -P URL, --proxy=URL   Uses the given proxy URL. You can also set this with
-                        the environment variable SWIFTLY_PROXY.
+                        account path, example: /v1/AUTH_test
+  -L PATH, --local=PATH
+                        Uses the local file system method to access a fake
+                        Swift. The PATH is the path on the local file system
+                        where the fake Swift stores its data.
+  -P URL, --proxy=URL   Uses the given HTTP proxy URL.
   -S, --snet            Prepends the storage URL host name with "snet-".
                         Mostly only useful with Rackspace Cloud Files and
-                        Rackspace ServiceNet. You can also set this with the
-                        environment variable SWIFTLY_SNET (set to "true" or
-                        "false").
+                        Rackspace ServiceNet.
+  --no-snet             Disables the above snet value if it had been set true
+                        in the environment or configuration file.
   -R INTEGER, --retries=INTEGER
                         Indicates how many times to retry the request on a
-                        server error. Default: 4. You can also set this with
-                        the environment variable SWIFTLY_RETRIES.
+                        server error. Default: 4
   -C, --cache-auth      If set true, the storage URL and auth token are cached
                         in your OS temporary directory as &lt;user&gt;.swiftly for
                         reuse. If there are already cached values, they are
-                        used without authenticating first. You can also set
-                        this with the environment variable SWIFTLY_CACHE_AUTH
-                        (set to "true" or "false").
+                        used without authenticating first.
+  --no-cache-auth       Disables the above cache-auth value if it had been set
+                        true in the environment or configuration file.
   --cdn                 Directs requests to the CDN management interface.
+  --no-cdn              Disables the above cdn value if it had been set true
+                        in the environment or configuration file.
   --concurrency=INTEGER
                         Sets the the number of actions that can be done
                         simultaneously when possible (currently requires using
-                        Eventlet too). Default: 1. You can also set this with
-                        the environment variable SWIFTLY_CONCURRENCY. Note
-                        that some nested actions may amplify the number of
-                        concurrent actions. For instance, a put of an entire
-                        directory will use up to this number of concurrent
-                        actions. A put of a segmented object will use up to
-                        this number of concurrent actions. But, if a directory
-                        structure put is uploading segmented objects, this
-                        nesting could cause up to INTEGER * INTEGER concurrent
-                        actions.
+                        Eventlet too). Default: 1 Note that some nested
+                        actions may amplify the number of concurrent actions.
+                        For instance, a put of an entire directory will use up
+                        to this number of concurrent actions. A put of a
+                        segmented object will use up to this number of
+                        concurrent actions. But, if a directory structure put
+                        is uploading segmented objects, this nesting could
+                        cause up to INTEGER * INTEGER concurrent actions.
   --eventlet            Enables Eventlet, if installed. This is disabled by
                         default if Eventlet is not installed or is less than
                         version 0.11.0 (because older Swiftly+Eventlet tends
@@ -219,7 +250,9 @@ Options:
   -v, --verbose         Causes output to standard error indicating actions
                         being taken. These output lines will be prefixed with
                         VERBOSE and will also include the number of seconds
-                        elapsed since Swiftly started.
+                        elapsed since the command started.
+  --no-verbose          Disables the above verbose value if it had been set
+                        true in the environment or configuration file.
 Commands:
   auth                  Authenticates and then outputs the resulting
                         information.
@@ -261,9 +294,8 @@ Commands:
                         such as the embedded transaction time.</pre>
 </div>
 </div>
-<div class="section" id="auth">
-<h4>auth<a class="headerlink" href="#auth" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help auth</cite>:</p>
+<div class="section" id="swiftly-help-auth">
+<h3>swiftly help auth<a class="headerlink" href="#swiftly-help-auth" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] auth
 
 For help on [main_options] run swiftly with no args.
@@ -279,39 +311,37 @@ Possible Output Values:
     Auth Tenant          The tenant to auth as if in use.
     Auth Methods         The auth methods in use if any specified.
     Direct Storage Path  The direct-mode path if in use.
+    Direct CDN Path      The direct-mode CDN path if in use.
     Regions              The available regions as reported by the auth service.
     Default Region       The default region as reported by the auth service.
     Selected Region      The region selected for use by Swiftly.
     SNet                 True if ServiceNet/InternalURL would be used.
     Storage URL          The URL to use for storage as reported by the auth
                          service.
-    CDN Management URL   The URL to use for CDN management as reported by the
+    CDN URL              The URL to use for CDN management as reported by the
                          auth service.
     Auth Token           The auth token to use as reported by the auth service.
-    Request Retries      The number retries to be done for any request.
 
 Example Output:
 
-Auth Cache:         /tmp/user.swiftly
-Auth URL:           https://identity.api.rackspacecloud.com/v2.0
-Auth User:          myusername
-Auth Key:           mykey
-Regions:            ORD DFW SYD IAD HKG
-Default Region:     ORD
-Selected Region:    IAD
-SNet:               True
-Storage URL:        https://snet-storage101.iad3.clouddrive.com/v1/account
-CDN Management URL: https://cdn5.clouddrive.com/v1/account
-Auth Token:         abcdef0123456789abcdef0123456789
-Request Retries:    4
+Auth Cache:      /tmp/user.swiftly
+Auth URL:        https://identity.api.rackspacecloud.com/v2.0
+Auth User:       myusername
+Auth Key:        mykey
+Regions:         ORD DFW SYD IAD HKG
+Default Region:  ORD
+Selected Region: IAD
+SNet:            True
+Storage URL:     https://snet-storage101.iad3.clouddrive.com/v1/account
+CDN URL:         https://cdn5.clouddrive.com/v1/account
+Auth Token:      abcdef0123456789abcdef0123456789
 
 Options:
   -?, --help  Shows this help text.</pre>
 </div>
 </div>
-<div class="section" id="decrypt">
-<h4>decrypt<a class="headerlink" href="#decrypt" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help decrypt</cite>:</p>
+<div class="section" id="swiftly-help-decrypt">
+<h3>swiftly help decrypt<a class="headerlink" href="#swiftly-help-decrypt" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] decrypt [key]
 
 For help on [main_options] run swiftly with no args.
@@ -327,9 +357,8 @@ Options:
   -?, --help  Shows this help text.</pre>
 </div>
 </div>
-<div class="section" id="delete">
-<h4>delete<a class="headerlink" href="#delete" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help delete</cite>:</p>
+<div class="section" id="swiftly-help-delete">
+<h3>swiftly help delete<a class="headerlink" href="#swiftly-help-delete" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] delete [options] [path]
 
 For help on [main_options] run swiftly with no args.
@@ -355,7 +384,17 @@ Options:
                         objects in a container and then delete the container
                         itself. For an account delete, all containers and
                         objects will be deleted (requires the --yes-i-mean-
-                        empty-the-account option).
+                        empty-the-account option). Note that this will do just
+                        one pass at deletion, so if objects revert to previous
+                        versions or somehow otherwise arise after the deletion
+                        pass, the container or account may not be full empty
+                        once done. See --until-empty for a multiple-pass
+                        option.
+  --until-empty         If used with --recursive, multiple passes will be
+                        attempted to empty all the containers of objects and
+                        the account of all containers. Note that could run
+                        forever if there is something else creating items
+                        faster than they are deleted.
   --yes-i-mean-empty-the-account
                         Required when issuing a delete directly on an account
                         with the --recursive option. This will delete all
@@ -372,9 +411,8 @@ Options:
                         0 instead of 1.</pre>
 </div>
 </div>
-<div class="section" id="encrypt">
-<h4>encrypt<a class="headerlink" href="#encrypt" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help encrypt</cite>:</p>
+<div class="section" id="swiftly-help-encrypt">
+<h3>swiftly help encrypt<a class="headerlink" href="#swiftly-help-encrypt" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] encrypt [key]
 
 For help on [main_options] run swiftly with no args.
@@ -390,9 +428,8 @@ Options:
   -?, --help  Shows this help text.</pre>
 </div>
 </div>
-<div class="section" id="for">
-<h4>for<a class="headerlink" href="#for" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help for</cite>:</p>
+<div class="section" id="swiftly-help-fordo">
+<h3>swiftly help fordo<a class="headerlink" href="#swiftly-help-fordo" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] for [options] &lt;path&gt; do [command]
 
 For help on [main_options] run swiftly with no args.
@@ -479,9 +516,8 @@ Options:
                         interspersed and impossible to associate.</pre>
 </div>
 </div>
-<div class="section" id="get">
-<h4>get<a class="headerlink" href="#get" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help get</cite>:</p>
+<div class="section" id="swiftly-help-get">
+<h3>swiftly help get<a class="headerlink" href="#swiftly-help-get" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] get [options] [path]
 
 For help on [main_options] run swiftly with no args.
@@ -578,9 +614,8 @@ Options:
                         environment variable.</pre>
 </div>
 </div>
-<div class="section" id="head">
-<h4>head<a class="headerlink" href="#head" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help head</cite>:</p>
+<div class="section" id="swiftly-help-head">
+<h3>swiftly help head<a class="headerlink" href="#swiftly-help-head" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] head [options] [path]
 
 For help on [main_options] run swiftly with no args.
@@ -603,9 +638,8 @@ Options:
                         output, but the exit code will be 0 instead of 1.</pre>
 </div>
 </div>
-<div class="section" id="ping">
-<h4>ping<a class="headerlink" href="#ping" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help ping</cite>:</p>
+<div class="section" id="swiftly-help-ping">
+<h3>swiftly help ping<a class="headerlink" href="#swiftly-help-ping" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] ping [options] [path]
 
 For help on [main_options] run swiftly with no args.
@@ -630,12 +664,16 @@ Options:
   -t THRESHOLD, --threshold=THRESHOLD
                         Changes the threshold for the final (average * x)
                         reports. This will define the value of x, defaults to
-                        2.</pre>
+                        2.
+  -g PREFIX, --graphite=PREFIX
+                        Switches to "graphite" output. The output will be
+                        lines of "PREFIX.metric value timestamp" suitable for
+                        piping to graphite (through netcat or something
+                        similar).</pre>
 </div>
 </div>
-<div class="section" id="post">
-<h4>post<a class="headerlink" href="#post" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help post</cite>:</p>
+<div class="section" id="swiftly-help-post">
+<h3>swiftly help post<a class="headerlink" href="#swiftly-help-post" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] post [options] [path]
 
 For help on [main_options] run swiftly with no args.
@@ -659,9 +697,8 @@ Options:
                         since POSTs to Swift do not normally take input.</pre>
 </div>
 </div>
-<div class="section" id="put">
-<h4>put<a class="headerlink" href="#put" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help put</cite>:</p>
+<div class="section" id="swiftly-help-put">
+<h3>swiftly help put<a class="headerlink" href="#swiftly-help-put" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] put [options] [path]
 
 For help on [main_options] run swiftly with no args.
@@ -755,9 +792,8 @@ Options:
                         environment variable.</pre>
 </div>
 </div>
-<div class="section" id="tempurl">
-<h4>tempurl<a class="headerlink" href="#tempurl" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help tempurl</cite>:</p>
+<div class="section" id="swiftly-help-tempurl">
+<h3>swiftly help tempurl<a class="headerlink" href="#swiftly-help-tempurl" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] tempurl &lt;method&gt; &lt;path&gt; [seconds]
 
 For help on [main_options] run swiftly with no args.
@@ -770,9 +806,8 @@ Options:
   -?, --help  Shows this help text.</pre>
 </div>
 </div>
-<div class="section" id="trans">
-<h4>trans<a class="headerlink" href="#trans" title="Permalink to this headline">¶</a></h4>
-<p>Output from <cite>swiftly help trans</cite>:</p>
+<div class="section" id="swiftly-help-trans">
+<h3>swiftly help trans<a class="headerlink" href="#swiftly-help-trans" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-python"><pre>Usage: swiftly [main_options] trans &lt;x-trans-id-value&gt;
 
 For help on [main_options] run swiftly with no args.
@@ -786,15 +821,6 @@ Options:
 </div>
 </div>
 </div>
-<div class="section" id="indices-and-tables">
-<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
-<ul class="simple">
-<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
-<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
-<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
-</ul>
-</div>
-</div>
 
 
           </div>
@@ -805,40 +831,35 @@ Options:
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Swiftly</a><ul>
-<li><a class="reference internal" href="#changes">CHANGES</a><ul>
+<li><a class="reference internal" href="#api">API</a><ul>
 </ul>
 </li>
-<li><a class="reference internal" href="#api-reference">API Reference</a><ul>
-</ul>
-</li>
-<li><a class="reference internal" href="#overview">Overview</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#dependencies">Dependencies</a></li>
 <li><a class="reference internal" href="#client-class-usage">Client Class Usage</a></li>
-<li><a class="reference internal" href="#command-line-tool-usage">Command Line Tool Usage</a><ul>
-<li><a class="reference internal" href="#help">help</a></li>
-<li><a class="reference internal" href="#auth">auth</a></li>
-<li><a class="reference internal" href="#decrypt">decrypt</a></li>
-<li><a class="reference internal" href="#delete">delete</a></li>
-<li><a class="reference internal" href="#encrypt">encrypt</a></li>
-<li><a class="reference internal" href="#for">for</a></li>
-<li><a class="reference internal" href="#get">get</a></li>
-<li><a class="reference internal" href="#head">head</a></li>
-<li><a class="reference internal" href="#ping">ping</a></li>
-<li><a class="reference internal" href="#post">post</a></li>
-<li><a class="reference internal" href="#put">put</a></li>
-<li><a class="reference internal" href="#tempurl">tempurl</a></li>
-<li><a class="reference internal" href="#trans">trans</a></li>
+<li><a class="reference internal" href="#command-line-help">Command Line Help</a><ul>
+<li><a class="reference internal" href="#swiftly-help">swiftly help</a></li>
+<li><a class="reference internal" href="#swiftly-help-auth">swiftly help auth</a></li>
+<li><a class="reference internal" href="#swiftly-help-decrypt">swiftly help decrypt</a></li>
+<li><a class="reference internal" href="#swiftly-help-delete">swiftly help delete</a></li>
+<li><a class="reference internal" href="#swiftly-help-encrypt">swiftly help encrypt</a></li>
+<li><a class="reference internal" href="#swiftly-help-fordo">swiftly help fordo</a></li>
+<li><a class="reference internal" href="#swiftly-help-get">swiftly help get</a></li>
+<li><a class="reference internal" href="#swiftly-help-head">swiftly help head</a></li>
+<li><a class="reference internal" href="#swiftly-help-ping">swiftly help ping</a></li>
+<li><a class="reference internal" href="#swiftly-help-post">swiftly help post</a></li>
+<li><a class="reference internal" href="#swiftly-help-put">swiftly help put</a></li>
+<li><a class="reference internal" href="#swiftly-help-tempurl">swiftly help tempurl</a></li>
+<li><a class="reference internal" href="#swiftly-help-trans">swiftly help trans</a></li>
 </ul>
 </li>
-</ul>
-</li>
-<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 </li>
 </ul>
 
   <h4>Next topic</h4>
-  <p class="topless"><a href="changes_2_00.html"
-                        title="next chapter">Changes in Swiftly 2.00</a></p>
+  <p class="topless"><a href="readme.html"
+                        title="next chapter">README</a></p>
   <h3>This Page</h3>
   <ul class="this-page-menu">
     <li><a href="_sources/index.txt"
@@ -871,13 +892,13 @@ Options:
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="changes_2_00.html" title="Changes in Swiftly 2.00"
+          <a href="readme.html" title="README"
              >next</a> |</li>
         <li><a href="#">Swiftly 2.01 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2011-2013, Gregory Holt.
+        &copy; Copyright 2011-2014, Gregory Holt.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>

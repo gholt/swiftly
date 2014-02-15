@@ -1,0 +1,294 @@
+.. _swiftly_package:
+
+.. raw:: html
+
+    <h1>API Documentation</h1>
+
+swiftly
+#######
+
+.. automodule:: swiftly
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli
+***********
+
+.. automodule:: swiftly.cli
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.auth
+================
+
+.. automodule:: swiftly.cli.auth
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.cli
+===============
+
+.. automodule:: swiftly.cli.cli
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.command
+===================
+
+.. automodule:: swiftly.cli.command
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.context
+===================
+
+.. automodule:: swiftly.cli.context
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.decrypt
+===================
+
+.. automodule:: swiftly.cli.decrypt
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.delete
+==================
+
+.. automodule:: swiftly.cli.delete
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.encrypt
+===================
+
+.. automodule:: swiftly.cli.encrypt
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.fordo
+=================
+
+.. automodule:: swiftly.cli.fordo
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.get
+===============
+
+.. automodule:: swiftly.cli.get
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.head
+================
+
+.. automodule:: swiftly.cli.head
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.help
+================
+
+.. automodule:: swiftly.cli.help
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.iomanager
+=====================
+
+.. automodule:: swiftly.cli.iomanager
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.optionparser
+========================
+
+.. automodule:: swiftly.cli.optionparser
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.ping
+================
+
+.. automodule:: swiftly.cli.ping
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.post
+================
+
+.. automodule:: swiftly.cli.post
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.put
+===============
+
+.. automodule:: swiftly.cli.put
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.tempurl
+===================
+
+.. automodule:: swiftly.cli.tempurl
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.cli.trans
+=================
+
+.. automodule:: swiftly.cli.trans
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client
+**************
+
+.. automodule:: swiftly.client
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client.client
+=====================
+
+.. automodule:: swiftly.client.client
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client.directclient
+===========================
+
+.. automodule:: swiftly.client.directclient
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client.localclient
+==========================
+
+.. automodule:: swiftly.client.localclient
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client.localmemcache
+============================
+
+.. automodule:: swiftly.client.localmemcache
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client.manager
+======================
+
+.. automodule:: swiftly.client.manager
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client.nulllogger
+=========================
+
+.. automodule:: swiftly.client.nulllogger
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client.standardclient
+=============================
+
+.. automodule:: swiftly.client.standardclient
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.client.utils
+====================
+
+.. automodule:: swiftly.client.utils
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.concurrency
+*******************
+
+.. automodule:: swiftly.concurrency
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.dencrypt
+****************
+
+.. automodule:: swiftly.dencrypt
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
+swiftly.filelikeiter
+********************
+
+.. automodule:: swiftly.filelikeiter
+    :members:
+    :undoc-members:
+    :special-members: __call__
+    :show-inheritance:
+
