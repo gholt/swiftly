@@ -34,10 +34,22 @@ from swiftly.concurrency import Concurrency
 from swiftly.cli.command import CLICommand, ReturnCode
 
 
-def cli_empty_account(context, yes_empty_account=False):
+def cli_empty_account(context, yes_empty_account=False, until_empty=False):
     """
-    Empties the account of all objects and containers; you must set
-    yes_empty_account to True to verify you really want to do this.
+    Deletes all objects and containers in the account.
+
+    You must set yes_empty_account to True to verify you really want to
+    do this.
+
+    By default, this will perform one pass at deleting all objects and
+    containers; so if objects revert to previous versions or if new
+    objects or containers otherwise arise during the process, the
+    account may not be empty once done.
+
+    Set `until_empty` to True if you want multiple passes to keep trying
+    to fully empty and delete the containers. Note until_empty=True
+    could run forever if something else is making new items faster than
+    they're being deleted.
 
     See :py:mod:`swiftly.cli.delete` for context usage information.
 
@@ -57,6 +69,9 @@ def cli_empty_account(context, yes_empty_account=False):
                 return
             raise ReturnCode('listing account: %s %s' % (status, reason))
         if not contents:
+            if until_empty and marker:
+                marker = None
+                continue
             break
         for item in contents:
             cli_delete(
@@ -64,9 +79,19 @@ def cli_empty_account(context, yes_empty_account=False):
         marker = item['name']
 
 
-def cli_empty_container(context, path):
+def cli_empty_container(context, path, until_empty=False):
     """
-    Empties the container at the path of all objects.
+    Deletes all objects in the container.
+
+    By default, this will perform one pass at deleting all objects in
+    the container; so if objects revert to previous versions or if new
+    objects otherwise arise during the process, the container may not be
+    empty once done.
+
+    Set `until_empty` to True if you want multiple passes to keep trying
+    to fully empty the container. Note until_empty=True could run
+    forever if something else is making new objects faster than they're
+    being deleted.
 
     See :py:mod:`swiftly.cli.delete` for context usage information.
 
@@ -96,6 +121,9 @@ def cli_empty_container(context, path):
             raise ReturnCode(
                 'listing container %r: %s %s' % (path, status, reason))
         if not contents:
+            if until_empty and marker:
+                marker = None
+                continue
             break
         for item in contents:
             newpath = '%s/%s' % (path, item['name'])
@@ -109,7 +137,8 @@ def cli_empty_container(context, path):
 
 
 def cli_delete(context, path, body=None, recursive=False,
-               yes_empty_account=False, yes_delete_account=False):
+               yes_empty_account=False, yes_delete_account=False,
+               until_empty=False):
     """
     Deletes the item (account, container, or object) at the path.
 
@@ -126,7 +155,18 @@ def cli_delete(context, path, body=None, recursive=False,
         useful with bulk deletes for instance.
     :param recursive: If True and the item is an account or
         container, deletes will be issued for any containing items as
-        well.
+        well. This does one pass at the deletion; so if objects revert
+        to previous versions or if new objects otherwise arise during
+        the process, the container(s) may not be empty once done. Set
+        `until_empty` to True if you want multiple passes to keep trying
+        to fully empty the containers.
+    :param until_empty: If True and recursive is True, this will cause
+        Swiftly to keep looping through the deletes until the containers
+        are completely empty. Useful if you have object versioning
+        turned on or otherwise have objects that seemingly reappear
+        after being deleted. It could also run forever if you have
+        something that's uploading objects at a faster rate than they
+        are deleted.
     :param yes_empty_account: This must be set to True for
         verification when the item is an account and recursive is
         True.
@@ -152,7 +192,7 @@ def cli_delete(context, path, body=None, recursive=False,
     elif '/' not in path.rstrip('/'):
         path = path.rstrip('/')
         if recursive:
-            cli_empty_container(context, path)
+            cli_empty_container(context, path, until_empty=until_empty)
         with context.client_manager.with_client() as client:
             status, reason, headers, contents = client.delete_container(
                 path, headers=context.headers,
@@ -213,7 +253,18 @@ Issues a DELETE request of the [path] given.""".strip())
                  'a 409 Conflict; --recursive will first delete all objects '
                  'in a container and then delete the container itself. For an '
                  'account delete, all containers and objects will be deleted '
-                 '(requires the --yes-i-mean-empty-the-account option).')
+                 '(requires the --yes-i-mean-empty-the-account option). Note '
+                 'that this will do just one pass at deletion, so if objects '
+                 'revert to previous versions or somehow otherwise arise '
+                 'after the deletion pass, the container or account may not '
+                 'be full empty once done. See --until-empty for a '
+                 'multiple-pass option.')
+        self.option_parser.add_option(
+            '--until-empty', dest='until_empty', action='store_true',
+            help='If used with --recursive, multiple passes will be attempted '
+                 'to empty all the containers of objects and the account of '
+                 'all containers. Note that could run forever if there is '
+                 'something else creating items faster than they are deleted.')
         self.option_parser.add_option(
             '--yes-i-mean-empty-the-account', dest='yes_empty_account',
             action='store_true',
@@ -247,6 +298,7 @@ Issues a DELETE request of the [path] given.""".strip())
             else:
                 body = open(options.input_, 'rb')
         recursive = options.recursive
+        until_empty = options.until_empty
         yes_empty_account = options.yes_empty_account
         yes_delete_account = options.yes_delete_account
         if not path:
@@ -275,4 +327,4 @@ THERE IS NO GOING BACK!""".strip())
         return cli_delete(
             context, path, body=body, recursive=recursive,
             yes_empty_account=yes_empty_account,
-            yes_delete_account=yes_delete_account)
+            yes_delete_account=yes_delete_account, until_empty=until_empty)
