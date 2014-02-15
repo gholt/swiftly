@@ -6,6 +6,7 @@ For convenience, the following names are imported from submodules:
 =================  ========================================================
 StandardClient     :py:class:`swiftly.client.standardclient.StandardClient`
 DirectClient       :py:class:`swiftly.client.directclient.DirectClient`
+LocalClient        :py:class:`swiftly.client.localclient.LocalClient`
 ClientManager      :py:class:`swiftly.client.manager.ClientManager`
 generate_temp_url  :py:func:`swiftly.client.utils.generate_temp_url`
 get_trans_id_time  :py:func:`swiftly.client.utils.get_trans_id_time`
@@ -28,6 +29,7 @@ limitations under the License.
 """
 # flake8: noqa
 from swiftly.client.directclient import DirectClient
+from swiftly.client.localclient import LocalClient
 from swiftly.client.standardclient import StandardClient
 from swiftly.client.manager import ClientManager
 from swiftly.client.utils import generate_temp_url, get_trans_id_time

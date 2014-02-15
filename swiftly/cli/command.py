@@ -96,6 +96,7 @@ Executes the %s command.""".strip() % (name, name)
 
         :returns: options, args, context
         """
+        original_args = args
         try:
             options, args = self.option_parser.parse_args(args)
         except UnboundLocalError:
@@ -104,7 +105,8 @@ Executes the %s command.""".strip() % (name, name)
             # error_encountered.
             pass
         if self.option_parser.error_encountered:
-            if '-h' in args:
+            if '-?' in original_args or '-h' in original_args or \
+                    '--help' in original_args:
                 self.option_parser.print_help()
             raise ReturnCode()
         if options.help:

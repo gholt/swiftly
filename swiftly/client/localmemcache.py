@@ -1,11 +1,12 @@
 """
 Provides a local in-memory memcache client lookalike for use with
-Swift Proxy Server code.
+Swift Proxy Server code. This can also be used as a WSGI app with
+the Brim.Net Core Package.
 
 See swift.common.memcached.MemcacheRing for what this is acting as.
 """
 """
-Copyright 2011-2013 Gregory Holt
+Copyright 2011-2014 Gregory Holt
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,12 +33,22 @@ class _Node(object):
 
 class LocalMemcache(object):
 
-    def __init__(self):
+    def __init__(self, name=None, parsed_conf=None, next_app=None):
+        self.max_count = 1000
+        # Copy all items from the parsed_conf to actual instance attributes.
+        if parsed_conf:
+            for k, v in parsed_conf.iteritems():
+                setattr(self, k, v)
+        self.name = name
+        self.next_app = next_app
         self.cache = {}
         self.first = None
         self.last = None
         self.count = 0
-        self.max_count = 1000
+
+    def __call__(self, env, start_response):
+        env['memcache'] = self
+        return self.next_app(env, start_response)
 
     def set(self, key, value, serialize=True, timeout=0, time=0):
         self.delete(key)
@@ -84,3 +95,7 @@ class LocalMemcache(object):
 
     def get_multi(self, keys, server_key):
         return [self.get(k) for k in keys]
+
+    @classmethod
+    def parse_conf(cls, name, conf):
+        return {'max_count': conf.get_int(name, 'max_count', 1000)}

@@ -22,9 +22,10 @@ import sys
 import Queue
 
 try:
-    from eventlet import GreenPool, Timeout
+    from eventlet import GreenPool, sleep, Timeout
 except ImportError:
     GreenPool = None
+    sleep = None
     Timeout = None
 
 
@@ -71,6 +72,7 @@ class Concurrency(object):
         """
         if self._pool:
             self._pool.spawn_n(self._spawner, ident, func, *args, **kwargs)
+            sleep()
         else:
             self._spawner(ident, func, *args, **kwargs)
 

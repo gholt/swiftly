@@ -82,7 +82,7 @@ class OptionParser(optparse.OptionParser, object):
             self.remove_option('--version')
             self.add_option(
                 '--version', dest='version', action='store_true',
-                help='Shows the version of Swiftly.')
+                help='Shows the version of this tool.')
         self.io_manager = io_manager
         #: Output just after the standard print_help output, in it's raw form.
         #: This is different than epilog in that epilog is reformatted.
