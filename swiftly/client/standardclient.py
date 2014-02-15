@@ -22,6 +22,7 @@ import os
 import StringIO
 import tempfile
 import urlparse
+from time import time
 
 from swiftly.client.client import Client
 from swiftly.client.utils import quote, headers_to_dict
@@ -103,6 +104,7 @@ class StandardClient(Client):
         self.default_region = None
         self.storage_url = None
         self.cdn_url = None
+        self.conn_discard = None
         self.storage_conn = None
         self.storage_path = None
         self.cdn_conn = None
@@ -136,15 +138,15 @@ class StandardClient(Client):
                 import eventlet
                 self.sleep = eventlet.sleep
             except ImportError:
-                import time
-                self.sleep = time.sleep
+                from time import sleep
+                self.sleep = sleep
         else:
             import httplib
             self.HTTPConnection = httplib.HTTPConnection
             self.HTTPSConnection = httplib.HTTPSConnection
             self.HTTPException = httplib.HTTPException
-            import time
-            self.sleep = time.sleep
+            from time import sleep
+            self.sleep = sleep
         self._auth_load_cache()
 
     def _auth_save_cache(self):
@@ -208,7 +210,7 @@ class StandardClient(Client):
         """
         self.reset()
         if not self.auth_url:
-            return
+            raise ValueError('No Auth URL has been provided.')
         funcs = []
         if self.auth_methods:
             for method in self.auth_methods.split(','):
@@ -349,7 +351,8 @@ class StandardClient(Client):
                 self.default_region = \
                     body['access']['user'].get('RAX-AUTH:defaultRegion')
                 region = self.region or self.default_region or ''
-                storage_match1 = storage_match2 = storage_match3 = None
+                storage_match1 = storage_match2 = storage_match3 = \
+                    storage_match4 = None
                 cdn_match1 = cdn_match2 = cdn_match3 = None
                 for service in body['access']['serviceCatalog']:
                     if service['type'] == 'object-store':
@@ -363,6 +366,10 @@ class StandardClient(Client):
                                 elif endpoint['region'].lower() == \
                                         region.lower():
                                     storage_match2 = endpoint.get(
+                                        'internalURL'
+                                        if self.snet else 'publicURL')
+                                elif not (region or storage_match4):
+                                    storage_match4 = endpoint.get(
                                         'internalURL'
                                         if self.snet else 'publicURL')
                             elif not storage_match3:
@@ -380,7 +387,8 @@ class StandardClient(Client):
                             elif not cdn_match3:
                                 cdn_match3 = endpoint.get('publicURL')
                 self.storage_url = \
-                    storage_match1 or storage_match2 or storage_match3
+                    storage_match1 or storage_match2 or storage_match3 \
+                    or storage_match4
                 self.cdn_url = cdn_match1 or cdn_match2 or cdn_match3
                 self.auth_token = body['access']['token']['id']
                 if not self.storage_url:
@@ -461,6 +469,9 @@ class StandardClient(Client):
         attempt = 0
         while attempt < self.attempts:
             attempt += 1
+            if time() >= self.conn_discard:
+                self.storage_conn = None
+                self.cdn_conn = None
             if cdn:
                 conn = self.cdn_conn
                 conn_path = self.cdn_path
@@ -479,6 +490,7 @@ class StandardClient(Client):
                 else:
                     raise self.HTTPException(
                         '%s %s failed: No connection' % (method, path))
+            self.conn_discard = time() + 4
             titled_headers = dict((k.title(), v) for k, v in {
                 'User-Agent': self.user_agent,
                 'X-Auth-Token': self.auth_token}.iteritems())
@@ -547,7 +559,7 @@ class StandardClient(Client):
                     resp.close()
             except Exception as err:
                 status = 0
-                reason = str(err)
+                reason = '%s %s' % (type(err), str(err))
                 hdrs = {}
                 value = None
             self.verbose('< %s %s', status or '-', reason)
@@ -563,9 +575,10 @@ class StandardClient(Client):
                         value = json.loads(value)
                     else:
                         value = None
+                self.conn_discard = time() + 4
                 return (status, reason, hdrs, value)
             else:
-                if stream:
+                if stream and value:
                     value.close()
                 conn.close()
             if reset_func:
