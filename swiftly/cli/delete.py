@@ -177,7 +177,9 @@ def cli_delete(context, path, body=None, recursive=False,
     path = path.lstrip('/') if path else ''
     if not path:
         if yes_empty_account:
-            cli_empty_account(context, yes_empty_account=yes_empty_account)
+            cli_empty_account(
+                context, yes_empty_account=yes_empty_account,
+                until_empty=until_empty)
         if yes_delete_account:
             with context.client_manager.with_client() as client:
                 status, reason, headers, contents = client.delete_account(
