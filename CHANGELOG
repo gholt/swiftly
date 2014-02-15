@@ -1,0 +1,47 @@
+swiftly (2.01) In Progress
+
+    * Added the ability to use a configuration file for the various main
+      options. See the swiftly.conf-sample for what's available. You can use
+      the default location of ~/.swiftly.conf or specify a conf file with the
+      --conf <path> option.
+
+    * Made all main options also available from setting os environment
+      variables. Command line options override environment variables which
+      override conf file values.
+
+    * Added an --until-empty option to delete --recursive to keep making passes
+      trying to delete everything from stubborn containers, such as those with
+      object versioning turned on. Run `swiftly help delete` for more details.
+
+    * If a region is not specified and a default region is not indicated by the
+      auth system, the first available region will now be selected. Thanks to
+      David Cole for this one.
+
+    * Fixed a bug in DirectClient and StandardClient streaming support.
+
+    * Made Concurrency sleep (yield) right after a spawn to give the new
+      coroutine a chance to get started before launching yet more coroutines.
+
+    * Added a LocalClient selectable on the CLI with -L <path> or --local
+      <path> option. This local client just fakes a Swift cluster, storing the
+      data on the local file system. Experimental but could be useful for
+      testing.
+
+    * Made LocalMemcache a Brim.Net Core Package WSGI compatible app.
+      http://github.com/gholt/brim
+      It remains Swift WSGI compatible for use in direct mode.
+
+    * Made StandardClient throw away connections that have been unused for more
+      than 4 seconds as most servers drop Keep Alive connections after 5
+      anyway. Should reduce the try/get-an-error/retry sequences.
+
+    * Enhanced the CLI to be extendable. See http://github.com/gholt/brimlock/
+      for an example of a CLI tool that just extends Swiftly.
+
+    * Added the --no-snet --no-cache-auth --no-cdn and --no-verbose options to
+      turn off the associated values from the conf file or os environment.
+
+
+swiftly (2.00)
+
+    * Finally started a CHANGELOG.
