@@ -50,12 +50,13 @@
   <h1>Source code for swiftly.client.localmemcache</h1><div class="highlight"><pre>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">Provides a local in-memory memcache client lookalike for use with</span>
-<span class="sd">Swift Proxy Server code.</span>
+<span class="sd">Swift Proxy Server code. This can also be used as a WSGI app with</span>
+<span class="sd">the Brim.Net Core Package.</span>
 
 <span class="sd">See swift.common.memcached.MemcacheRing for what this is acting as.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Copyright 2011-2013 Gregory Holt</span>
+<span class="sd">Copyright 2011-2014 Gregory Holt</span>
 
 <span class="sd">Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="sd">you may not use this file except in compliance with the License.</span>
@@ -82,12 +83,22 @@
 
 <div class="viewcode-block" id="LocalMemcache"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.localmemcache.LocalMemcache">[docs]</a><span class="k">class</span> <span class="nc">LocalMemcache</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">parsed_conf</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">next_app</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_count</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="c"># Copy all items from the parsed_conf to actual instance attributes.</span>
+        <span class="k">if</span> <span class="n">parsed_conf</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">parsed_conf</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next_app</span> <span class="o">=</span> <span class="n">next_app</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">first</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">last</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_count</span> <span class="o">=</span> <span class="mi">1000</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">env</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+        <span class="n">env</span><span class="p">[</span><span class="s">&#39;memcache&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_app</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LocalMemcache.set"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.set">[docs]</a>    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">serialize</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
@@ -133,7 +144,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="LocalMemcache.get_multi"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.get_multi">[docs]</a>    <span class="k">def</span> <span class="nf">get_multi</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">server_key</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">]</span></div></div>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">]</span>
+</div>
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="LocalMemcache.parse_conf"><a class="viewcode-back" href="../../../swiftly_client.html#swiftly.client.localmemcache.LocalMemcache.parse_conf">[docs]</a>    <span class="k">def</span> <span class="nf">parse_conf</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">conf</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&#39;max_count&#39;</span><span class="p">:</span> <span class="n">conf</span><span class="o">.</span><span class="n">get_int</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s">&#39;max_count&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)}</span></div></div>
 </pre></div>
 
           </div>
@@ -174,7 +189,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-2013, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>
 </html>

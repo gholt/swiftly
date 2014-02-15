@@ -74,7 +74,7 @@ limitations under the License.</p>
 <p>Contains the CLI class that handles the original command line.</p>
 <dl class="class">
 <dt id="swiftly.cli.cli.CLI">
-<em class="property">class </em><tt class="descclassname">swiftly.cli.cli.</tt><tt class="descname">CLI</tt><a class="reference internal" href="_modules/swiftly/cli/cli.html#CLI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.cli.CLI" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">swiftly.cli.cli.</tt><tt class="descname">CLI</tt><big>(</big><em>commands=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/cli.html#CLI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.cli.CLI" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Handles the original command line.</p>
 <p>An example script is <cite>swiftly</cite> itself:</p>
@@ -85,6 +85,15 @@ limitations under the License.</p>
 </pre></div>
 </div>
 <p>See the output of <tt class="docutils literal"><span class="pre">swiftly</span> <span class="pre">help</span></tt> for more information.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>commands</strong> &#8211; The list of commands available; if None
+<a class="reference internal" href="#swiftly.cli.cli.COMMANDS" title="swiftly.cli.cli.COMMANDS"><tt class="xref py py-attr docutils literal"><span class="pre">COMMANDS</span></tt></a> will be used.</td>
+</tr>
+</tbody>
+</table>
 <dl class="attribute">
 <dt id="swiftly.cli.cli.CLI.commands">
 <tt class="descname">commands</tt><em class="property"> = None</em><a class="headerlink" href="#swiftly.cli.cli.CLI.commands" title="Permalink to this definition">¶</a></dt>
@@ -153,6 +162,12 @@ output will be constructed with <tt class="docutils literal"><span class="pre">m
 <tt class="descclassname">swiftly.cli.cli.</tt><tt class="descname">COMMANDS</tt><em class="property"> = ['swiftly.cli.auth.CLIAuth', 'swiftly.cli.decrypt.CLIDecrypt', 'swiftly.cli.delete.CLIDelete', 'swiftly.cli.encrypt.CLIEncrypt', 'swiftly.cli.fordo.CLIForDo', 'swiftly.cli.get.CLIGet', 'swiftly.cli.head.CLIHead', 'swiftly.cli.help.CLIHelp', 'swiftly.cli.ping.CLIPing', 'swiftly.cli.post.CLIPost', 'swiftly.cli.put.CLIPut', 'swiftly.cli.tempurl.CLITempURL', 'swiftly.cli.trans.CLITrans']</em><a class="headerlink" href="#swiftly.cli.cli.COMMANDS" title="Permalink to this definition">¶</a></dt>
 <dd><p>The list of CLICommand classes avaiable to CLI. You&#8217;ll want to add any new
 CLICommand you create to this list.</p>
+</dd></dl>
+
+<dl class="data">
+<dt id="swiftly.cli.cli.TRUE_VALUES">
+<tt class="descclassname">swiftly.cli.cli.</tt><tt class="descname">TRUE_VALUES</tt><em class="property"> = ['1', 'on', 't', 'true', 'y', 'yes']</em><a class="headerlink" href="#swiftly.cli.cli.TRUE_VALUES" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of lowercase string values that equate to True.</p>
 </dd></dl>
 
 </div>
@@ -305,7 +320,7 @@ command line applications that may call other command line
 applications or use multiple parsers.</p>
 <dl class="class">
 <dt id="swiftly.cli.optionparser.OptionParser">
-<em class="property">class </em><tt class="descclassname">swiftly.cli.optionparser.</tt><tt class="descname">OptionParser</tt><big>(</big><em>usage=None</em>, <em>option_list=None</em>, <em>option_class=&lt;class optparse.Option at 0x1f113b0&gt;</em>, <em>version=None</em>, <em>conflict_handler='error'</em>, <em>description=None</em>, <em>formatter=None</em>, <em>add_help_option=True</em>, <em>prog=None</em>, <em>epilog=None</em>, <em>io_manager=None</em>, <em>raw_epilog=''</em>, <em>error_prefix=''</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">swiftly.cli.optionparser.</tt><tt class="descname">OptionParser</tt><big>(</big><em>usage=None</em>, <em>option_list=None</em>, <em>option_class=&lt;class optparse.Option at 0x13b7120&gt;</em>, <em>version=None</em>, <em>conflict_handler='error'</em>, <em>description=None</em>, <em>formatter=None</em>, <em>add_help_option=True</em>, <em>prog=None</em>, <em>epilog=None</em>, <em>io_manager=None</em>, <em>raw_epilog=''</em>, <em>error_prefix=''</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/optionparser.html#OptionParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.optionparser.OptionParser" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">optparse.OptionParser</span></tt>, <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Extended optparse.OptionParser that supports an io_manager,
 raw_epilog output, and an error prefix. It also does not exit
@@ -691,7 +706,7 @@ performed.</td>
 
 <dl class="function">
 <dt id="swiftly.cli.delete.cli_delete">
-<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_delete</tt><big>(</big><em>context</em>, <em>path</em>, <em>body=None</em>, <em>recursive=False</em>, <em>yes_empty_account=False</em>, <em>yes_delete_account=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_delete" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_delete</tt><big>(</big><em>context</em>, <em>path</em>, <em>body=None</em>, <em>recursive=False</em>, <em>yes_empty_account=False</em>, <em>yes_delete_account=False</em>, <em>until_empty=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_delete" title="Permalink to this definition">¶</a></dt>
 <dd><p>Deletes the item (account, container, or object) at the path.</p>
 <p>See <a class="reference internal" href="#module-swiftly.cli.delete" title="swiftly.cli.delete"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.delete</span></tt></a> for context usage information.</p>
 <p>See <a class="reference internal" href="#swiftly.cli.delete.CLIDelete" title="swiftly.cli.delete.CLIDelete"><tt class="xref py py-class docutils literal"><span class="pre">CLIDelete</span></tt></a> for more information.</p>
@@ -709,7 +724,18 @@ not normally sent with DELETE requests, but this can be
 useful with bulk deletes for instance.</li>
 <li><strong>recursive</strong> &#8211; If True and the item is an account or
 container, deletes will be issued for any containing items as
-well.</li>
+well. This does one pass at the deletion; so if objects revert
+to previous versions or if new objects otherwise arise during
+the process, the container(s) may not be empty once done. Set
+<cite>until_empty</cite> to True if you want multiple passes to keep trying
+to fully empty the containers.</li>
+<li><strong>until_empty</strong> &#8211; If True and recursive is True, this will cause
+Swiftly to keep looping through the deletes until the containers
+are completely empty. Useful if you have object versioning
+turned on or otherwise have objects that seemingly reappear
+after being deleted. It could also run forever if you have
+something that&#8217;s uploading objects at a faster rate than they
+are deleted.</li>
 <li><strong>yes_empty_account</strong> &#8211; This must be set to True for
 verification when the item is an account and recursive is
 True.</li>
@@ -725,17 +751,34 @@ a delete to be issued for the account itself.</li>
 
 <dl class="function">
 <dt id="swiftly.cli.delete.cli_empty_account">
-<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_empty_account</tt><big>(</big><em>context</em>, <em>yes_empty_account=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_empty_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_empty_account" title="Permalink to this definition">¶</a></dt>
-<dd><p>Empties the account of all objects and containers; you must set
-yes_empty_account to True to verify you really want to do this.</p>
+<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_empty_account</tt><big>(</big><em>context</em>, <em>yes_empty_account=False</em>, <em>until_empty=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_empty_account"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_empty_account" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes all objects and containers in the account.</p>
+<p>You must set yes_empty_account to True to verify you really want to
+do this.</p>
+<p>By default, this will perform one pass at deleting all objects and
+containers; so if objects revert to previous versions or if new
+objects or containers otherwise arise during the process, the
+account may not be empty once done.</p>
+<p>Set <cite>until_empty</cite> to True if you want multiple passes to keep trying
+to fully empty and delete the containers. Note until_empty=True
+could run forever if something else is making new items faster than
+they&#8217;re being deleted.</p>
 <p>See <a class="reference internal" href="#module-swiftly.cli.delete" title="swiftly.cli.delete"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.delete</span></tt></a> for context usage information.</p>
 <p>See <a class="reference internal" href="#swiftly.cli.delete.CLIDelete" title="swiftly.cli.delete.CLIDelete"><tt class="xref py py-class docutils literal"><span class="pre">CLIDelete</span></tt></a> for more information.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="swiftly.cli.delete.cli_empty_container">
-<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_empty_container</tt><big>(</big><em>context</em>, <em>path</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_empty_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_empty_container" title="Permalink to this definition">¶</a></dt>
-<dd><p>Empties the container at the path of all objects.</p>
+<tt class="descclassname">swiftly.cli.delete.</tt><tt class="descname">cli_empty_container</tt><big>(</big><em>context</em>, <em>path</em>, <em>until_empty=False</em><big>)</big><a class="reference internal" href="_modules/swiftly/cli/delete.html#cli_empty_container"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.cli.delete.cli_empty_container" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes all objects in the container.</p>
+<p>By default, this will perform one pass at deleting all objects in
+the container; so if objects revert to previous versions or if new
+objects otherwise arise during the process, the container may not be
+empty once done.</p>
+<p>Set <cite>until_empty</cite> to True if you want multiple passes to keep trying
+to fully empty the container. Note until_empty=True could run
+forever if something else is making new objects faster than they&#8217;re
+being deleted.</p>
 <p>See <a class="reference internal" href="#module-swiftly.cli.delete" title="swiftly.cli.delete"><tt class="xref py py-mod docutils literal"><span class="pre">swiftly.cli.delete</span></tt></a> for context usage information.</p>
 <p>See <a class="reference internal" href="#swiftly.cli.delete.CLIDelete" title="swiftly.cli.delete.CLIDelete"><tt class="xref py py-class docutils literal"><span class="pre">CLIDelete</span></tt></a> for more information.</p>
 </dd></dl>
@@ -1520,7 +1563,7 @@ x_trans_id and sends that to the context.io_manager&#8217;s stdout.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-2013, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>
 </html>

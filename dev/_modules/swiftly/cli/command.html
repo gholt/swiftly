@@ -146,6 +146,7 @@
 
 <span class="sd">        :returns: options, args, context</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">original_args</span> <span class="o">=</span> <span class="n">args</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">options</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">UnboundLocalError</span><span class="p">:</span>
@@ -154,7 +155,8 @@
             <span class="c"># error_encountered.</span>
             <span class="k">pass</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">error_encountered</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s">&#39;-h&#39;</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&#39;-?&#39;</span> <span class="ow">in</span> <span class="n">original_args</span> <span class="ow">or</span> <span class="s">&#39;-h&#39;</span> <span class="ow">in</span> <span class="n">original_args</span> <span class="ow">or</span> \
+                    <span class="s">&#39;--help&#39;</span> <span class="ow">in</span> <span class="n">original_args</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">option_parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
             <span class="k">raise</span> <span class="n">ReturnCode</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">help</span><span class="p">:</span>
@@ -246,7 +248,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-2013, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>
 </html>

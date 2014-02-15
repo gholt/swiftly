@@ -68,13 +68,16 @@
 <tr class="row-even"><td>DirectClient</td>
 <td><a class="reference internal" href="#swiftly.client.directclient.DirectClient" title="swiftly.client.directclient.DirectClient"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.client.directclient.DirectClient</span></tt></a></td>
 </tr>
-<tr class="row-odd"><td>ClientManager</td>
+<tr class="row-odd"><td>LocalClient</td>
+<td><tt class="xref py py-class docutils literal"><span class="pre">swiftly.client.localclient.LocalClient</span></tt></td>
+</tr>
+<tr class="row-even"><td>ClientManager</td>
 <td><a class="reference internal" href="#swiftly.client.manager.ClientManager" title="swiftly.client.manager.ClientManager"><tt class="xref py py-class docutils literal"><span class="pre">swiftly.client.manager.ClientManager</span></tt></a></td>
 </tr>
-<tr class="row-even"><td>generate_temp_url</td>
+<tr class="row-odd"><td>generate_temp_url</td>
 <td><a class="reference internal" href="#swiftly.client.utils.generate_temp_url" title="swiftly.client.utils.generate_temp_url"><tt class="xref py py-func docutils literal"><span class="pre">swiftly.client.utils.generate_temp_url()</span></tt></a></td>
 </tr>
-<tr class="row-odd"><td>get_trans_id_time</td>
+<tr class="row-even"><td>get_trans_id_time</td>
 <td><a class="reference internal" href="#swiftly.client.utils.get_trans_id_time" title="swiftly.client.utils.get_trans_id_time"><tt class="xref py py-func docutils literal"><span class="pre">swiftly.client.utils.get_trans_id_time()</span></tt></a></td>
 </tr>
 </tbody>
@@ -1292,11 +1295,12 @@ multiple Clients are in use.</li>
 <div class="section" id="module-swiftly.client.localmemcache">
 <span id="localmemcache"></span><h2>localmemcache<a class="headerlink" href="#module-swiftly.client.localmemcache" title="Permalink to this headline">¶</a></h2>
 <p>Provides a local in-memory memcache client lookalike for use with
-Swift Proxy Server code.</p>
+Swift Proxy Server code. This can also be used as a WSGI app with
+the Brim.Net Core Package.</p>
 <p>See swift.common.memcached.MemcacheRing for what this is acting as.</p>
 <dl class="class">
 <dt id="swiftly.client.localmemcache.LocalMemcache">
-<em class="property">class </em><tt class="descclassname">swiftly.client.localmemcache.</tt><tt class="descname">LocalMemcache</tt><a class="reference internal" href="_modules/swiftly/client/localmemcache.html#LocalMemcache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.localmemcache.LocalMemcache" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">swiftly.client.localmemcache.</tt><tt class="descname">LocalMemcache</tt><big>(</big><em>name=None</em>, <em>parsed_conf=None</em>, <em>next_app=None</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/localmemcache.html#LocalMemcache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.localmemcache.LocalMemcache" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="swiftly.client.localmemcache.LocalMemcache.decr">
 <tt class="descname">decr</tt><big>(</big><em>key</em>, <em>delta=1</em>, <em>timeout=0</em>, <em>time=0</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/localmemcache.html#LocalMemcache.decr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.localmemcache.LocalMemcache.decr" title="Permalink to this definition">¶</a></dt>
@@ -1320,6 +1324,11 @@ Swift Proxy Server code.</p>
 <dl class="method">
 <dt id="swiftly.client.localmemcache.LocalMemcache.incr">
 <tt class="descname">incr</tt><big>(</big><em>key</em>, <em>delta=1</em>, <em>timeout=0</em>, <em>time=0</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/localmemcache.html#LocalMemcache.incr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.localmemcache.LocalMemcache.incr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="swiftly.client.localmemcache.LocalMemcache.parse_conf">
+<em class="property">classmethod </em><tt class="descname">parse_conf</tt><big>(</big><em>name</em>, <em>conf</em><big>)</big><a class="reference internal" href="_modules/swiftly/client/localmemcache.html#LocalMemcache.parse_conf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#swiftly.client.localmemcache.LocalMemcache.parse_conf" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -1466,7 +1475,7 @@ for use with Swift Proxy Server code.</p>
     </div>
     <div class="footer">
         &copy; Copyright 2011-2013, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>
 </html>

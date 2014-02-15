@@ -258,7 +258,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_url</span><span class="p">:</span>
-            <span class="k">return</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;No Auth URL has been provided.&#39;</span><span class="p">)</span>
         <span class="n">funcs</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_methods</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">method</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">auth_methods</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">):</span>
@@ -399,7 +399,8 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">default_region</span> <span class="o">=</span> \
                     <span class="n">body</span><span class="p">[</span><span class="s">&#39;access&#39;</span><span class="p">][</span><span class="s">&#39;user&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;RAX-AUTH:defaultRegion&#39;</span><span class="p">)</span>
                 <span class="n">region</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">region</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_region</span> <span class="ow">or</span> <span class="s">&#39;&#39;</span>
-                <span class="n">storage_match1</span> <span class="o">=</span> <span class="n">storage_match2</span> <span class="o">=</span> <span class="n">storage_match3</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="n">storage_match1</span> <span class="o">=</span> <span class="n">storage_match2</span> <span class="o">=</span> <span class="n">storage_match3</span> <span class="o">=</span> \
+                    <span class="n">storage_match4</span> <span class="o">=</span> <span class="bp">None</span>
                 <span class="n">cdn_match1</span> <span class="o">=</span> <span class="n">cdn_match2</span> <span class="o">=</span> <span class="n">cdn_match3</span> <span class="o">=</span> <span class="bp">None</span>
                 <span class="k">for</span> <span class="n">service</span> <span class="ow">in</span> <span class="n">body</span><span class="p">[</span><span class="s">&#39;access&#39;</span><span class="p">][</span><span class="s">&#39;serviceCatalog&#39;</span><span class="p">]:</span>
                     <span class="k">if</span> <span class="n">service</span><span class="p">[</span><span class="s">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;object-store&#39;</span><span class="p">:</span>
@@ -413,6 +414,10 @@
                                 <span class="k">elif</span> <span class="n">endpoint</span><span class="p">[</span><span class="s">&#39;region&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> \
                                         <span class="n">region</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
                                     <span class="n">storage_match2</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                                        <span class="s">&#39;internalURL&#39;</span>
+                                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span> <span class="k">else</span> <span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
+                                <span class="k">elif</span> <span class="ow">not</span> <span class="p">(</span><span class="n">region</span> <span class="ow">or</span> <span class="n">storage_match4</span><span class="p">):</span>
+                                    <span class="n">storage_match4</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
                                         <span class="s">&#39;internalURL&#39;</span>
                                         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">snet</span> <span class="k">else</span> <span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
                             <span class="k">elif</span> <span class="ow">not</span> <span class="n">storage_match3</span><span class="p">:</span>
@@ -430,7 +435,8 @@
                             <span class="k">elif</span> <span class="ow">not</span> <span class="n">cdn_match3</span><span class="p">:</span>
                                 <span class="n">cdn_match3</span> <span class="o">=</span> <span class="n">endpoint</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;publicURL&#39;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span> <span class="o">=</span> \
-                    <span class="n">storage_match1</span> <span class="ow">or</span> <span class="n">storage_match2</span> <span class="ow">or</span> <span class="n">storage_match3</span>
+                    <span class="n">storage_match1</span> <span class="ow">or</span> <span class="n">storage_match2</span> <span class="ow">or</span> <span class="n">storage_match3</span> \
+                    <span class="ow">or</span> <span class="n">storage_match4</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">cdn_url</span> <span class="o">=</span> <span class="n">cdn_match1</span> <span class="ow">or</span> <span class="n">cdn_match2</span> <span class="ow">or</span> <span class="n">cdn_match3</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">auth_token</span> <span class="o">=</span> <span class="n">body</span><span class="p">[</span><span class="s">&#39;access&#39;</span><span class="p">][</span><span class="s">&#39;token&#39;</span><span class="p">][</span><span class="s">&#39;id&#39;</span><span class="p">]</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">storage_url</span><span class="p">:</span>
@@ -597,7 +603,7 @@
                     <span class="n">resp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
             <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
                 <span class="n">status</span> <span class="o">=</span> <span class="mi">0</span>
-                <span class="n">reason</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="n">reason</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">err</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
                 <span class="n">hdrs</span> <span class="o">=</span> <span class="p">{}</span>
                 <span class="n">value</span> <span class="o">=</span> <span class="bp">None</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">(</span><span class="s">&#39;&lt; </span><span class="si">%s</span><span class="s"> </span><span class="si">%s</span><span class="s">&#39;</span><span class="p">,</span> <span class="n">status</span> <span class="ow">or</span> <span class="s">&#39;-&#39;</span><span class="p">,</span> <span class="n">reason</span><span class="p">)</span>
@@ -682,7 +688,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-2013, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>
 </html>

@@ -108,6 +108,8 @@
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Direct Storage Path&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">storage_path</span><span class="p">))</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;cdn_path&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Direct CDN Path&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">cdn_path</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;local_path&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Local Path&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">local_path</span><span class="p">))</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;regions&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Regions&#39;</span><span class="p">,</span> <span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">client</span><span class="o">.</span><span class="n">regions</span><span class="p">)))</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;default_region&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
@@ -122,6 +124,10 @@
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;CDN URL&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">cdn_url</span><span class="p">))</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="s">&#39;auth_token&#39;</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
             <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s">&#39;Auth Token&#39;</span><span class="p">,</span> <span class="n">client</span><span class="o">.</span><span class="n">auth_token</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">info</span><span class="p">:</span>
+            <span class="n">info</span><span class="o">.</span><span class="n">append</span><span class="p">((</span>
+                <span class="s">&#39;No auth information available&#39;</span><span class="p">,</span>
+                <span class="s">&#39;Maybe no credentials were provided?&#39;</span><span class="p">))</span>
         <span class="n">fmt</span> <span class="o">=</span> <span class="s">&#39;</span><span class="si">%%</span><span class="s">-</span><span class="si">%d</span><span class="s">s </span><span class="si">%%</span><span class="s">s</span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">info</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">info</span><span class="p">:</span>
             <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">fmt</span> <span class="o">%</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
@@ -223,7 +229,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2011-2013, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b3.
     </div>
   </body>
 </html>
