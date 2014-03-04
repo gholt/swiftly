@@ -495,7 +495,7 @@ class LocalClient(Client):
                 hdrs['content-length'] = str(content_length)
                 status = 200 if content_length else 204
                 if method == 'HEAD':
-                    body = StringIO() if stream else ''
+                    body = ''
                 else:
                     body = open(local_path, 'rb')
                     if not stream:
@@ -570,6 +570,10 @@ class LocalClient(Client):
                         reason = 'No Content'
             body = ''
             hdrs['content-length'] = str(len(body))
+        if stream and not hasattr(body, 'read'):
+            body = StringIO(body)
+        elif not stream and hasattr(body, 'read'):
+            body = body.read()
         return status, reason, hdrs, body
 
     def get_account_hash(self):
