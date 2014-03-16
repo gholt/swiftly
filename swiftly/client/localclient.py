@@ -566,6 +566,11 @@ class LocalClient(Client):
                         reason = 'Not Found'
                     else:
                         unlink(fs_object_path)
+                        db.execute('''
+                            DELETE FROM object_entry
+                            WHERE container_name = ? AND object_name = ?
+                        ''', (container_name, object_name))
+                        db.commit()
                         status = 204
                         reason = 'No Content'
             body = ''
