@@ -4,7 +4,7 @@
 %endif
 
 Name:           swiftly
-Version:        2.02
+Version:        2.04
 Release:        1
 Summary:        Client for Swift
 
@@ -39,6 +39,8 @@ rm -rf %{buildroot}
 %{python_sitelib}/%{name}-%{version}-*.egg-info
 
 %changelog
+* Tue Apr 22 2014 Gregory Holt <greg@brim.net> - 2.04-1
+- Bug fixes; See http://gholt.github.io/swiftly/2.04/changelog.html
 * Sat Feb 15 2014 Gregory Holt <greg@brim.net> - 2.02-1
 - Conf and bug fixes; See http://gholt.github.io/swiftly/2.02/changelog.html
 * Sat Jan  4 2014 Gregory Holt <greg@brim.net> - 2.00-1
