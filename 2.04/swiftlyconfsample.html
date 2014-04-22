@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Sample swiftly.conf &mdash; Swiftly 2.04 documentation</title>
+    
+    <link rel="stylesheet" href="_static/brim.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '2.04',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Swiftly 2.04 documentation" href="index.html" />
+    <link rel="next" title="swiftly" href="api.html" />
+    <link rel="prev" title="CHANGELOG" href="changelog.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api.html" title="swiftly"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="changelog.html" title="CHANGELOG"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Swiftly 2.04 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="sample-swiftly-conf">
+<span id="swiftlyconfsample"></span><h1>Sample swiftly.conf<a class="headerlink" href="#sample-swiftly-conf" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-python"><div class="highlight"><pre><span class="p">[</span><span class="n">swiftly</span><span class="p">]</span>
+<span class="c"># auth-url = &lt;url&gt;</span>
+<span class="c">#   The URL to the auth system, example:</span>
+<span class="c">#   https://identity.api.rackspacecloud.com/v2.0</span>
+<span class="c"># auth-user = &lt;user&gt;</span>
+<span class="c">#   The user name for the auth system, example: test:tester</span>
+<span class="c"># auth-key = &lt;key&gt;</span>
+<span class="c">#   The key for the auth system, example: testing</span>
+<span class="c"># auth-tenant = &lt;tenant&gt;</span>
+<span class="c">#   The tenant name for the auth system, example: test</span>
+<span class="c">#   If not specified and needed, the auth user will be used.</span>
+<span class="c"># auth-methods = &lt;name&gt;[,&lt;name&gt;[...]]</span>
+<span class="c">#   Auth methods to use with the auth system, example:</span>
+<span class="c">#   auth2key,auth2password,auth2password_force_tenant,auth1</span>
+<span class="c">#   The best order will try to be determined for you; but if you notice it</span>
+<span class="c">#   keeps making useless auth attempts and that drives you crazy, you can</span>
+<span class="c">#   override that here. All the available auth methods are listed in the</span>
+<span class="c">#   example.</span>
+<span class="c"># region = &lt;value&gt;</span>
+<span class="c">#   Region to use, if supported by auth, example: DFW</span>
+<span class="c">#   Default: default region specified by the auth response.</span>
+<span class="c"># direct = &lt;path&gt;</span>
+<span class="c">#   Uses direct connect method to access Swift. Requires access to rings and</span>
+<span class="c">#   backend servers. The PATH is the account path, example: /v1/AUTH_test</span>
+<span class="c"># proxy = &lt;url&gt;</span>
+<span class="c">#   Uses the given HTTP proxy URL.</span>
+<span class="c"># snet = &lt;boolean&gt;</span>
+<span class="c">#   If set true, prepends the storage URL host name with &quot;snet-&quot;. Mostly only</span>
+<span class="c">#   useful with Rackspace Cloud Files and Rackspace ServiceNet.</span>
+<span class="c"># retries = &lt;integer&gt;</span>
+<span class="c">#   Indicates how many times to retry the request on a server error. Default: 4</span>
+<span class="c"># cache-auth = &lt;boolean&gt;</span>
+<span class="c">#   If set true, the storage URL and auth token are cached in your OS temporary</span>
+<span class="c">#   directory as &lt;user&gt;.swiftly for reuse. If there are already cached values,</span>
+<span class="c">#   they are used without authenticating first.</span>
+<span class="c"># cdn = &lt;boolean&gt;</span>
+<span class="c">#   If set true, directs requests to the CDN management interface.</span>
+<span class="c"># concurrency = &lt;integer&gt;</span>
+<span class="c">#   Sets the the number of actions that can be done simultaneously when</span>
+<span class="c">#   possible (currently requires using Eventlet too). Default: 1</span>
+<span class="c">#   Note that some nested actions may amplify the number of concurrent actions.</span>
+<span class="c">#   For instance, a put of an entire directory will use up to this number of</span>
+<span class="c">#   concurrent actions. A put of a segmented object will use up to this number</span>
+<span class="c">#   of concurrent actions. But, if a directory structure put is uploading</span>
+<span class="c">#   segmented objects, this nesting could cause up to &lt;integer&gt; * &lt;integer&gt;</span>
+<span class="c">#   concurrent actions.</span>
+<span class="c"># eventlet = &lt;boolean&gt;</span>
+<span class="c">#   If set true, enables Eventlet, if installed. This is disabled by default if</span>
+<span class="c">#   Eventlet is not installed or is less than version 0.11.0 (because older</span>
+<span class="c">#   Swiftly+Eventlet tends to use excessive CPU.</span>
+<span class="c"># verbose = &lt;boolean&gt;</span>
+<span class="c">#   Causes output to standard error indicating actions being taken. These</span>
+<span class="c">#   output lines will be prefixed with VERBOSE and will also include the number</span>
+<span class="c">#   of seconds elapsed since the command started.</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="changelog.html"
+                        title="previous chapter">CHANGELOG</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="api.html"
+                        title="next chapter">swiftly</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/swiftlyconfsample.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="api.html" title="swiftly"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="changelog.html" title="CHANGELOG"
+             >previous</a> |</li>
+        <li><a href="index.html">Swiftly 2.04 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011-2014, Gregory Holt.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>
