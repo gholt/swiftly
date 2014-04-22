@@ -2,6 +2,8 @@ git checkout master
 git pull
 Update swiftly/__init__.py VERSION string to an even-ending version
 git add swiftly/__init__.py
+Update CHANGELOG
+git add CHANGELOG
 git commit -m 'Releasing <version>'
 git checkout -b <version>
 git checkout stable
@@ -31,6 +33,8 @@ git commit -m 'Releasing <version>'
 git checkout master
 Update swiftly/__init__.py VERSION string to an odd-ending version
 git add swiftly/__init__.py
+Update CHANGELOG
+git add CHANGELOG
 git commit -m 'Moving to <version> development'
 
 rm -rf doc/build/*
