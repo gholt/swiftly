@@ -374,7 +374,9 @@ configuration file variables.
                 self._verbose, skip_sub_command=True)
 
         options.retries = int(options.retries)
-        if options.local:
+        if args and args[0] == 'help':
+            return options, args
+        elif options.local:
             self.context.client_manager = ClientManager(
                 LocalClient, local_path=options.local, verbose=self._verbose)
         elif options.direct:
@@ -392,7 +394,7 @@ configuration file variables.
                 with self.context.io_manager.with_stderr() as fp:
                     fp.write('No Auth URL has been given.\n')
                     fp.flush()
-                return 1
+                return None, None
             self.context.client_manager = ClientManager(
                 StandardClient, auth_methods=options.auth_methods,
                 auth_url=options.auth_url, auth_tenant=options.auth_tenant,

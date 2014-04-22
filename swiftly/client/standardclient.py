@@ -156,7 +156,7 @@ class StandardClient(Client):
                 self.auth_cache_path)
             data = '\n'.join([
                 self.auth_url, self.auth_user, self.auth_key,
-                self.auth_tenant or '', self.region, self.storage_url,
+                self.auth_tenant or '', self.region or '', self.storage_url,
                 self.cdn_url or '', self.auth_token, str(self.snet)])
             fp, path = tempfile.mkstemp()
             os.write(fp, data.encode('base64'))

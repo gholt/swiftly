@@ -1,6 +1,17 @@
 CHANGELOG
 #########
 
+swiftly (2.04)
+**************
+
+    * Improved LocalClient.
+
+    * Fixed bug with auth v1 and caching.
+
+    * Fixed UTF-8 bug with deletes.
+
+    * Fixed bugs with 'help' command.
+
 swiftly (2.02)
 **************
 

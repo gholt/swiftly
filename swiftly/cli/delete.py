@@ -97,7 +97,7 @@ def cli_empty_container(context, path, until_empty=False):
 
     See :py:class:`CLIDelete` for more information.
     """
-    path = path.rstrip('/')
+    path = path.rstrip('/').decode('utf8')
     conc = Concurrency(context.concurrency)
 
     def check_conc():
