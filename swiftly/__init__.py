@@ -16,7 +16,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-__version__ = VERSION = '2.04'
+__version__ = VERSION = '2.05'
 """Version str for Swiftly: "major.minor".
 
 If the second number is even, it's an official release.
