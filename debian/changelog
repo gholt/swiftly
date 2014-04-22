@@ -1,3 +1,9 @@
+swiftly (2.04-1) lucid; urgency=low
+
+   * See http://gholt.github.io/swiftly/2.04/changelog.html
+
+ -- Greg Holt <greg@brim.net>  Tue, 22 Apr 2014 15:13:00 +0000
+
 swiftly (2.02-1) lucid; urgency=low
 
    * See http://gholt.github.io/swiftly/2.02/changelog.html
