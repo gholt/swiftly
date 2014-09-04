@@ -401,7 +401,8 @@ configuration file variables.
                 auth_user=options.auth_user, auth_key=options.auth_key,
                 auth_cache_path=auth_cache_path, region=options.region,
                 snet=options.snet, attempts=options.retries + 1,
-                eventlet=self.context.eventlet, verbose=self._verbose)
+                eventlet=self.context.eventlet, verbose=self._verbose,
+                http_proxy=options.proxy)
 
         self.context.cdn = options.cdn
         self.context.concurrency = int(options.concurrency)
