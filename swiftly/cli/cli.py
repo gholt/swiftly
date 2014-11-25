@@ -235,6 +235,12 @@ configuration file variables.
             '--no-verbose', dest='no_verbose', action='store_true',
             help='Disables the above verbose value if it had been set true in '
                  'the environment or configuration file.')
+        self.option_parser.add_option(
+            '-O', '--direct-object-ring', dest='direct_object_ring',
+            help='The current object ring of the cluster being pinged. This '
+                 'will enable direct client to use this ring for all the queries '
+                 'Use of this also requires the main Swift code is installed and '
+                 'importable.')        
 
         self.option_parser.raw_epilog = 'Commands:\n'
         for name in sorted(self.commands):
@@ -383,7 +389,8 @@ configuration file variables.
             self.context.client_manager = ClientManager(
                 DirectClient, swift_proxy_storage_path=options.direct,
                 attempts=options.retries + 1, eventlet=self.context.eventlet,
-                verbose=self._verbose)
+                verbose=self._verbose, 
+                direct_object_ring = options.direct_object_ring)
         else:
             auth_cache_path = None
             if options.cache_auth:
