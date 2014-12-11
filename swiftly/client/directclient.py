@@ -50,6 +50,8 @@ class DirectClient(Client):
     :param verbose_id: Set to a string you wish verbose messages to
         be prepended with; can help in identifying output when
         multiple Clients are in use.
+    ;param direct_object_ring: The path to custom object ring to used
+        by the DirectClient
     """
 
     def __init__(self, swift_proxy=None, swift_proxy_storage_path=None,

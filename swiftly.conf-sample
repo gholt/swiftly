@@ -52,3 +52,7 @@
 #   Causes output to standard error indicating actions being taken. These
 #   output lines will be prefixed with VERBOSE and will also include the number
 #   of seconds elapsed since the command started.
+# direct_object_ring = <path>
+#   Custom object ring to be used in direct connect method to access Swift.
+#   The PATH is the custom object ring file path, 
+#   example: /etc/swift/custom-object.ring.gz

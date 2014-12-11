@@ -55,6 +55,7 @@ TRUE_VALUES = ['1', 'on', 't', 'true', 'y', 'yes']
 
 
 class CLI(object):
+
     """
     Handles the original command line.
 
@@ -236,11 +237,12 @@ configuration file variables.
             help='Disables the above verbose value if it had been set true in '
                  'the environment or configuration file.')
         self.option_parser.add_option(
-            '-O', '--direct-object-ring', dest='direct_object_ring',
+            '-O', '--direct-object-ring',
+            dest='direct_object_ring', metavar='PATH',
             help='The current object ring of the cluster being pinged. This '
-                 'will enable direct client to use this ring for all the queries '
-                 'Use of this also requires the main Swift code is installed and '
-                 'importable.')        
+                 'will enable direct client to use this ring for all the '
+                 'queries. Use of this also requires the main Swift code  '
+                 'is installed and importable.')
 
         self.option_parser.raw_epilog = 'Commands:\n'
         for name in sorted(self.commands):
@@ -308,7 +310,7 @@ configuration file variables.
                 'auth_methods', 'region', 'direct', 'local', 'proxy', 'snet',
                 'no_snet', 'retries', 'cache_auth', 'no_cache_auth', 'cdn',
                 'no_cdn', 'concurrency', 'eventlet', 'no_eventlet', 'verbose',
-                'no_verbose'):
+                'no_verbose', 'direct_object_ring'):
             self._resolve_option(options, option_name, 'swiftly')
         for option_name in (
                 'snet', 'no_snet', 'cache_auth', 'no_cache_auth', 'cdn',
@@ -389,8 +391,8 @@ configuration file variables.
             self.context.client_manager = ClientManager(
                 DirectClient, swift_proxy_storage_path=options.direct,
                 attempts=options.retries + 1, eventlet=self.context.eventlet,
-                verbose=self._verbose, 
-                direct_object_ring = options.direct_object_ring)
+                verbose=self._verbose,
+                direct_object_ring=options.direct_object_ring)
         else:
             auth_cache_path = None
             if options.cache_auth:
