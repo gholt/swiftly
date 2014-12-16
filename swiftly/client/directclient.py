@@ -50,11 +50,14 @@ class DirectClient(Client):
     :param verbose_id: Set to a string you wish verbose messages to
         be prepended with; can help in identifying output when
         multiple Clients are in use.
+    ;param direct_object_ring: The path to custom object ring to used
+        by the DirectClient
     """
 
     def __init__(self, swift_proxy=None, swift_proxy_storage_path=None,
                  swift_proxy_cdn_path=None, attempts=5, eventlet=None,
-                 chunk_size=65536, verbose=None, verbose_id=''):
+                 chunk_size=65536, verbose=None, verbose_id='',
+                 direct_object_ring=None):
         super(DirectClient, self).__init__()
         self.storage_path = swift_proxy_storage_path
         self.cdn_path = swift_proxy_cdn_path
@@ -83,6 +86,14 @@ class DirectClient(Client):
                 self.Request = webob.Request
             self.swift_proxy = swift.proxy.server.Application(
                 {}, memcache=LocalMemcache(), logger=NullLogger())
+            self.oring = None
+            def get_oring(*args):
+                return self.oring
+
+            if direct_object_ring:
+                self.oring = swift.common.ring.ring.Ring(direct_object_ring)
+                self.swift_proxy.get_object_ring = get_oring
+        
         if eventlet is None:
             try:
                 import eventlet
