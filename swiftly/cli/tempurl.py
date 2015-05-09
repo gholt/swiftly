@@ -29,7 +29,7 @@ from swiftly.client import generate_temp_url
 from swiftly.cli.command import CLICommand, ReturnCode
 
 
-def cli_tempurl(context, method, path, seconds=None):
+def cli_tempurl(context, method, path, seconds=None, use_container=False):
     """
     Generates a TempURL and sends that to the context.io_manager's
     stdout.
@@ -44,6 +44,9 @@ def cli_tempurl(context, method, path, seconds=None):
     :param path: The path the TempURL should direct to.
     :param seconds: The number of seconds the TempURL should be good
         for. Default: 3600
+    :param use_container: If True, will create a container level TempURL
+        useing X-Container-Meta-Temp-Url-Key instead of
+        X-Account-Meta-Temp-Url-Key.
     """
     with contextlib.nested(
             context.io_manager.with_stdout(),
@@ -54,15 +57,24 @@ def cli_tempurl(context, method, path, seconds=None):
         if '/' not in path:
             raise ReturnCode(
                 'invalid tempurl path %r; should have a / within it' % path)
-        status, reason, headers, contents = client.head_account()
+        if use_container:
+            key_type = 'container'
+            container = path.split('/', 1)[0]
+            status, reason, headers, contents = \
+                client.head_container(container)
+        else:
+            key_type = 'account'
+            status, reason, headers, contents = \
+                client.head_account()
         if status // 100 != 2:
             raise ReturnCode(
-                'obtaining X-Account-Meta-Temp-Url-Key: %s %s' %
-                (status, reason))
-        key = headers.get('x-account-meta-temp-url-key')
+                'obtaining X-%s-Meta-Temp-Url-Key: %s %s' %
+                (key_type.title(), status, reason))
+        key = headers.get('x-%s-meta-temp-url-key' % key_type)
         if not key:
             raise ReturnCode(
-                'there is no X-Account-Meta-Temp-Url-Key set for this account')
+                'there is no X-%s-Meta-Temp-Url-Key set for this %s' %
+                (key_type.title(), key_type))
         url = client.storage_url + '/' + path
         fp.write(generate_temp_url(method, url, seconds, key))
         fp.write('\n')
@@ -79,17 +91,21 @@ class CLITempURL(CLICommand):
     def __init__(self, cli):
         super(CLITempURL, self).__init__(
             cli, 'tempurl', min_args=2, max_args=3, usage="""
-Usage: %prog [main_options] tempurl <method> <path> [seconds]
+Usage: %prog [main_options] tempurl [options] <method> <path> [seconds]
 
 For help on [main_options] run %prog with no args.
 
 Outputs a TempURL using the information given.
 The <path> should be to an object or object-prefix.
 [seconds] defaults to 3600""".strip())
+        self.option_parser.add_option(
+            '--use_container', '-c', action='store_true', default=False,
+            help='Create TempURL using container key.')
 
     def __call__(self, args):
         options, args, context = self.parse_args_and_create_context(args)
         method = args.pop(0)
         path = args.pop(0)
         seconds = int(args.pop(0)) if args else None
-        return cli_tempurl(context, method, path, seconds)
+        return cli_tempurl(context, method, path, seconds,
+                           use_container=options.use_container)
