@@ -50,6 +50,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import six
 import json
 import os
 
@@ -100,7 +101,7 @@ def cli_put_directory_structure(context, path):
                 new_path += '/'
             new_path += dirpath[ilen:]
             for (exc_type, exc_value, exc_tb, result) in \
-                    conc.get_results().itervalues():
+                    six.itervalues(conc.get_results()):
                 if exc_value:
                     conc.join()
                     raise exc_value
@@ -116,14 +117,14 @@ def cli_put_directory_structure(context, path):
                     new_path += dirpath[ilen:] + '/'
                 new_path += fname
                 for (exc_type, exc_value, exc_tb, result) in \
-                        conc.get_results().itervalues():
+                        six.itervalues(conc.get_results()):
                     if exc_value:
                         conc.join()
                         raise exc_value
                 conc.spawn(new_path, cli_put_object, new_context, new_path)
     conc.join()
     for (exc_type, exc_value, exc_tb, result) in \
-            conc.get_results().itervalues():
+            six.itervalues(conc.get_results()):
         if exc_value:
             raise exc_value
 
@@ -268,7 +269,7 @@ def cli_put_object(context, path):
                 new_context.seek = start
                 new_path = '%s%08d' % (prefix, segment)
                 for (ident, (exc_type, exc_value, exc_tb, result)) in \
-                        conc.get_results().iteritems():
+                        six.iteritems(conc.get_results()):
                     if exc_value:
                         conc.join()
                         raise exc_value
@@ -279,14 +280,14 @@ def cli_put_object(context, path):
                 start += context.segment_size
             conc.join()
             for (ident, (exc_type, exc_value, exc_tb, result)) in \
-                    conc.get_results().iteritems():
+                    six.iteritems(conc.get_results()):
                 if exc_value:
                     raise exc_value
                 path2info[ident] = result
             if context.static_segments:
                 body = json.dumps([
                     {'path': '/' + p, 'size_bytes': s, 'etag': e}
-                    for p, (s, e) in sorted(path2info.iteritems())])
+                    for p, (s, e) in sorted(six.iteritems(path2info))])
                 put_headers['content-length'] = str(len(body))
                 context.query['multipart-manifest'] = 'put'
             else:

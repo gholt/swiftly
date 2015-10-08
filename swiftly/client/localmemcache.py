@@ -21,6 +21,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import six
 
 class _Node(object):
 
@@ -37,7 +38,7 @@ class LocalMemcache(object):
         self.max_count = 1000
         # Copy all items from the parsed_conf to actual instance attributes.
         if parsed_conf:
-            for k, v in parsed_conf.iteritems():
+            for k, v in six.iteritems(parsed_conf):
                 setattr(self, k, v)
         self.name = name
         self.next_app = next_app
@@ -90,7 +91,7 @@ class LocalMemcache(object):
 
     def set_multi(self, mapping, server_key, serialize=True, timeout=0,
                   time=0):
-        for key, value in mapping.iteritems():
+        for key, value in six.iteritems(mapping):
             self.set(key, value)
 
     def get_multi(self, keys, server_key):

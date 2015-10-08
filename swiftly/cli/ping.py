@@ -39,8 +39,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import six
+from six import moves
 import collections
-import StringIO
+from six.moves import StringIO
 import time
 import traceback
 import uuid
@@ -78,7 +80,7 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
     begin = time.time()
     for obj in objects:
         for (exc_type, exc_value, exc_tb, result) in \
-                conc.get_results().itervalues():
+                six.itervalues(conc.get_results()):
             if exc_value:
                 with context.io_manager.with_stderr() as fp:
                     fp.write(str(exc_value))
@@ -87,7 +89,7 @@ def _cli_ping_objects(context, heading, conc, container, objects, func,
         conc.spawn(obj, func, context, results, container, obj)
     conc.join()
     for (exc_type, exc_value, exc_tb, result) in \
-            conc.get_results().itervalues():
+            six.itervalues(conc.get_results()):
         if exc_value:
             with context.io_manager.with_stderr() as fp:
                 fp.write(str(exc_value))
@@ -134,7 +136,7 @@ def _cli_ping_object_put(context, results, container, obj):
         begin = time.time()
         try:
             status, reason, headers, contents = client.put_object(
-                container, obj, StringIO.StringIO('swiftly-ping'))
+                container, obj, StringIO('swiftly-ping'))
         except Exception:
             raise ReturnCode(
                 'putting object %r: %s' % (obj, traceback.format_exc()))
@@ -200,7 +202,7 @@ def _cli_ping_ring_report(context, timings_dict, label):
     if not timings_dict:
         return
     worsts = {}
-    for ip, timings in timings_dict.iteritems():
+    for ip, timings in six.iteritems(timings_dict):
         worst = [0, None]
         for timing in timings:
             if timing[0] > worst[0]:
@@ -211,30 +213,30 @@ def _cli_ping_ring_report(context, timings_dict, label):
             'Worst %s times for up to %d nodes with implied usage:\n' %
             (label, context.limit))
         for ip, (elapsed, xid) in sorted(
-                worsts.iteritems(), key=lambda x: x[1][0],
+                six.iteritems(worsts), key=lambda x: x[1][0],
                 reverse=True)[:context.limit]:
             fp.write('    %20s % 6.02fs %s\n' % (ip, elapsed, xid))
         fp.flush()
     with context.io_manager.with_stdout() as fp:
         averages = {}
-        for ip, timings in timings_dict.iteritems():
+        for ip, timings in six.iteritems(timings_dict):
             averages[ip] = sum(t[0] for t in timings) / len(timings)
         fp.write(
             'Average %s times for up to %d nodes with implied usage:\n' %
             (label, context.limit))
         for ip, elapsed in sorted(
-                averages.iteritems(), key=lambda x: x[1],
+                six.iteritems(averages), key=lambda x: x[1],
                 reverse=True)[:context.limit]:
             fp.write('    %20s % 6.02fs\n' % (ip, elapsed))
         fp.flush()
     total = 0.0
     count = 0
-    for ip, timings in timings_dict.iteritems():
+    for ip, timings in six.iteritems(timings_dict):
         total += sum(t[0] for t in timings)
         count += len(timings)
     threshold = total / count * context.threshold
     counts = collections.defaultdict(lambda: 0)
-    for ip, timings in timings_dict.iteritems():
+    for ip, timings in six.iteritems(timings_dict):
         for t in timings:
             if t[0] > threshold:
                 counts[ip] += 1
@@ -243,12 +245,12 @@ def _cli_ping_ring_report(context, timings_dict, label):
             'Count of %s times past (average * %d) for up to %d nodes with '
             'implied usage:\n' % (label, context.threshold, context.limit))
         for ip, count in sorted(
-                counts.iteritems(), key=lambda x: x[1],
+                six.iteritems(counts), key=lambda x: x[1],
                 reverse=True)[:context.limit]:
             fp.write('    %20s % 6d\n' % (ip, count))
         fp.flush()
     percentages = {}
-    for ip, count in counts.iteritems():
+    for ip, count in six.iteritems(counts):
         percentages[ip] = (
             100.0 * count / len(timings_dict[ip]),
             count, len(timings_dict[ip]))
@@ -258,7 +260,7 @@ def _cli_ping_ring_report(context, timings_dict, label):
             'with implied usage:\n' %
             (label, context.threshold, context.limit))
         for ip, percentage in sorted(
-                percentages.iteritems(), key=lambda x: x[1][0],
+                six.iteritems(percentages), key=lambda x: x[1][0],
                 reverse=True)[:context.limit]:
             fp.write(
                 '    %20s % 6.02f%%  %d of %d\n' %
@@ -286,7 +288,7 @@ def cli_ping(context, prefix):
     ping_ring_object_deletes = collections.defaultdict(lambda: [])
     context.ping_begin = context.ping_begin_last = time.time()
     container = prefix + '-' + uuid.uuid4().hex
-    objects = [uuid.uuid4().hex for x in xrange(context.ping_count)]
+    objects = [uuid.uuid4().hex for x in moves.range(context.ping_count)]
     conc = Concurrency(context.concurrency)
     with context.client_manager.with_client() as client:
         client.auth()
@@ -318,7 +320,7 @@ def cli_ping(context, prefix):
                 'ERROR delete objects did not complete successfully due to '
                 'previous error; but continuing\n')
             fp.flush()
-    for attempt in xrange(5):
+    for attempt in moves.range(5):
         if attempt:
             sleep(2**attempt)
         with context.client_manager.with_client() as client:
@@ -351,13 +353,13 @@ def cli_ping(context, prefix):
         fp.flush()
     ping_ring_overall = collections.defaultdict(lambda: [])
     _cli_ping_ring_report(context, ping_ring_object_puts, 'PUT')
-    for ip, timings in ping_ring_object_puts.iteritems():
+    for ip, timings in six.iteritems(ping_ring_object_puts):
         ping_ring_overall[ip].extend(timings)
     _cli_ping_ring_report(context, ping_ring_object_gets, 'GET')
-    for ip, timings in ping_ring_object_gets.iteritems():
+    for ip, timings in six.iteritems(ping_ring_object_gets):
         ping_ring_overall[ip].extend(timings)
     _cli_ping_ring_report(context, ping_ring_object_deletes, 'DELETE')
-    for ip, timings in ping_ring_object_deletes.iteritems():
+    for ip, timings in six.iteritems(ping_ring_object_deletes):
         ping_ring_overall[ip].extend(timings)
     _cli_ping_ring_report(context, ping_ring_overall, 'overall')
 

@@ -66,6 +66,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import six
 import os
 import time
 
@@ -141,7 +142,7 @@ def cli_get_account_listing(context):
                             item.get('bytes', '-'),
                             item.get('count', '-')))
                     fp.write(item.get(
-                        'name', item.get('subdir')).encode('utf8'))
+                        'name', item.get('subdir')))
                     fp.write('\n')
                 fp.flush()
         if limit:
@@ -227,7 +228,7 @@ def cli_get_container_listing(context, path=None):
             for item in contents:
                 if 'name' in item:
                     for (exc_type, exc_value, exc_tb, result) in \
-                            conc.get_results().itervalues():
+                            six.itervalues(conc.get_results()):
                         if exc_value:
                             conc.join()
                             raise exc_value
@@ -244,7 +245,7 @@ def cli_get_container_listing(context, path=None):
                             item.get('hash', '-'),
                             item.get('content_type', '-')))
                     fp.write(item.get(
-                        'name', item.get('subdir')).encode('utf8'))
+                        'name', item.get('subdir')))
                     fp.write('\n')
                 fp.flush()
         if limit:
@@ -264,7 +265,7 @@ def cli_get_container_listing(context, path=None):
                     'listing container %r: %s %s' % (path, status, reason))
     conc.join()
     for (exc_type, exc_value, exc_tb, result) in \
-            conc.get_results().itervalues():
+        six.itervalues(conc.get_results()):
         if exc_value:
             raise exc_value
 
