@@ -18,7 +18,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import contextlib
-import Queue
+from six.moves import queue
 
 
 class ClientManager(object):
@@ -35,7 +35,7 @@ class ClientManager(object):
         self.client_class = client_class
         self.args = args
         self.kwargs = kwargs
-        self.clients = Queue.Queue()
+        self.clients = queue.Queue()
         self.client_id = 0
 
     def get_client(self):
@@ -46,7 +46,7 @@ class ClientManager(object):
         client = None
         try:
             client = self.clients.get(block=False)
-        except Queue.Empty:
+        except queue.Empty:
             pass
         if not client:
             self.client_id += 1

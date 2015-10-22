@@ -34,9 +34,9 @@ class FileLikeIter(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         """
-        x.next() -> the next value, or raise StopIteration
+        x.__next__() -> the next value, or raise StopIteration
         """
         if self.closed:
             raise ValueError('I/O operation on closed file')
@@ -45,7 +45,7 @@ class FileLikeIter(object):
             self.buf = None
             return rv
         else:
-            return self.iterator.next()
+            return next(self.iterator)
 
     def read(self, size=-1):
         """
@@ -66,7 +66,7 @@ class FileLikeIter(object):
             self.buf = None
         else:
             try:
-                chunk = self.iterator.next()
+                chunk = next(self.iterator)
             except StopIteration:
                 return ''
         if len(chunk) > size:

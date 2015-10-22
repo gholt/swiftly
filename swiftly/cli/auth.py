@@ -37,9 +37,8 @@ def cli_auth(context):
 
     See :py:class:`CLIAuth` for more information.
     """
-    with contextlib.nested(
-            context.io_manager.with_stdout(),
-            context.client_manager.with_client()) as (fp, client):
+    with context.io_manager.with_stdout() as fp, \
+         context.client_manager.with_client() as client:
         info = []
         client.auth()
         if getattr(client, 'auth_cache_path', None):

@@ -15,6 +15,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import six
+from six import moves
 from contextlib import contextmanager
 from errno import EAGAIN
 from fcntl import flock, LOCK_EX, LOCK_NB
@@ -24,7 +26,7 @@ from os import close as os_close, listdir, mkdir, open as os_open, O_CREAT, \
 from os.path import exists, getsize, isdir, isfile, join as path_join, \
     sep as path_sep
 from sqlite3 import connect, Row
-from StringIO import StringIO
+from six.moves import StringIO
 from time import time
 from uuid import uuid4
 
@@ -71,7 +73,7 @@ def lock_dir(path):
     path = path_join(path, '_-lock')
     fd = os_open(path, O_WRONLY | O_CREAT, 0o0600)
     try:
-        for x in xrange(100):
+        for x in moves.range(100):
             try:
                 flock(fd, LOCK_EX | LOCK_NB)
                 break
@@ -127,7 +129,7 @@ class LocalClient(Client):
         """
         if cdn:
             raise Exception('CDN not yet supported with LocalClient')
-        if isinstance(contents, basestring):
+        if isinstance(contents, six.string_types):
             contents = StringIO(contents)
         if not headers:
             headers = {}
@@ -402,7 +404,7 @@ class LocalClient(Client):
                                 object_name = object_name[:index + 1]
                         objects[object_name] = {
                             'name': object_name, 'bytes': object_size}
-                objects = sorted(objects.itervalues(), key=lambda x: x['name'])
+                objects = sorted(six.itervalues(objects), key=lambda x: x['name'])
                 if marker:
                     objects = [o for o in objects if o['name'] > marker]
                 if end_marker:

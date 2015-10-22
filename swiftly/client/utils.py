@@ -16,10 +16,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import six
 import hashlib
 import hmac
 import time
-import urllib
+from six.moves import urllib_parse as parse
 
 
 def generate_temp_url(method, url, seconds, key):
@@ -55,15 +56,15 @@ def get_trans_id_time(trans_id):
 
 def quote(value, safe='/:'):
     """
-    Much like urllib.quote in that it returns a URL encoded string
+    Much like parse.quote in that it returns a URL encoded string
     for the given value, protecting the safe characters; but this
     version also ensures the value is UTF-8 encoded.
     """
-    if isinstance(value, unicode):
+    if isinstance(value, six.text_type):
         value = value.encode('utf8')
-    elif not isinstance(value, basestring):
+    elif not isinstance(value, six.string_types):
         value = str(value)
-    return urllib.quote(value, safe)
+    return parse.quote(value, safe)
 
 
 def headers_to_dict(headers):

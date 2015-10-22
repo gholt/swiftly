@@ -16,7 +16,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from ConfigParser import Error as ConfigParserError, SafeConfigParser
+import six
+from six import moves
+from six.moves.configparser import Error as ConfigParserError, SafeConfigParser
 import functools
 import os
 import sys
@@ -249,7 +251,7 @@ configuration file variables.
             command = self.commands[name]
             lines = command.option_parser.get_usage().split('\n')
             main_line = '  ' + lines[0].split(']', 1)[1].strip()
-            for x in xrange(4):
+            for x in moves.range(4):
                 lines.pop(0)
             for x, line in enumerate(lines):
                 if not line:
@@ -315,12 +317,12 @@ configuration file variables.
         for option_name in (
                 'snet', 'no_snet', 'cache_auth', 'no_cache_auth', 'cdn',
                 'no_cdn', 'eventlet', 'no_eventlet', 'verbose', 'no_verbose'):
-            if isinstance(getattr(options, option_name), basestring):
+            if isinstance(getattr(options, option_name), six.string_types):
                 setattr(
                     options, option_name,
                     getattr(options, option_name).lower() in TRUE_VALUES)
         for option_name in ('retries', 'concurrency'):
-            if isinstance(getattr(options, option_name), basestring):
+            if isinstance(getattr(options, option_name), six.string_types):
                 setattr(
                     options, option_name, int(getattr(options, option_name)))
         if options.snet is None:

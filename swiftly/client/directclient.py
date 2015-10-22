@@ -17,8 +17,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import six
 import json
-import StringIO
+from six.moves import StringIO
 
 from swiftly.client.client import Client
 from swiftly.client.utils import quote, headers_to_dict
@@ -93,7 +94,7 @@ class DirectClient(Client):
             if direct_object_ring:
                 self.oring = swift.common.ring.ring.Ring(direct_object_ring)
                 self.swift_proxy.get_object_ring = get_oring
-        
+
         if eventlet is None:
             try:
                 import eventlet
@@ -125,10 +126,10 @@ class DirectClient(Client):
         if query:
             path += '?' + '&'.join(
                 ('%s=%s' % (quote(k), quote(v)) if v else quote(k))
-                for k, v in sorted(query.iteritems()))
+                for k, v in sorted(six.iteritems(query)))
         reset_func = self._default_reset_func
-        if isinstance(contents, basestring):
-            contents = StringIO.StringIO(contents)
+        if isinstance(contents, six.string_types):
+            contents = StringIO(contents)
         tell = getattr(contents, 'tell', None)
         seek = getattr(contents, 'seek', None)
         if tell and seek:
@@ -148,11 +149,11 @@ class DirectClient(Client):
                 conn_path = self.cdn_path
             else:
                 conn_path = self.storage_path
-            titled_headers = dict((k.title(), v) for k, v in {
-                'User-Agent': self.user_agent}.iteritems())
+            titled_headers = dict((k.title(), v) for k, v in six.iteritems({
+                'User-Agent': self.user_agent}))
             if headers:
                 titled_headers.update(
-                    (k.title(), v) for k, v in headers.iteritems())
+                    (k.title(), v) for k, v in six.iteritems(headers))
             resp = None
             if not hasattr(contents, 'read'):
                 if method not in self.no_content_methods and contents and \
@@ -165,7 +166,7 @@ class DirectClient(Client):
                     environ={'REQUEST_METHOD': method, 'swift_owner': True},
                     headers=titled_headers, body=contents)
                 verbose_headers = '  '.join(
-                    '%s: %s' % (k, v) for k, v in titled_headers.iteritems())
+                    '%s: %s' % (k, v) for k, v in six.iteritems(titled_headers))
                 self.verbose(
                     '> %s %s %s', method, conn_path + path, verbose_headers)
                 resp = req.get_response(self.swift_proxy)
@@ -175,7 +176,7 @@ class DirectClient(Client):
                     environ={'REQUEST_METHOD': method, 'swift_owner': True},
                     headers=titled_headers)
                 content_length = None
-                for h, v in titled_headers.iteritems():
+                for h, v in six.iteritems(titled_headers):
                     if h.lower() == 'content-length':
                         content_length = int(v)
                     req.headers[h] = v
@@ -187,7 +188,7 @@ class DirectClient(Client):
                     req.content_length = content_length
                 req.body_file = contents
                 verbose_headers = '  '.join(
-                    '%s: %s' % (k, v) for k, v in titled_headers.iteritems())
+                    '%s: %s' % (k, v) for k, v in six.iteritems(titled_headers))
                 self.verbose(
                     '> %s %s %s', method, conn_path + path, verbose_headers)
                 resp = req.get_response(self.swift_proxy)
@@ -200,7 +201,7 @@ class DirectClient(Client):
                         return ''.join(resp.app_iter)
                     else:
                         try:
-                            return resp.app_iter.next()
+                            return next(resp.app_iter)
                         except StopIteration:
                             return ''
                 iter_reader.read = iter_reader
