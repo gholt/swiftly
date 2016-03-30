@@ -50,6 +50,9 @@ class FileLikeIter(object):
             return self.iterator.next()
 
     def reset_limit(self):
+        """
+        Resets the limit.
+        """
         self.left = self.limit
 
     def read(self, size=-1):
@@ -134,6 +137,9 @@ class FileLikeIter(object):
         return lines
 
     def is_empty(self):
+        """
+        Check whether the "file" is empty reading the single byte.
+        """
         something = self.read(1)
         if something:
             if self.buf:
