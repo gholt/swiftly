@@ -53,6 +53,7 @@ limitations under the License.
 import six
 import json
 import os
+import time
 
 from swiftly.cli.command import CLICommand, ReturnCode
 from swiftly.concurrency import Concurrency
@@ -198,7 +199,40 @@ def cli_put_object(context, path):
         body = ''
         put_headers['content-length'] = '0'
     elif not context.input_ or context.input_ == '-':
-        body = context.io_manager.get_stdin()
+        stdin = context.io_manager.get_stdin()
+
+        if context.stdin_segmentation:
+            def reader():
+                while True:
+                    chunk = stdin.read(65536)
+                    if chunk:
+                        yield chunk
+                    else:
+                        return
+
+            segment_body = FileLikeIter(reader(), context.segment_size)
+
+            prefix = _create_container(context, path, time.time(), 0)
+            new_context = context.copy()
+            new_context.stdin_segmentation = False
+            new_context.stdin = segment_body
+            new_context.headers = dict(context.headers)
+            segment_n = 0
+            path2info = {}
+            while not segment_body.is_empty():
+                segment_path = _get_segment_path(prefix, segment_n)
+                etag = cli_put_object(new_context, segment_path)
+                size = segment_body.limit - segment_body.left
+                path2info[segment_path] = (size, etag)
+
+                segment_body.reset_limit()
+                segment_n += 1
+            body = _get_manifest_body(context, prefix, path2info, put_headers)
+        else:
+            if hasattr(context, 'stdin'):
+                body = context.stdin
+            else:
+                body = stdin
     elif context.seek is not None:
         if context.encrypt:
             raise ReturnCode(
@@ -249,14 +283,7 @@ def cli_put_object(context, path):
                 raise ReturnCode(
                     'putting object %r: Cannot use encryption for objects '
                     'greater than the segment size' % path)
-            new_context = context.copy()
-            new_context.input_ = None
-            new_context.headers = None
-            new_context.query = None
-            container = path.split('/', 1)[0] + '_segments'
-            cli_put_container(new_context, container)
-            prefix = container + '/' + path.split('/', 1)[1]
-            prefix = '%s/%s/%s/' % (prefix, l_mtime, size)
+            prefix = _create_container(context, path, l_mtime, size)
             conc = Concurrency(context.concurrency)
             start = 0
             segment = 0
@@ -267,7 +294,7 @@ def cli_put_object(context, path):
                 new_context.headers['content-length'] = str(min(
                     size - start, context.segment_size))
                 new_context.seek = start
-                new_path = '%s%08d' % (prefix, segment)
+                new_path = _get_segment_path(prefix, segment)
                 for (ident, (exc_type, exc_value, exc_tb, result)) in \
                         six.iteritems(conc.get_results()):
                     if exc_value:
@@ -284,16 +311,7 @@ def cli_put_object(context, path):
                 if exc_value:
                     raise exc_value
                 path2info[ident] = result
-            if context.static_segments:
-                body = json.dumps([
-                    {'path': '/' + p, 'size_bytes': s, 'etag': e}
-                    for p, (s, e) in sorted(six.iteritems(path2info))])
-                put_headers['content-length'] = str(len(body))
-                context.query['multipart-manifest'] = 'put'
-            else:
-                body = ''
-                put_headers['content-length'] = '0'
-                put_headers['x-object-manifest'] = prefix
+            body = _get_manifest_body(context, prefix, path2info, put_headers)
         else:
             body = open(context.input_, 'rb')
     with context.client_manager.with_client() as client:
@@ -343,6 +361,8 @@ def cli_put_object(context, path):
             if content_length:
                 content_length = int(content_length)
         return content_length, etag
+    if context.stdin is not None:
+        return headers.get('etag')
 
 
 def cli_put(context, path):
@@ -362,6 +382,50 @@ def cli_put(context, path):
         return cli_put_container(context, path)
     else:
         return cli_put_object(context, path)
+
+
+def _get_segment_path(prefix, n):
+    """
+    Returns segment path for nth segment
+    """
+    return '%s%08d' % (prefix, n)
+
+
+def _get_manifest_body(context, prefix, path2info, put_headers):
+    """
+    Returns body for manifest file and modifies put_headers.
+
+    path2info is a dict like {"path": (size, etag)}
+    """
+    if context.static_segments:
+        body = json.dumps([
+            {'path': '/' + p, 'size_bytes': s, 'etag': e}
+            for p, (s, e) in sorted(six.iteritems(path2info))
+        ])
+        put_headers['content-length'] = str(len(body))
+        context.query['multipart-manifest'] = 'put'
+    else:
+        body = ''
+        put_headers['content-length'] = '0'
+        put_headers['x-object-manifest'] = prefix
+
+    return body
+
+
+def _create_container(context, path, l_mtime, size):
+    """
+    Creates container for segments of file with `path`
+    """
+    new_context = context.copy()
+    new_context.input_ = None
+    new_context.headers = None
+    new_context.query = None
+    container = path.split('/', 1)[0] + '_segments'
+    cli_put_container(new_context, container)
+    prefix = container + '/' + path.split('/', 1)[1]
+    prefix = '%s/%s/%s/' % (prefix, l_mtime, size)
+
+    return prefix
 
 
 class CLIPut(CLICommand):
@@ -467,6 +531,10 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
                  'as a segmented object. See full help text for more '
                  'information.')
         self.option_parser.add_option(
+            '--stdin-segmentation', dest='stdin_segmentation', action='store_true',
+            help='Separate STDIN data into segments. This will separate data'
+            'even if segment size is not exceeded.')
+        self.option_parser.add_option(
             '--encrypt', dest='encrypt', metavar='KEY',
             help='Will encrypt the uploaded object data with KEY. This '
                  'currently uses AES 256 in CBC mode but other algorithms may '
@@ -488,6 +556,7 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
             context.segment_size or 5 * 1024 * 1024 * 1024)
         if context.segment_size < 1:
             raise ReturnCode('invalid segment size %s' % options.segment_size)
+        context.stdin_segmentation = options.stdin_segmentation
         context.empty = options.empty
         context.newer = options.newer
         context.different = options.different
