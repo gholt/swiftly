@@ -35,8 +35,6 @@ static_segments  Set to True to use static large object support
                  instead of dynamic large object support.
 ===============  ====================================================
 """
-import select
-
 """
 Copyright 2011-2013 Gregory Holt
 
@@ -54,7 +52,6 @@ limitations under the License.
 """
 import json
 import os
-import time
 
 from swiftly.cli.command import CLICommand, ReturnCode
 from swiftly.concurrency import Concurrency
@@ -191,7 +188,6 @@ def cli_put_object(context, path):
 
     See :py:class:`CLIPut` for more information.
     """
-
     if context.different and context.encrypt:
         raise ReturnCode(
             'context.different will not work properly with context.encrypt '
@@ -201,34 +197,7 @@ def cli_put_object(context, path):
         body = ''
         put_headers['content-length'] = '0'
     elif not context.input_ or context.input_ == '-':
-        stdin = context.io_manager.get_stdin()
-
-        if context.stdin_segmentation:
-            def reader():
-                while True:
-                    chunk = stdin.read(2**20)
-                    if chunk:
-                        yield chunk
-                    else:
-                        return
-
-            body = FileLikeIter(reader(), context.segment_size)
-
-            prefix = _create_container(context, path, time.time(), 0)
-            new_context = context.copy()
-            new_context.stdin_segmentation = False
-            new_context.stdin = body
-            new_context.headers = dict(context.headers)
-            segment = 0
-            while not body.is_empty():
-                cli_put_object(new_context, _segment_path(prefix, segment))
-                segment += 1
-                body.reset_limit()
-        else:
-            if hasattr(context, 'stdin'):
-                body = context.stdin
-            else:
-                body = stdin
+        body = context.io_manager.get_stdin()
     elif context.seek is not None:
         if context.encrypt:
             raise ReturnCode(
@@ -279,7 +248,14 @@ def cli_put_object(context, path):
                 raise ReturnCode(
                     'putting object %r: Cannot use encryption for objects '
                     'greater than the segment size' % path)
-            prefix = _create_container(context, path, l_mtime, size)
+            new_context = context.copy()
+            new_context.input_ = None
+            new_context.headers = None
+            new_context.query = None
+            container = path.split('/', 1)[0] + '_segments'
+            cli_put_container(new_context, container)
+            prefix = container + '/' + path.split('/', 1)[1]
+            prefix = '%s/%s/%s/' % (prefix, l_mtime, size)
             conc = Concurrency(context.concurrency)
             start = 0
             segment = 0
@@ -290,7 +266,7 @@ def cli_put_object(context, path):
                 new_context.headers['content-length'] = str(min(
                     size - start, context.segment_size))
                 new_context.seek = start
-                new_path = _segment_path(prefix, segment)
+                new_path = '%s%08d' % (prefix, segment)
                 for (ident, (exc_type, exc_value, exc_tb, result)) in \
                         conc.get_results().iteritems():
                     if exc_value:
@@ -385,22 +361,6 @@ def cli_put(context, path):
         return cli_put_container(context, path)
     else:
         return cli_put_object(context, path)
-
-
-def _segment_path(prefix, segment):
-    return '%s%08d' % (prefix, segment)
-
-
-def _create_container(context, path, l_mtime, size):
-    new_context = context.copy()
-    new_context.input_ = None
-    new_context.headers = None
-    new_context.query = None
-    container = path.split('/', 1)[0] + '_segments'
-    cli_put_container(new_context, container)
-    prefix = container + '/' + path.split('/', 1)[1]
-    prefix = '%s/%s/%s/' % (prefix, l_mtime, size)
-    return prefix
 
 
 class CLIPut(CLICommand):
@@ -506,10 +466,6 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
                  'as a segmented object. See full help text for more '
                  'information.')
         self.option_parser.add_option(
-            '--stdin-segmentation', dest='stdin_segmentation', action='store_true',
-            help='Separate STDIN data into segments. This will separate data'
-            'even if segment size is not exceeded.')
-        self.option_parser.add_option(
             '--encrypt', dest='encrypt', metavar='KEY',
             help='Will encrypt the uploaded object data with KEY. This '
                  'currently uses AES 256 in CBC mode but other algorithms may '
@@ -531,7 +487,6 @@ http://greg.brim.net/post/2013/05/16/1834.html""".strip())
             context.segment_size or 5 * 1024 * 1024 * 1024)
         if context.segment_size < 1:
             raise ReturnCode('invalid segment size %s' % options.segment_size)
-        context.stdin_segmentation = options.stdin_segmentation
         context.empty = options.empty
         context.newer = options.newer
         context.different = options.different
