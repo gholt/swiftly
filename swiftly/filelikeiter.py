@@ -26,8 +26,10 @@ class FileLikeIter(object):
     OpenStack Foundation.
     """
 
-    def __init__(self, iterable):
+    def __init__(self, iterable, limit=None):
         self.iterator = iter(iterable)
+        self.limit = limit
+        self.left = limit
         self.buf = None
         self.closed = False
 
@@ -47,6 +49,12 @@ class FileLikeIter(object):
         else:
             return next(self.iterator)
 
+    def reset_limit(self):
+        """
+        Resets the limit.
+        """
+        self.left = self.limit
+
     def read(self, size=-1):
         """
         read([size]) -> read at most size bytes, returned as a string.
@@ -55,6 +63,8 @@ class FileLikeIter(object):
         Notice that when in non-blocking mode, less data than what was
         requested may be returned, even if no size parameter was given.
         """
+        if self.left is not None:
+            size = min(size, self.left)
         if self.closed:
             raise ValueError('I/O operation on closed file')
         if size < 0:
@@ -72,6 +82,8 @@ class FileLikeIter(object):
         if len(chunk) > size:
             self.buf = chunk[size:]
             chunk = chunk[:size]
+        if self.left is not None:
+            self.left -= len(chunk)
         return chunk
 
     def readline(self, size=-1):
@@ -123,6 +135,20 @@ class FileLikeIter(object):
                 if sizehint <= 0:
                     break
         return lines
+
+    def is_empty(self):
+        """
+        Check whether the "file" is empty reading the single byte.
+        """
+        something = self.read(1)
+        if something:
+            if self.buf:
+                self.buf = something + self.buf
+            else:
+                self.buf = something
+            return False
+        else:
+            return True
 
     def close(self):
         """
