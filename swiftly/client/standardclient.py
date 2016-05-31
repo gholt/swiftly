@@ -16,18 +16,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import six
 import errno
 import json
 import os
-from six.moves import StringIO
 import tempfile
-from six.moves import urllib_parse as urlparse
+from codecs import decode, encode
 from time import time
-from codecs import encode, decode
 
+import six
 from swiftly.client.client import Client
-from swiftly.client.utils import quote, headers_to_dict
+from swiftly.client.utils import headers_to_dict, quote
+
+from six.moves import urllib_parse as urlparse
+from six.moves import StringIO
 
 
 class StandardClient(Client):
@@ -565,6 +566,7 @@ class StandardClient(Client):
                 hdrs = {}
                 value = None
             self.verbose('< %s %s', status or '-', reason)
+            self.verbose('< %s', hdrs)
             if status == 401:
                 if stream:
                     value.close()
