@@ -38,11 +38,7 @@ class CLIContext(object):
             return None
 
     def __repr__(self):
-        result = super(CLIContext, self).__repr__()
-        for item in dir(self):
-            if item[0] != '_' and item != 'copy':
-                result += '\n    %s = %s' % (item, getattr(self, item))
-        return result
+        return str(vars(self))
 
     def copy(self):
         """

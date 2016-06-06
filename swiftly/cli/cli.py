@@ -16,7 +16,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-from ConfigParser import Error as ConfigParserError, SafeConfigParser
+import six
+from six import moves
+from six.moves.configparser import Error as ConfigParserError, SafeConfigParser
 import functools
 import os
 import sys
@@ -55,6 +57,7 @@ TRUE_VALUES = ['1', 'on', 't', 'true', 'y', 'yes']
 
 
 class CLI(object):
+
     """
     Handles the original command line.
 
@@ -235,13 +238,20 @@ configuration file variables.
             '--no-verbose', dest='no_verbose', action='store_true',
             help='Disables the above verbose value if it had been set true in '
                  'the environment or configuration file.')
+        self.option_parser.add_option(
+            '-O', '--direct-object-ring',
+            dest='direct_object_ring', metavar='PATH',
+            help='The current object ring of the cluster being pinged. This '
+                 'will enable direct client to use this ring for all the '
+                 'queries. Use of this also requires the main Swift code  '
+                 'is installed and importable.')
 
         self.option_parser.raw_epilog = 'Commands:\n'
         for name in sorted(self.commands):
             command = self.commands[name]
             lines = command.option_parser.get_usage().split('\n')
             main_line = '  ' + lines[0].split(']', 1)[1].strip()
-            for x in xrange(4):
+            for x in moves.range(4):
                 lines.pop(0)
             for x, line in enumerate(lines):
                 if not line:
@@ -302,17 +312,17 @@ configuration file variables.
                 'auth_methods', 'region', 'direct', 'local', 'proxy', 'snet',
                 'no_snet', 'retries', 'cache_auth', 'no_cache_auth', 'cdn',
                 'no_cdn', 'concurrency', 'eventlet', 'no_eventlet', 'verbose',
-                'no_verbose'):
+                'no_verbose', 'direct_object_ring'):
             self._resolve_option(options, option_name, 'swiftly')
         for option_name in (
                 'snet', 'no_snet', 'cache_auth', 'no_cache_auth', 'cdn',
                 'no_cdn', 'eventlet', 'no_eventlet', 'verbose', 'no_verbose'):
-            if isinstance(getattr(options, option_name), basestring):
+            if isinstance(getattr(options, option_name), six.string_types):
                 setattr(
                     options, option_name,
                     getattr(options, option_name).lower() in TRUE_VALUES)
         for option_name in ('retries', 'concurrency'):
-            if isinstance(getattr(options, option_name), basestring):
+            if isinstance(getattr(options, option_name), six.string_types):
                 setattr(
                     options, option_name, int(getattr(options, option_name)))
         if options.snet is None:
@@ -383,7 +393,8 @@ configuration file variables.
             self.context.client_manager = ClientManager(
                 DirectClient, swift_proxy_storage_path=options.direct,
                 attempts=options.retries + 1, eventlet=self.context.eventlet,
-                verbose=self._verbose)
+                verbose=self._verbose,
+                direct_object_ring=options.direct_object_ring)
         else:
             auth_cache_path = None
             if options.cache_auth:
@@ -401,7 +412,8 @@ configuration file variables.
                 auth_user=options.auth_user, auth_key=options.auth_key,
                 auth_cache_path=auth_cache_path, region=options.region,
                 snet=options.snet, attempts=options.retries + 1,
-                eventlet=self.context.eventlet, verbose=self._verbose)
+                eventlet=self.context.eventlet, verbose=self._verbose,
+                http_proxy=options.proxy)
 
         self.context.cdn = options.cdn
         self.context.concurrency = int(options.concurrency)

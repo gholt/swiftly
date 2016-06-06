@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+from six import moves
 from os import walk
 from os.path import dirname, join as path_join, sep as path_sep
 from subprocess import Popen
@@ -80,7 +81,7 @@ with open(path_join(topdir, 'doc', 'cli.rst'), 'w') as fp:
     fp.write('=================\n')
     fp.write('\n')
     commands = swiftly.cli.cli.COMMANDS
-    for index in xrange(len(commands)):
+    for index in moves.range(len(commands)):
         name = commands[index].split('.')[2]
         if name == 'help':
             commands[index] = ''
