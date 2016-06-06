@@ -19,14 +19,14 @@ limitations under the License.
 __all__ = ['Concurrency']
 
 import sys
-import Queue
+from six.moves import queue
 
 try:
     from eventlet import GreenPool, sleep, Timeout
 except ImportError:
     GreenPool = None
     sleep = None
-    Timeout = None
+    Timeout = Exception
 
 
 class Concurrency(object):
@@ -43,7 +43,7 @@ class Concurrency(object):
             self._pool = GreenPool(self.concurrency)
         else:
             self._pool = None
-        self._queue = Queue.Queue()
+        self._queue = queue.Queue()
         self._results = {}
 
     def _spawner(self, ident, func, *args, **kwargs):
@@ -95,7 +95,7 @@ class Concurrency(object):
             while True:
                 ident, value = self._queue.get(block=False)
                 self._results[ident] = value
-        except Queue.Empty:
+        except queue.Empty:
             pass
         return self._results
 

@@ -30,6 +30,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import six
 from swiftly.concurrency import Concurrency
 from swiftly.cli.command import CLICommand, ReturnCode
 
@@ -102,7 +103,7 @@ def cli_empty_container(context, path, until_empty=False):
 
     def check_conc():
         for (exc_type, exc_value, exc_tb, result) in \
-                conc.get_results().itervalues():
+                six.itervalues(conc.get_results()):
             if exc_value:
                 with context.io_manager.with_stderr() as fp:
                     fp.write(str(exc_value))

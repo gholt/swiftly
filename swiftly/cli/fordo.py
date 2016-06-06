@@ -50,7 +50,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-import urllib
+import six
+from six.moves import urllib_parse as parse
 
 from swiftly.cli.cli import CLI
 from swiftly.cli.command import CLICommand, ReturnCode
@@ -61,7 +62,7 @@ def _cli_call(context, name, args):
     if context.output_names:
         with context.io_manager.with_stdout() as fp:
             fp.write('Item Name: ')
-            fp.write(urllib.quote(name.encode('utf8')))
+            fp.write(parse.quote(name.encode('utf8')))
             fp.write('\n')
             fp.flush()
     return CLI()(context.original_main_args + args)
@@ -121,7 +122,7 @@ def cli_fordo(context, path=None):
                     'No "<item>" designation found in the "do" clause.')
             args[index] = name
             for (exc_type, exc_value, exc_tb, result) in \
-                    conc.get_results().itervalues():
+                    six.itervalues(conc.get_results()):
                 if exc_value:
                     conc.join()
                     raise exc_value
@@ -131,7 +132,7 @@ def cli_fordo(context, path=None):
             break
     conc.join()
     for (exc_type, exc_value, exc_tb, result) in \
-            conc.get_results().itervalues():
+            six.itervalues(conc.get_results()):
         if exc_value:
             conc.join()
             raise exc_value

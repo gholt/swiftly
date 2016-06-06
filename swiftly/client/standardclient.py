@@ -19,13 +19,16 @@ limitations under the License.
 import errno
 import json
 import os
-import StringIO
 import tempfile
-import urlparse
+from codecs import decode, encode
 from time import time
 
+import six
 from swiftly.client.client import Client
-from swiftly.client.utils import quote, headers_to_dict
+from swiftly.client.utils import headers_to_dict, quote
+
+from six.moves import urllib_parse as urlparse
+from six.moves import StringIO
 
 
 class StandardClient(Client):
@@ -104,7 +107,7 @@ class StandardClient(Client):
         self.default_region = None
         self.storage_url = None
         self.cdn_url = None
-        self.conn_discard = None
+        self.conn_discard = 0
         self.storage_conn = None
         self.storage_path = None
         self.cdn_conn = None
@@ -130,7 +133,7 @@ class StandardClient(Client):
                 except ImportError:
                     pass
             except ImportError:
-                import httplib
+                from six.moves import http_client as httplib
                 self.HTTPConnection = httplib.HTTPConnection
                 self.HTTPSConnection = httplib.HTTPSConnection
                 self.HTTPException = httplib.HTTPException
@@ -141,7 +144,7 @@ class StandardClient(Client):
                 from time import sleep
                 self.sleep = sleep
         else:
-            import httplib
+            from six.moves import http_client as httplib
             self.HTTPConnection = httplib.HTTPConnection
             self.HTTPSConnection = httplib.HTTPSConnection
             self.HTTPException = httplib.HTTPException
@@ -159,14 +162,14 @@ class StandardClient(Client):
                 self.auth_tenant or '', self.region or '', self.storage_url,
                 self.cdn_url or '', self.auth_token, str(self.snet)])
             fp, path = tempfile.mkstemp()
-            os.write(fp, data.encode('base64'))
+            os.write(fp, encode(data.encode('utf-8'), 'base64'))
             os.close(fp)
             os.rename(path, self.auth_cache_path)
 
     def _auth_load_cache(self):
         if self.auth_cache_path:
             try:
-                data = open(self.auth_cache_path, 'r').read().decode('base64')
+                data = decode(open(self.auth_cache_path, 'rb').read(), 'base64').decode('utf-8')
                 data = data.split('\n')
                 if len(data) == 9:
                     (auth_url, auth_user, auth_key, auth_tenant, region,
@@ -342,7 +345,7 @@ class StandardClient(Client):
                 # auth is so huge.
                 # self.verbose('< %s', body)
                 try:
-                    body = json.loads(body)
+                    body = json.loads(body.decode('utf-8'))
                 except ValueError as err:
                     status = 500
                     reason = str(err)
@@ -450,10 +453,10 @@ class StandardClient(Client):
         if query:
             path += '?' + '&'.join(
                 ('%s=%s' % (quote(k), quote(v)) if v else quote(k))
-                for k, v in sorted(query.iteritems()))
+                for k, v in sorted(six.iteritems(query)))
         reset_func = self._default_reset_func
-        if isinstance(contents, basestring):
-            contents = StringIO.StringIO(contents)
+        if isinstance(contents, six.string_types):
+            contents = StringIO(contents)
         tell = getattr(contents, 'tell', None)
         seek = getattr(contents, 'seek', None)
         if tell and seek:
@@ -491,12 +494,12 @@ class StandardClient(Client):
                     raise self.HTTPException(
                         '%s %s failed: No connection' % (method, path))
             self.conn_discard = time() + 4
-            titled_headers = dict((k.title(), v) for k, v in {
+            titled_headers = dict((k.title(), v) for k, v in six.iteritems({
                 'User-Agent': self.user_agent,
-                'X-Auth-Token': self.auth_token}.iteritems())
+                'X-Auth-Token': self.auth_token}))
             if headers:
                 titled_headers.update(
-                    (k.title(), v) for k, v in headers.iteritems())
+                    (k.title(), v) for k, v in six.iteritems(headers))
             try:
                 if not hasattr(contents, 'read'):
                     if method not in self.no_content_methods and contents and \
@@ -506,7 +509,7 @@ class StandardClient(Client):
                             len(contents or ''))
                     verbose_headers = '  '.join(
                         '%s: %s' % (k, v)
-                        for k, v in sorted(titled_headers.iteritems()))
+                        for k, v in sorted(six.iteritems(titled_headers)))
                     self.verbose(
                         '> %s %s %s', method, conn_path + path,
                         verbose_headers)
@@ -515,7 +518,7 @@ class StandardClient(Client):
                 else:
                     conn.putrequest(method, conn_path + path)
                     content_length = None
-                    for h, v in sorted(titled_headers.iteritems()):
+                    for h, v in sorted(six.iteritems(titled_headers)):
                         if h == 'Content-Length':
                             content_length = int(v)
                         conn.putheader(h, v)
@@ -526,7 +529,7 @@ class StandardClient(Client):
                     conn.endheaders()
                     verbose_headers = '  '.join(
                         '%s: %s' % (k, v)
-                        for k, v in sorted(titled_headers.iteritems()))
+                        for k, v in sorted(six.iteritems(titled_headers)))
                     self.verbose(
                         '> %s %s %s', method, conn_path + path,
                         verbose_headers)
@@ -538,7 +541,7 @@ class StandardClient(Client):
                             chunk = contents.read(self.chunk_size)
                         conn.send('0\r\n\r\n')
                     else:
-                        left = content_length
+                        left = content_length or 0
                         while left > 0:
                             size = self.chunk_size
                             if size > left:
@@ -563,6 +566,7 @@ class StandardClient(Client):
                 hdrs = {}
                 value = None
             self.verbose('< %s %s', status or '-', reason)
+            self.verbose('< %s', hdrs)
             if status == 401:
                 if stream:
                     value.close()
@@ -572,7 +576,7 @@ class StandardClient(Client):
             elif status and status // 100 != 5:
                 if not stream and decode_json and status // 100 == 2:
                     if value:
-                        value = json.loads(value)
+                        value = json.loads(value.decode('utf-8'))
                     else:
                         value = None
                 self.conn_discard = time() + 4

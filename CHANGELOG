@@ -1,6 +1,21 @@
 CHANGELOG
 #########
 
+swiftly (2.06)
+**************
+
+    * Full response headers in verbose output
+
+    * Segmentation option for stdin processing
+
+    * Python 3 compatability
+
+    * Added support for container level TempURLs
+
+    * Added ability to provide custom object ring for DirectClient
+
+    * Various smaller bug fixes
+
 swiftly (2.04)
 **************
 
