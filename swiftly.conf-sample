@@ -1,15 +1,15 @@
 [swiftly]
-# auth-url = <url>
+# auth_url = <url>
 #   The URL to the auth system, example:
 #   https://identity.api.rackspacecloud.com/v2.0
-# auth-user = <user>
+# auth_user = <user>
 #   The user name for the auth system, example: test:tester
-# auth-key = <key>
+# auth_key = <key>
 #   The key for the auth system, example: testing
-# auth-tenant = <tenant>
+# auth_tenant = <tenant>
 #   The tenant name for the auth system, example: test
 #   If not specified and needed, the auth user will be used.
-# auth-methods = <name>[,<name>[...]]
+# auth_methods = <name>[,<name>[...]]
 #   Auth methods to use with the auth system, example:
 #   auth2key,auth2password,auth2password_force_tenant,auth1
 #   The best order will try to be determined for you; but if you notice it
@@ -29,7 +29,7 @@
 #   useful with Rackspace Cloud Files and Rackspace ServiceNet.
 # retries = <integer>
 #   Indicates how many times to retry the request on a server error. Default: 4
-# cache-auth = <boolean>
+# cache_auth = <boolean>
 #   If set true, the storage URL and auth token are cached in your OS temporary
 #   directory as <user>.swiftly for reuse. If there are already cached values,
 #   they are used without authenticating first.
@@ -52,3 +52,7 @@
 #   Causes output to standard error indicating actions being taken. These
 #   output lines will be prefixed with VERBOSE and will also include the number
 #   of seconds elapsed since the command started.
+# direct_object_ring = <path>
+#   Custom object ring to be used in direct connect method to access Swift.
+#   The PATH is the custom object ring file path, 
+#   example: /etc/swift/custom-object.ring.gz
