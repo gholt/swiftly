@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Swiftly &mdash; Swiftly 2.05 documentation</title>
+    <title>Swiftly &mdash; Swiftly 2.07 documentation</title>
     
     <link rel="stylesheet" href="_static/brim.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -14,7 +14,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
-        VERSION:     '2.05',
+        VERSION:     '2.07',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -23,7 +23,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Swiftly 2.05 documentation" href="#" />
+    <link rel="top" title="Swiftly 2.07 documentation" href="#" />
     <link rel="next" title="README" href="readme.html" /> 
   </head>
   <body>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="readme.html" title="README"
              accesskey="N">next</a> |</li>
-        <li><a href="#">Swiftly 2.05 documentation</a> &raquo;</li> 
+        <li><a href="#">Swiftly 2.07 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -52,7 +52,7 @@
 <h1>Swiftly<a class="headerlink" href="#swiftly" title="Permalink to this headline">¶</a></h1>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
-<p class="last">Version 2.05 is considered a development version.</p>
+<p class="last">Version 2.07 is considered a development version.</p>
 </div>
 <p>Latest documentation is always available at <a class="reference external" href="http://gholt.github.io/swiftly/">http://gholt.github.io/swiftly/</a></p>
 <p>Source code available at <a class="reference external" href="http://github.com/gholt/swiftly/">http://github.com/gholt/swiftly/</a></p>
@@ -161,7 +161,7 @@ back end servers.</p>
 <h2>Command Line Help<a class="headerlink" href="#command-line-help" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="swiftly-help">
 <h3>swiftly help<a class="headerlink" href="#swiftly-help" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [options] &lt;command&gt; [command_options] [args]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [options] &lt;command&gt; [command_options] [args]
 
 With all these main Swiftly options, you can also specify them in a
 configuration file or in an environment variable.
@@ -213,7 +213,7 @@ Options:
                         Swift. The PATH is the path on the local file system
                         where the fake Swift stores its data.
   -P URL, --proxy=URL   Uses the given HTTP proxy URL.
-  -S, --snet            Prepends the storage URL host name with "snet-".
+  -S, --snet            Prepends the storage URL host name with &quot;snet-&quot;.
                         Mostly only useful with Rackspace Cloud Files and
                         Rackspace ServiceNet.
   --no-snet             Disables the above snet value if it had been set true
@@ -253,18 +253,23 @@ Options:
                         elapsed since the command started.
   --no-verbose          Disables the above verbose value if it had been set
                         true in the environment or configuration file.
+  -O PATH, --direct-object-ring=PATH
+                        The current object ring of the cluster being pinged.
+                        This will enable direct client to use this ring for
+                        all the queries. Use of this also requires the main
+                        Swift code  is installed and importable.
 Commands:
   auth                  Authenticates and then outputs the resulting
                         information.
   decrypt [key]         Decrypts standard input using the given [key] and sends
                         that to standard output. If the key is not provided on
-                        the command line or is a single dash "-", it must be
+                        the command line or is a single dash &quot;-&quot;, it must be
                         provided via a SWIFTLY_CRYPT_KEY environment variable.
   delete [options] [path]
                         Issues a DELETE request of the [path] given.
   encrypt [key]         Encrypts standard input using the given [key] and sends
                         that to standard output. If the key is not provided on
-                        the command line or is a single dash "-", it must be
+                        the command line or is a single dash &quot;-&quot;, it must be
                         provided via a SWIFTLY_CRYPT_KEY environment variable.
   for [options] &lt;path&gt; do [command]
                         This will issue the [command] for each item encountered
@@ -285,18 +290,19 @@ Commands:
   put [options] [path]  Performs a PUT request on the &lt;path&gt; given. If the
                         &lt;path&gt; is an object, the contents for the object are
                         read from standard input.
-  tempurl &lt;method&gt; &lt;path&gt; [seconds]
+  tempurl [options] &lt;method&gt; &lt;path&gt; [seconds]
                         Outputs a TempURL using the information given. The
                         &lt;path&gt; should be to an object or object-prefix.
                         [seconds] defaults to 3600
   trans &lt;x-trans-id-value&gt;
                         Outputs information about the &lt;x-trans-id-value&gt; given,
-                        such as the embedded transaction time.</pre>
+                        such as the embedded transaction time.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-auth">
 <h3>swiftly help auth<a class="headerlink" href="#swiftly-help-auth" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] auth
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] auth
 
 For help on [main_options] run swiftly with no args.
 
@@ -337,29 +343,31 @@ CDN URL:         https://cdn5.clouddrive.com/v1/account
 Auth Token:      abcdef0123456789abcdef0123456789
 
 Options:
-  -?, --help  Shows this help text.</pre>
+  -?, --help  Shows this help text.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-decrypt">
 <h3>swiftly help decrypt<a class="headerlink" href="#swiftly-help-decrypt" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] decrypt [key]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] decrypt [key]
 
 For help on [main_options] run swiftly with no args.
 
 Decrypts standard input using the given [key] and sends that to standard
-output. If the key is not provided on the command line or is a single dash "-",
+output. If the key is not provided on the command line or is a single dash &quot;-&quot;,
 it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
 
 This currently only supports AES 256 in CBC mode but other algorithms may be
 offered in the future.
 
 Options:
-  -?, --help  Shows this help text.</pre>
+  -?, --help  Shows this help text.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-delete">
 <h3>swiftly help delete<a class="headerlink" href="#swiftly-help-delete" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] delete [options] [path]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] delete [options] [path]
 
 For help on [main_options] run swiftly with no args.
 
@@ -370,14 +378,14 @@ Options:
   -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hx-some-header
-                        :some-value -h "X-Some-Other-Header: Some other value"
+                        :some-value -h &quot;X-Some-Other-Header: Some other value&quot;
   -q NAME[=VALUE], --query=NAME[=VALUE]
                         Add a query parameter to the request. This can be used
                         multiple times for multiple query parameters. Example:
                         -qmultipart-manifest=get
   -i PATH, --input=PATH
                         Indicates where to read the DELETE request body from;
-                        use a dash (as in "-i -") to specify standard input
+                        use a dash (as in &quot;-i -&quot;) to specify standard input
                         since DELETEs do not normally take input.
   --recursive           Normally a delete for a non-empty container will error
                         with a 409 Conflict; --recursive will first delete all
@@ -408,73 +416,75 @@ Options:
                         removing the objects from the cluster in the
                         backgound. THERE IS NO GOING BACK!
   --ignore-404          Ignores 404 Not Found responses; the exit code will be
-                        0 instead of 1.</pre>
+                        0 instead of 1.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-encrypt">
 <h3>swiftly help encrypt<a class="headerlink" href="#swiftly-help-encrypt" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] encrypt [key]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] encrypt [key]
 
 For help on [main_options] run swiftly with no args.
 
 Encrypts standard input using the given [key] and sends that to standard
-output. If the key is not provided on the command line or is a single dash "-",
+output. If the key is not provided on the command line or is a single dash &quot;-&quot;,
 it must be provided via a SWIFTLY_CRYPT_KEY environment variable.
 
 This currently uses AES 256 in CBC mode but other algorithms may be offered in
 the future.
 
 Options:
-  -?, --help  Shows this help text.</pre>
+  -?, --help  Shows this help text.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-fordo">
 <h3>swiftly help fordo<a class="headerlink" href="#swiftly-help-fordo" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] for [options] &lt;path&gt; do [command]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] for [options] &lt;path&gt; do [command]
 
 For help on [main_options] run swiftly with no args.
 
 This will issue the [command] for each item encountered performing a listing on
 &lt;path&gt;.
 
-If the &lt;path&gt; is an empty string "" then an account listing is performed and
+If the &lt;path&gt; is an empty string &quot;&quot; then an account listing is performed and
 the [command] will be run for each container listed. Otherwise, the &lt;path&gt; must
 be a container and the [command] will be run for each object listed.
 
-You may include the options listed below before the "do" to change how the
+You may include the options listed below before the &quot;do&quot; to change how the
 listing is performed (prefix queries, limits, etc.)
 
-The "do" keyword separates the [command] from the rest of the "for" expression.
-After the "do" comes the [command] which will have the first instance of
-"&lt;item&gt;" replaced with each item in turn that is in the resulting "for"
-listing. Any additional instances of "&lt;item&gt;" will be left alone, as you might
-be calling a nested "for ... do".
+The &quot;do&quot; keyword separates the [command] from the rest of the &quot;for&quot; expression.
+After the &quot;do&quot; comes the [command] which will have the first instance of
+&quot;&lt;item&gt;&quot; replaced with each item in turn that is in the resulting &quot;for&quot;
+listing. Any additional instances of &quot;&lt;item&gt;&quot; will be left alone, as you might
+be calling a nested &quot;for ... do&quot;.
 
 For example, to head every container for an account:
 
-    swiftly for "" do head "&lt;item&gt;"
+    swiftly for &quot;&quot; do head &quot;&lt;item&gt;&quot;
 
 To head every object in every container for an account:
 
-    swiftly for "" do for "&lt;item&gt;" do head "&lt;item&gt;"
+    swiftly for &quot;&quot; do for &quot;&lt;item&gt;&quot; do head &quot;&lt;item&gt;&quot;
 
 To post to every object in a container, forcing an auto-detected update to
-each's content-type:
+each&#39;s content-type:
 
-    swiftly for my_container do post -hx-detect-content-type:true "&lt;item&gt;"
+    swiftly for my_container do post -hx-detect-content-type:true &quot;&lt;item&gt;&quot;
 
 To head every object in a container, but only those with the name prefix of
-"under_here/":
+&quot;under_here/&quot;:
 
-    swiftly for -p under_here/ my_container do head "&lt;item&gt;"
+    swiftly for -p under_here/ my_container do head &quot;&lt;item&gt;&quot;
 
 Options:
   -?, --help            Shows this help text.
   -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hif-
-                        match:6f432df40167a4af05ca593acc6b3e4c -h "If-
-                        Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+                        match:6f432df40167a4af05ca593acc6b3e4c -h &quot;If-
+                        Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT&quot;
   -q NAME[=VALUE], --query=NAME[=VALUE]
                         Add a query parameter to the request. This can be used
                         multiple times for multiple query parameters. Example:
@@ -487,10 +497,10 @@ Options:
   -d DELIMITER, --delimiter=DELIMITER
                         For account and container GETs, this sets the
                         delimiter for the listing retrieved. For example, a
-                        container with the objects "abc/one", "abc/two", "xyz"
-                        and a delimiter of "/" would return "abc/" and "xyz".
-                        Using the same delimiter, but with a prefix of "abc/",
-                        would return "abc/one" and "abc/two".
+                        container with the objects &quot;abc/one&quot;, &quot;abc/two&quot;, &quot;xyz&quot;
+                        and a delimiter of &quot;/&quot; would return &quot;abc/&quot; and &quot;xyz&quot;.
+                        Using the same delimiter, but with a prefix of &quot;abc/&quot;,
+                        would return &quot;abc/one&quot; and &quot;abc/two&quot;.
   -p PREFIX, --prefix=PREFIX
                         For account and container GETs, this sets the prefix
                         for the listing retrieved; the items returned will all
@@ -509,16 +519,17 @@ Options:
                         output, and the exit code will be 0 instead of 1.
   --output-names        Outputs the name of each item just before calling
                         [command] with it. To ensure easier parsing, the name
-                        will be url encoded and prefixed with "Item Name: ".
+                        will be url encoded and prefixed with &quot;Item Name: &quot;.
                         For commands that have output of their own, this is
                         usually only useful with single concurrency; otherwise
                         the item names and the command output will get
-                        interspersed and impossible to associate.</pre>
+                        interspersed and impossible to associate.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-get">
 <h3>swiftly help get<a class="headerlink" href="#swiftly-help-get" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] get [options] [path]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] get [options] [path]
 
 For help on [main_options] run swiftly with no args.
 
@@ -531,8 +542,8 @@ Options:
   -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hif-
-                        match:6f432df40167a4af05ca593acc6b3e4c -h "If-
-                        Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+                        match:6f432df40167a4af05ca593acc6b3e4c -h &quot;If-
+                        Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT&quot;
   -q NAME[=VALUE], --query=NAME[=VALUE]
                         Add a query parameter to the request. This can be used
                         multiple times for multiple query parameters. Example:
@@ -545,10 +556,10 @@ Options:
   -d DELIMITER, --delimiter=DELIMITER
                         For account and container GETs, this sets the
                         delimiter for the listing retrieved. For example, a
-                        container with the objects "abc/one", "abc/two", "xyz"
-                        and a delimiter of "/" would return "abc/" and "xyz".
-                        Using the same delimiter, but with a prefix of "abc/",
-                        would return "abc/one" and "abc/two".
+                        container with the objects &quot;abc/one&quot;, &quot;abc/two&quot;, &quot;xyz&quot;
+                        and a delimiter of &quot;/&quot; would return &quot;abc/&quot; and &quot;xyz&quot;.
+                        Using the same delimiter, but with a prefix of &quot;abc/&quot;,
+                        would return &quot;abc/one&quot; and &quot;abc/two&quot;.
   -p PREFIX, --prefix=PREFIX
                         For account and container GETs, this sets the prefix
                         for the listing retrieved; the items returned will all
@@ -571,7 +582,7 @@ Options:
                         etag, content-type, and object-name. Note that this is
                         mostly useless for --cdn queries; for those it is best
                         to just use --raw and parse the results yourself
-                        (perhaps through "python -m json.tool").
+                        (perhaps through &quot;python -m json.tool&quot;).
   -r, --raw             For account and container GETs, this will return the
                         raw JSON from the request. This will only do one
                         request, even if subsequent requests would be needed
@@ -587,7 +598,7 @@ Options:
                         sent for every GET.
   -o PATH, --output=PATH
                         Indicates where to send the output; default is
-                        standard output. If the PATH ends with a slash "/" and
+                        standard output. If the PATH ends with a slash &quot;/&quot; and
                         --all-objects is used, each object will be placed in a
                         similarly named file inside the PATH given.
   --ignore-404          Ignores 404 Not Found responses. Nothing will be
@@ -595,13 +606,13 @@ Options:
   --sub-command=COMMAND
                         Sends the contents of each object downloaded as
                         standard input to the COMMAND given and outputs the
-                        command's standard output as if it were the object's
+                        command&#39;s standard output as if it were the object&#39;s
                         contents. This can be useful in combination with
                         --all-objects to filter the objects before writing
                         them to disk; for instance, downloading logs,
                         gunzipping them, grepping for a keyword, and only
-                        storing matching lines locally (--sub-command "gunzip
-                        | grep keyword" or --sub-command "zgrep keyword" if
+                        storing matching lines locally (--sub-command &quot;gunzip
+                        | grep keyword&quot; or --sub-command &quot;zgrep keyword&quot; if
                         your system has that).
   --remove-empty-files  Removes files that result as empty. This can be useful
                         in conjunction with --sub-command so you are left only
@@ -609,14 +620,15 @@ Options:
   --decrypt=KEY         Will decrypt the downloaded object data with KEY. This
                         currently only supports AES 256 in CBC mode but other
                         algorithms may be offered in the future. You may
-                        specify a single dash "-" as the KEY and instead the
+                        specify a single dash &quot;-&quot; as the KEY and instead the
                         KEY will be loaded from the SWIFTLY_CRYPT_KEY
-                        environment variable.</pre>
+                        environment variable.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-head">
 <h3>swiftly help head<a class="headerlink" href="#swiftly-help-head" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] head [options] [path]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] head [options] [path]
 
 For help on [main_options] run swiftly with no args.
 
@@ -628,19 +640,20 @@ Options:
   -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hif-
-                        match:6f432df40167a4af05ca593acc6b3e4c -h "If-
-                        Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT"
+                        match:6f432df40167a4af05ca593acc6b3e4c -h &quot;If-
+                        Modified-Since: Wed, 23 Nov 2011 20:03:38 GMT&quot;
   -q NAME[=VALUE], --query=NAME[=VALUE]
                         Add a query parameter to the request. This can be used
                         multiple times for multiple query parameters. Example:
                         -qmultipart-manifest=get
   --ignore-404          Ignores 404 Not Found responses. Nothing will be
-                        output, but the exit code will be 0 instead of 1.</pre>
+                        output, but the exit code will be 0 instead of 1.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-ping">
 <h3>swiftly help ping<a class="headerlink" href="#swiftly-help-ping" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] ping [options] [path]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] ping [options] [path]
 
 For help on [main_options] run swiftly with no args.
 
@@ -666,15 +679,16 @@ Options:
                         reports. This will define the value of x, defaults to
                         2.
   -g PREFIX, --graphite=PREFIX
-                        Switches to "graphite" output. The output will be
-                        lines of "PREFIX.metric value timestamp" suitable for
+                        Switches to &quot;graphite&quot; output. The output will be
+                        lines of &quot;PREFIX.metric value timestamp&quot; suitable for
                         piping to graphite (through netcat or something
-                        similar).</pre>
+                        similar).
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-post">
 <h3>swiftly help post<a class="headerlink" href="#swiftly-help-post" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] post [options] [path]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] post [options] [path]
 
 For help on [main_options] run swiftly with no args.
 
@@ -686,20 +700,21 @@ Options:
   -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hx-object-meta-
-                        color:blue -h "Content-Type: text/html"
+                        color:blue -h &quot;Content-Type: text/html&quot;
   -q NAME[=VALUE], --query=NAME[=VALUE]
                         Add a query parameter to the request. This can be used
                         multiple times for multiple query parameters. Example:
                         -qmultipart-manifest=get
   -i PATH, --input=PATH
                         Indicates where to read the POST request body from;
-                        use a dash (as in "-i -") to specify standard input
-                        since POSTs to Swift do not normally take input.</pre>
+                        use a dash (as in &quot;-i -&quot;) to specify standard input
+                        since POSTs to Swift do not normally take input.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-put">
 <h3>swiftly help put<a class="headerlink" href="#swiftly-help-put" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] put [options] [path]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] put [options] [path]
 
 For help on [main_options] run swiftly with no args.
 
@@ -721,16 +736,16 @@ size, speed up uploading large objects with concurrent segment uploading, and
 provide the option to replace, insert, and delete segments within a whole
 object without having to alter or reupload any of the other segments.
 
-The main object of a segmented object is called the "manifest object". This
+The main object of a segmented object is called the &quot;manifest object&quot;. This
 object just has an X-Object-Manifest header that points to another path where
 the segments for the object contents are stored. For Swiftly, this header value
-is auto-generated as the same name as the manifest object, but with "_segments"
+is auto-generated as the same name as the manifest object, but with &quot;_segments&quot;
 added to the container name. This keeps the segments out of the main container
 listing, which is often useful.
 
-By default, Swift's dynamic large object support is used since it was
-implemented first. However, if you prefix the [size] with an 's', as in '-s
-s1048576' Swiftly will use static large object support. These static large
+By default, Swift&#39;s dynamic large object support is used since it was
+implemented first. However, if you prefix the [size] with an &#39;s&#39;, as in &#39;-s
+s1048576&#39; Swiftly will use static large object support. These static large
 objects are very similar as described above, except the manifest contains a
 static list of the object segments. For more information on the tradeoffs, see
 http://greg.brim.net/post/2013/05/16/1834.html
@@ -740,7 +755,7 @@ Options:
   -h HEADER:VALUE, -H HEADER:VALUE, --header=HEADER:VALUE
                         Add a header to the request. This can be used multiple
                         times for multiple headers. Examples: -hx-object-meta-
-                        color:blue -h "Content-Type: text/html"
+                        color:blue -h &quot;Content-Type: text/html&quot;
   -q NAME[=VALUE], --query=NAME[=VALUE]
                         Add a query parameter to the request. This can be used
                         multiple times for multiple query parameters. Example:
@@ -750,8 +765,8 @@ Options:
                         standard input. If the PATH is a directory, all files
                         in the directory will be uploaded as similarly named
                         objects and empty directories will create
-                        text/directory marker objects. Use a dash (as in "-i
-                        -") to specify standard input for account and
+                        text/directory marker objects. Use a dash (as in &quot;-i
+                        -&quot;) to specify standard input for account and
                         container PUTs, as those do not normally take input.
                         This is useful with -qextract-archive=&lt;format&gt; bulk
                         upload requests. For example: tar zc . | swiftly put
@@ -784,17 +799,20 @@ Options:
                         Indicates the maximum size of an object before
                         uploading it as a segmented object. See full help text
                         for more information.
+  --stdin-segmentation  Separate STDIN data into segments. This will separate
+                        dataeven if segment size is not exceeded.
   --encrypt=KEY         Will encrypt the uploaded object data with KEY. This
                         currently uses AES 256 in CBC mode but other
                         algorithms may be offered in the future. You may
-                        specify a single dash "-" as the KEY and instead the
+                        specify a single dash &quot;-&quot; as the KEY and instead the
                         KEY will be loaded from the SWIFTLY_CRYPT_KEY
-                        environment variable.</pre>
+                        environment variable.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-tempurl">
 <h3>swiftly help tempurl<a class="headerlink" href="#swiftly-help-tempurl" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] tempurl &lt;method&gt; &lt;path&gt; [seconds]
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] tempurl [options] &lt;method&gt; &lt;path&gt; [seconds]
 
 For help on [main_options] run swiftly with no args.
 
@@ -803,12 +821,14 @@ The &lt;path&gt; should be to an object or object-prefix.
 [seconds] defaults to 3600
 
 Options:
-  -?, --help  Shows this help text.</pre>
+  -?, --help           Shows this help text.
+  -c, --use_container  Create TempURL using container key.
+</pre></div>
 </div>
 </div>
 <div class="section" id="swiftly-help-trans">
 <h3>swiftly help trans<a class="headerlink" href="#swiftly-help-trans" title="Permalink to this headline">¶</a></h3>
-<div class="highlight-python"><pre>Usage: swiftly [main_options] trans &lt;x-trans-id-value&gt;
+<div class="highlight-python"><div class="highlight"><pre>Usage: swiftly [main_options] trans &lt;x-trans-id-value&gt;
 
 For help on [main_options] run swiftly with no args.
 
@@ -816,7 +836,8 @@ Outputs information about the &lt;x-trans-id-value&gt; given, such as the embedd
 transaction time.
 
 Options:
-  -?, --help  Shows this help text.</pre>
+  -?, --help  Shows this help text.
+</pre></div>
 </div>
 </div>
 </div>
@@ -831,9 +852,7 @@ Options:
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Swiftly</a><ul>
-<li><a class="reference internal" href="#api">API</a><ul>
-</ul>
-</li>
+<li><a class="reference internal" href="#api">API</a></li>
 <li><a class="reference internal" href="#overview">Overview</a></li>
 <li><a class="reference internal" href="#dependencies">Dependencies</a></li>
 <li><a class="reference internal" href="#client-class-usage">Client Class Usage</a></li>
@@ -894,12 +913,12 @@ Options:
         <li class="right" >
           <a href="readme.html" title="README"
              >next</a> |</li>
-        <li><a href="#">Swiftly 2.05 documentation</a> &raquo;</li> 
+        <li><a href="#">Swiftly 2.07 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011-2014, Gregory Holt.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
     </div>
   </body>
 </html>
