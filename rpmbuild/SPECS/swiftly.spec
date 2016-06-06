@@ -39,7 +39,7 @@ rm -rf %{buildroot}
 %{python_sitelib}/%{name}-%{version}-*.egg-info
 
 %changelog
-* Tue Jun  6 2014 Gregory Holt <greg@brim.net> - 2.06-1
+* Tue Jun  6 2016 Gregory Holt <greg@brim.net> - 2.06-1
 - Bug fixes; See http://gholt.github.io/swiftly/2.06/changelog.html
 * Tue Apr 22 2014 Gregory Holt <greg@brim.net> - 2.04-1
 - Bug fixes; See http://gholt.github.io/swiftly/2.04/changelog.html
