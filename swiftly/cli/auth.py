@@ -37,50 +37,50 @@ def cli_auth(context):
 
     See :py:class:`CLIAuth` for more information.
     """
-    with context.io_manager.with_stdout() as fp, \
-         context.client_manager.with_client() as client:
-        info = []
-        client.auth()
-        if getattr(client, 'auth_cache_path', None):
-            info.append(('Auth Cache', client.auth_cache_path))
-        if getattr(client, 'auth_url', None):
-            info.append(('Auth URL', client.auth_url))
-        if getattr(client, 'auth_user', None):
-            info.append(('Auth User', client.auth_user))
-        if getattr(client, 'auth_key', None):
-            info.append(('Auth Key', client.auth_key))
-        if getattr(client, 'auth_tenant', None):
-            info.append(('Auth Tenant', client.auth_tenant))
-        if getattr(client, 'auth_methods', None):
-            info.append(('Auth Methods', client.auth_methods))
-        if getattr(client, 'storage_path', None):
-            info.append(('Direct Storage Path', client.storage_path))
-        if getattr(client, 'cdn_path', None):
-            info.append(('Direct CDN Path', client.cdn_path))
-        if getattr(client, 'local_path', None):
-            info.append(('Local Path', client.local_path))
-        if getattr(client, 'regions', None):
-            info.append(('Regions', ' '.join(client.regions)))
-        if getattr(client, 'default_region', None):
-            info.append(('Default Region', client.default_region))
-        if getattr(client, 'region', None):
-            info.append(('Selected Region', client.region))
-        if getattr(client, 'snet', None):
-            info.append(('SNet', client.snet))
-        if getattr(client, 'storage_url', None):
-            info.append(('Storage URL', client.storage_url))
-        if getattr(client, 'cdn_url', None):
-            info.append(('CDN URL', client.cdn_url))
-        if getattr(client, 'auth_token', None):
-            info.append(('Auth Token', client.auth_token))
-        if not info:
-            info.append((
-                'No auth information available',
-                'Maybe no credentials were provided?'))
-        fmt = '%%-%ds %%s\n' % (max(len(t) for t, v in info) + 1)
-        for t, v in info:
-            fp.write(fmt % (t + ':', v))
-        fp.flush()
+    with context.io_manager.with_stdout() as fp:
+        with context.client_manager.with_client() as client:
+            info = []
+            client.auth()
+            if getattr(client, 'auth_cache_path', None):
+                info.append(('Auth Cache', client.auth_cache_path))
+            if getattr(client, 'auth_url', None):
+                info.append(('Auth URL', client.auth_url))
+            if getattr(client, 'auth_user', None):
+                info.append(('Auth User', client.auth_user))
+            if getattr(client, 'auth_key', None):
+                info.append(('Auth Key', client.auth_key))
+            if getattr(client, 'auth_tenant', None):
+                info.append(('Auth Tenant', client.auth_tenant))
+            if getattr(client, 'auth_methods', None):
+                info.append(('Auth Methods', client.auth_methods))
+            if getattr(client, 'storage_path', None):
+                info.append(('Direct Storage Path', client.storage_path))
+            if getattr(client, 'cdn_path', None):
+                info.append(('Direct CDN Path', client.cdn_path))
+            if getattr(client, 'local_path', None):
+                info.append(('Local Path', client.local_path))
+            if getattr(client, 'regions', None):
+                info.append(('Regions', ' '.join(client.regions)))
+            if getattr(client, 'default_region', None):
+                info.append(('Default Region', client.default_region))
+            if getattr(client, 'region', None):
+                info.append(('Selected Region', client.region))
+            if getattr(client, 'snet', None):
+                info.append(('SNet', client.snet))
+            if getattr(client, 'storage_url', None):
+                info.append(('Storage URL', client.storage_url))
+            if getattr(client, 'cdn_url', None):
+                info.append(('CDN URL', client.cdn_url))
+            if getattr(client, 'auth_token', None):
+                info.append(('Auth Token', client.auth_token))
+            if not info:
+                info.append((
+                    'No auth information available',
+                    'Maybe no credentials were provided?'))
+            fmt = '%%-%ds %%s\n' % (max(len(t) for t, v in info) + 1)
+            for t, v in info:
+                fp.write(fmt % (t + ':', v))
+            fp.flush()
 
 
 class CLIAuth(CLICommand):
