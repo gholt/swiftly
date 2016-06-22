@@ -23,4 +23,4 @@ setup(
     author='Gregory Holt', author_email='swiftly@brim.net',
     url='http://gholt.github.com/swiftly/',
     packages=['swiftly', 'swiftly.cli', 'swiftly.client'],
-    scripts=['bin/swiftly'])
+    scripts=['bin/swiftly'], install_requires=['six'])
