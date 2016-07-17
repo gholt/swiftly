@@ -245,6 +245,9 @@ configuration file variables.
                  'will enable direct client to use this ring for all the '
                  'queries. Use of this also requires the main Swift code  '
                  'is installed and importable.')
+        self.option_parser.add_option(
+            '-k', '--insecure', dest='insecure', action='store_true',
+            help='Allows "insecure" SSL connections for python >= 2.7.9')
 
         self.option_parser.raw_epilog = 'Commands:\n'
         for name in sorted(self.commands):
@@ -312,11 +315,12 @@ configuration file variables.
                 'auth_methods', 'region', 'direct', 'local', 'proxy', 'snet',
                 'no_snet', 'retries', 'cache_auth', 'no_cache_auth', 'cdn',
                 'no_cdn', 'concurrency', 'eventlet', 'no_eventlet', 'verbose',
-                'no_verbose', 'direct_object_ring'):
+                'no_verbose', 'direct_object_ring', 'insecure'):
             self._resolve_option(options, option_name, 'swiftly')
         for option_name in (
                 'snet', 'no_snet', 'cache_auth', 'no_cache_auth', 'cdn',
-                'no_cdn', 'eventlet', 'no_eventlet', 'verbose', 'no_verbose'):
+                'no_cdn', 'eventlet', 'no_eventlet', 'verbose', 'no_verbose',
+                'insecure'):
             if isinstance(getattr(options, option_name), six.string_types):
                 setattr(
                     options, option_name,
@@ -349,6 +353,8 @@ configuration file variables.
             options.verbose = False
         if options.no_verbose is None:
             options.no_verbose = False
+        if options.insecure is None:
+            options.insecure = False
 
         self.context.eventlet = None
         if options.eventlet:
@@ -413,7 +419,7 @@ configuration file variables.
                 auth_cache_path=auth_cache_path, region=options.region,
                 snet=options.snet, attempts=options.retries + 1,
                 eventlet=self.context.eventlet, verbose=self._verbose,
-                http_proxy=options.proxy)
+                http_proxy=options.proxy, insecure=options.insecure)
 
         self.context.cdn = options.cdn
         self.context.concurrency = int(options.concurrency)
