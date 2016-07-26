@@ -80,7 +80,7 @@ class StandardClient(Client):
                  auth_user=None, auth_key=None, auth_cache_path=None,
                  region=None, snet=False, attempts=5, eventlet=None,
                  chunk_size=65536, http_proxy=None, verbose=None,
-                 verbose_id=''):
+                 verbose_id='', insecure=False):
         super(StandardClient, self).__init__()
         self.auth_methods = auth_methods
         self.auth_url = auth_url.rstrip('/') if auth_url else None
@@ -150,6 +150,15 @@ class StandardClient(Client):
             self.HTTPException = httplib.HTTPException
             from time import sleep
             self.sleep = sleep
+
+        if insecure:
+            import ssl
+            try:
+                ssl._create_default_https_context = \
+                    ssl._create_unverified_context
+            except AttributeError:
+                # Legacy Python doesn't verify HTTPS certificates by default
+                pass
         self._auth_load_cache()
 
     def _auth_save_cache(self):
