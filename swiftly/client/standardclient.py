@@ -617,4 +617,6 @@ class StandardClient(Client):
         """
         See :py:func:`swiftly.client.client.Client.get_account_hash`
         """
+        if not(self.storage_url or self.storage_path):
+            self.auth()
         return (self.storage_url or self.storage_path).rsplit('/', 1)[1]
