@@ -74,13 +74,15 @@ class StandardClient(Client):
     :param verbose_id: Set to a string you wish verbose messages to
         be prepended with; can help in identifying output when
         multiple Clients are in use.
+    :param bypass_url: The URL to override the storage and CDN URL
+        received during authentication.
     """
 
     def __init__(self, auth_methods=None, auth_url=None, auth_tenant=None,
                  auth_user=None, auth_key=None, auth_cache_path=None,
                  region=None, snet=False, attempts=5, eventlet=None,
                  chunk_size=65536, http_proxy=None, verbose=None,
-                 verbose_id='', insecure=False):
+                 verbose_id='', insecure=False, bypass_url=None):
         super(StandardClient, self).__init__()
         self.auth_methods = auth_methods
         self.auth_url = auth_url.rstrip('/') if auth_url else None
@@ -93,6 +95,7 @@ class StandardClient(Client):
         self.attempts = attempts
         self.chunk_size = chunk_size
         self.http_proxy = http_proxy
+        self.bypass_url = bypass_url.rstrip('/') if bypass_url else None
         if verbose:
             self.verbose = lambda m, *a, **k: verbose(
                 self._verbose_id + m, *a, **k)
@@ -428,6 +431,10 @@ class StandardClient(Client):
                 if not self.storage_url:
                     self.auth()
                 url = self.storage_url
+
+            if self.bypass_url:
+                self.verbose('Bypassing %s with %s', url, self.bypass_url)
+                url = self.bypass_url
         parsed = urlparse.urlparse(url) if url else None
         http_proxy_parsed = \
             urlparse.urlparse(self.http_proxy) if self.http_proxy else None

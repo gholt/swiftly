@@ -179,6 +179,9 @@ configuration file variables.
             '-P', '--proxy', dest='proxy', metavar='URL',
             help='Uses the given HTTP proxy URL.')
         self.option_parser.add_option(
+            '-B', '--bypass-url', dest='bypass_url', metavar='URL',
+            help='Override Swift endpoint URL provided during authentication.')
+        self.option_parser.add_option(
             '-S', '--snet', dest='snet', action='store_true',
             help='Prepends the storage URL host name with "snet-". Mostly '
                  'only useful with Rackspace Cloud Files and Rackspace '
@@ -315,7 +318,7 @@ configuration file variables.
                 'auth_methods', 'region', 'direct', 'local', 'proxy', 'snet',
                 'no_snet', 'retries', 'cache_auth', 'no_cache_auth', 'cdn',
                 'no_cdn', 'concurrency', 'eventlet', 'no_eventlet', 'verbose',
-                'no_verbose', 'direct_object_ring', 'insecure'):
+                'no_verbose', 'direct_object_ring', 'insecure', 'bypass_url'):
             self._resolve_option(options, option_name, 'swiftly')
         for option_name in (
                 'snet', 'no_snet', 'cache_auth', 'no_cache_auth', 'cdn',
@@ -419,7 +422,8 @@ configuration file variables.
                 auth_cache_path=auth_cache_path, region=options.region,
                 snet=options.snet, attempts=options.retries + 1,
                 eventlet=self.context.eventlet, verbose=self._verbose,
-                http_proxy=options.proxy, insecure=options.insecure)
+                http_proxy=options.proxy, insecure=options.insecure,
+                bypass_url=options.bypass_url)
 
         self.context.cdn = options.cdn
         self.context.concurrency = int(options.concurrency)
